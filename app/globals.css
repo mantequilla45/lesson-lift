@@ -1,26 +1,55 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --color-primary: #FFCC33;
+  --color-secondary: #7D89D8;
+  --color-dark: #1C1B1B;
+  --color-surface: #FFFFFF;
+
+  --font-sans: var(--font-manrope), Arial, Helvetica, sans-serif;
+  --font-headline: var(--font-jakarta), Arial, Helvetica, sans-serif;
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+body {
+  background: #F8F8F8;
+  color: #1C1B1B;
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+.bold-border {
+  border: 2px solid #1C1B1B;
+}
+
+.neo-shadow {
+  box-shadow: 6px 6px 0px 0px #1C1B1B;
+}
+
+.neo-shadow-sm {
+  box-shadow: 4px 4px 0px 0px #1C1B1B;
+}
+
+.scribble-highlight {
+  position: relative;
+  z-index: 1;
+}
+
+.scribble-highlight::after {
+  content: "";
+  position: absolute;
+  bottom: 2px;
+  left: -2px;
+  right: -2px;
+  height: 40%;
+  background: rgba(255, 204, 51, 0.4);
+  z-index: -1;
+  border-radius: 2px;
+}
+
+@keyframes loading-slide {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(500%); }
+}
+
+.loading-bar-fill {
+  animation: loading-slide 1.2s ease-in-out infinite;
 }

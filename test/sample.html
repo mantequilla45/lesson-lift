@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>ComprehendAI - Generator</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800&amp;family=Manrope:wght@400;500;600;700&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "on-primary-fixed-variant": "#594400",
+                        "on-surface-variant": "#4e4633",
+                        "primary-container": "#ffcc33",
+                        "tertiary-fixed-dim": "#ffafd3",
+                        "surface-container-high": "#eae7e7",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-container-low": "#f6f3f2",
+                        "surface-tint": "#755b00",
+                        "primary": "#755b00",
+                        "surface-container": "#f0eded",
+                        "inverse-surface": "#313030",
+                        "primary-fixed": "#ffdf92",
+                        "secondary": "#415ba5",
+                        "surface-variant": "#e5e2e1",
+                        "tertiary-container": "#ffc1db",
+                        "inverse-on-surface": "#f3f0ef",
+                        "surface-container-highest": "#e5e2e1",
+                        "secondary-fixed": "#dbe1ff",
+                        "on-tertiary-container": "#9e2c6e",
+                        "tertiary-fixed": "#ffd8e7",
+                        "on-error": "#ffffff",
+                        "on-primary-fixed": "#241a00",
+                        "on-secondary-fixed": "#00174c",
+                        "on-tertiary": "#ffffff",
+                        "on-background": "#1c1b1b",
+                        "surface-bright": "#fcf9f8",
+                        "surface": "#fcf9f8",
+                        "error": "#ba1a1a",
+                        "surface-dim": "#dcd9d9",
+                        "inverse-primary": "#f2c025",
+                        "on-tertiary-fixed-variant": "#85145a",
+                        "outline": "#807661",
+                        "secondary-container": "#95aeff",
+                        "primary-fixed-dim": "#f2c025",
+                        "on-secondary-fixed-variant": "#27428c",
+                        "outline-variant": "#d2c5ad",
+                        "error-container": "#ffdad6",
+                        "on-secondary": "#ffffff",
+                        "on-primary-container": "#705700",
+                        "on-primary": "#ffffff",
+                        "secondary-fixed-dim": "#b4c5ff",
+                        "on-tertiary-fixed": "#3d0026",
+                        "tertiary": "#a43073",
+                        "on-surface": "#1c1b1b",
+                        "background": "#fcf9f8",
+                        "on-secondary-container": "#233f88",
+                        "on-error-container": "#93000a"
+                    },
+                    fontFamily: {
+                        "headline": ["Plus Jakarta Sans"],
+                        "body": ["Manrope"],
+                        "label": ["Manrope"]
+                    },
+                    borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+    <style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+
+        .neo-shadow {
+            box-shadow: 4px 4px 0px 0px #1c1b1b;
+        }
+
+        .neo-shadow-sm {
+            box-shadow: 2px 2px 0px 0px #1c1b1b;
+        }
+
+        .scribble-underline {
+            position: relative;
+        }
+
+        .scribble-underline::after {
+            content: '';
+            position: absolute;
+            bottom: -4px;
+            left: 0;
+            width: 100%;
+            height: 8px;
+            background-image: url("data:image/svg+xml,%3Csvg width='100' height='10' viewBox='0 0 100 10' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M3 7C25 4 75 4 97 7' stroke='%23a43073' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");
+            background-size: cover;
+            z-index: -1;
+        }
+    </style>
+</head>
+
+<body class="bg-surface font-body text-on-surface min-h-screen flex flex-col">
+    <!-- Top Navigation Bar -->
+    <header class="bg-[#fcf9f8] dark:bg-[#1c1b1b] border-b-2 border-[#1c1b1b] dark:border-[#ffcc33] sticky top-0 z-50">
+        <nav class="flex justify-between items-center w-full px-6 py-4 max-w-none">
+            <div class="flex items-center gap-8">
+                <span
+                    class="text-2xl font-black text-[#1c1b1b] dark:text-[#fcf9f8] font-headline tracking-tight">ComprehendAI</span>
+                <div class="hidden md:flex gap-6">
+                    <a class="font-headline font-bold tracking-tight text-[#1c1b1b] dark:text-[#fcf9f8] opacity-70 hover:bg-[#ffcc33] hover:text-[#1c1b1b] transition-colors duration-200"
+                        href="#">Dashboard</a>
+                    <a class="font-headline font-bold tracking-tight text-[#1c1b1b] dark:text-[#fcf9f8] opacity-70 hover:bg-[#ffcc33] hover:text-[#1c1b1b] transition-colors duration-200"
+                        href="#">My Texts</a>
+                    <a class="font-headline font-bold tracking-tight text-[#1c1b1b] dark:text-[#fcf9f8] opacity-70 hover:bg-[#ffcc33] hover:text-[#1c1b1b] transition-colors duration-200"
+                        href="#">Curriculum</a>
+                    <a class="font-headline font-bold tracking-tight text-[#1c1b1b] dark:text-[#fcf9f8] opacity-70 hover:bg-[#ffcc33] hover:text-[#1c1b1b] transition-colors duration-200"
+                        href="#">Resources</a>
+                </div>
+            </div>
+            <div class="flex items-center gap-4">
+                <button
+                    class="material-symbols-outlined text-on-surface hover:bg-[#ffcc33] p-2 transition-colors">notifications</button>
+                <button
+                    class="material-symbols-outlined text-on-surface hover:bg-[#ffcc33] p-2 transition-colors">settings</button>
+                <button
+                    class="bg-primary-container text-on-background px-4 py-2 border-2 border-on-background font-headline font-bold neo-shadow-sm scale-95 active:scale-90 transition-transform">New
+                    Generator</button>
+            </div>
+        </nav>
+    </header>
+    <div class="flex flex-1 overflow-hidden">
+        <!-- Side Navigation -->
+        <aside
+            class="hidden md:flex flex-col h-full w-64 border-r-2 border-[#1c1b1b] bg-[#fcf9f8] dark:bg-[#1c1b1b] shadow-[4px_0px_0px_0px_rgba(28,27,27,1)] shrink-0">
+            <div class="p-6 border-b-2 border-on-background">
+                <div class="flex items-center gap-3">
+                    <div
+                        class="w-10 h-10 bg-secondary-container border-2 border-on-background flex items-center justify-center">
+                        <span class="material-symbols-outlined">school</span>
+                    </div>
+                    <div>
+                        <p class="font-headline font-bold text-[#1c1b1b]">Edu-Pro Tool</p>
+                        <p class="text-xs font-semibold opacity-70">Premium Teacher Edition</p>
+                    </div>
+                </div>
+            </div>
+            <nav class="flex-1 py-4">
+                <div
+                    class="bg-[#ffcc33] text-[#1c1b1b] border-2 border-[#1c1b1b] mx-2 my-1 px-4 py-3 flex items-center gap-3 font-semibold hover:translate-x-1 transition-transform">
+                    <span class="material-symbols-outlined">auto_awesome</span>
+                    <span>Generator</span>
+                </div>
+                <div
+                    class="text-[#1c1b1b] dark:text-[#fcf9f8] px-4 py-3 flex items-center gap-3 font-semibold hover:translate-x-1 transition-transform opacity-80">
+                    <span class="material-symbols-outlined">auto_stories</span>
+                    <span>Library</span>
+                </div>
+                <div
+                    class="text-[#1c1b1b] dark:text-[#fcf9f8] px-4 py-3 flex items-center gap-3 font-semibold hover:translate-x-1 transition-transform opacity-80">
+                    <span class="material-symbols-outlined">analytics</span>
+                    <span>Analytics</span>
+                </div>
+                <div
+                    class="text-[#1c1b1b] dark:text-[#fcf9f8] px-4 py-3 flex items-center gap-3 font-semibold hover:translate-x-1 transition-transform opacity-80">
+                    <span class="material-symbols-outlined">help_outline</span>
+                    <span>Help</span>
+                </div>
+            </nav>
+            <div class="p-4 mt-auto">
+                <button
+                    class="w-full py-3 bg-on-background text-on-primary font-bold border-2 border-on-background neo-shadow-sm mb-4">Upgrade
+                    Plan</button>
+                <div class="flex items-center gap-3 px-4 py-3 text-error font-bold cursor-pointer">
+                    <span class="material-symbols-outlined">logout</span>
+                    <span>Sign Out</span>
+                </div>
+            </div>
+        </aside>
+        <!-- Main Content Area -->
+        <main class="flex-1 overflow-y-auto p-8 bg-surface-container-low">
+            <div class="max-w-5xl mx-auto">
+                <!-- Header Section -->
+                <div class="mb-10">
+                    <h1 class="text-5xl font-headline font-extrabold tracking-tight text-on-background mb-4">
+                        Comprehension <span class="scribble-underline">Generator</span>
+                    </h1>
+                    <p class="text-lg text-on-surface-variant max-w-2xl font-body">Create bespoke literacy activities
+                        tailored to your students in seconds. Structured for teachers, designed for learning.</p>
+                </div>
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                    <!-- Left Column: Settings -->
+                    <div class="lg:col-span-7 space-y-8">
+                        <!-- Step 1: Core Configuration -->
+                        <section class="bg-surface border-2 border-on-background p-6 neo-shadow">
+                            <h2 class="font-headline font-bold text-xl mb-6 flex items-center gap-2">
+                                <span
+                                    class="w-8 h-8 bg-primary-container border-2 border-on-background flex items-center justify-center text-sm">1</span>
+                                Context &amp; Core
+                            </h2>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div class="space-y-2">
+                                    <label
+                                        class="font-headline font-bold text-sm uppercase tracking-wider text-on-surface-variant">Curriculum</label>
+                                    <div class="relative">
+                                        <select
+                                            class="w-full bg-surface border-2 border-on-background p-3 appearance-none font-bold focus:ring-0 focus:border-primary-container rounded-none">
+                                            <option>National Curriculum (UK)</option>
+                                            <option>Common Core (US)</option>
+                                            <option>IB Primary Years</option>
+                                        </select>
+                                        <span
+                                            class="material-symbols-outlined absolute right-3 top-3 pointer-events-none">expand_more</span>
+                                    </div>
+                                </div>
+                                <div class="space-y-2">
+                                    <label
+                                        class="font-headline font-bold text-sm uppercase tracking-wider text-on-surface-variant">Year
+                                        Group</label>
+                                    <div class="relative">
+                                        <select
+                                            class="w-full bg-surface border-2 border-on-background p-3 appearance-none font-bold focus:ring-0 focus:border-primary-container rounded-none">
+                                            <option>Year 3 (Ages 7-8)</option>
+                                            <option>Year 4 (Ages 8-9)</option>
+                                            <option>Year 5 (Ages 9-10)</option>
+                                            <option>Year 6 (Ages 10-11)</option>
+                                        </select>
+                                        <span
+                                            class="material-symbols-outlined absolute right-3 top-3 pointer-events-none">expand_more</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+                        <!-- Step 2: Content Source -->
+                        <section class="bg-surface border-2 border-on-background p-6 neo-shadow">
+                            <h2 class="font-headline font-bold text-xl mb-6 flex items-center gap-2">
+                                <span
+                                    class="w-8 h-8 bg-secondary-container border-2 border-on-background flex items-center justify-center text-sm text-white">2</span>
+                                Text Source
+                            </h2>
+                            <div class="flex flex-col md:flex-row gap-4 mb-6">
+                                <button
+                                    class="flex-1 bg-primary-container border-2 border-on-background p-4 flex flex-col items-center gap-2 group transition-all neo-shadow-sm">
+                                    <span class="material-symbols-outlined text-3xl">auto_fix_high</span>
+                                    <span class="font-headline font-bold">Generate for me</span>
+                                </button>
+                                <button
+                                    class="flex-1 bg-surface border-2 border-on-background p-4 flex flex-col items-center gap-2 opacity-60 hover:opacity-100 transition-all">
+                                    <span class="material-symbols-outlined text-3xl">upload_file</span>
+                                    <span class="font-headline font-bold">Use my own text</span>
+                                </button>
+                            </div>
+                            <div class="space-y-4">
+                                <div class="space-y-2">
+                                    <label class="font-headline font-bold text-sm text-on-surface-variant">Topic or
+                                        Prompt</label>
+                                    <input
+                                        class="w-full bg-surface-container border-2 border-on-background p-3 font-medium rounded-none focus:bg-surface focus:ring-0"
+                                        placeholder="e.g. The life of Mary Seacole during the Crimean War"
+                                        type="text" />
+                                </div>
+                                <div class="space-y-2">
+                                    <label class="font-headline font-bold text-sm text-on-surface-variant">Complexity
+                                        Level</label>
+                                    <div class="flex gap-2">
+                                        <button
+                                            class="px-4 py-2 border-2 border-on-background bg-surface-container-highest font-bold text-xs uppercase">Simple</button>
+                                        <button
+                                            class="px-4 py-2 border-2 border-on-background bg-primary-container font-bold text-xs uppercase">Standard</button>
+                                        <button
+                                            class="px-4 py-2 border-2 border-on-background bg-surface-container-highest font-bold text-xs uppercase">Challenging</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+                    </div>
+                    <!-- Right Column: Focus & Action -->
+                    <div class="lg:col-span-5 space-y-8">
+                        <!-- Step 3: Learning Objectives -->
+                        <section
+                            class="bg-secondary text-white border-2 border-on-background p-6 neo-shadow h-full flex flex-col">
+                            <h2 class="font-headline font-bold text-xl mb-6 flex items-center gap-2">
+                                <span
+                                    class="w-8 h-8 bg-tertiary border-2 border-on-background flex items-center justify-center text-sm">3</span>
+                                Reading Focus
+                            </h2>
+                            <div class="flex-1 space-y-6">
+                                <div class="flex flex-wrap gap-2">
+                                    <div
+                                        class="bg-primary-container text-on-background border-2 border-on-background px-4 py-2 flex items-center gap-2 font-bold text-sm">
+                                        Vocabulary
+                                        <span class="material-symbols-outlined text-base">check_circle</span>
+                                    </div>
+                                    <div
+                                        class="bg-surface-container-low text-on-background border-2 border-on-background px-4 py-2 flex items-center gap-2 font-bold text-sm opacity-90">
+                                        Inference
+                                    </div>
+                                    <div
+                                        class="bg-surface-container-low text-on-background border-2 border-on-background px-4 py-2 flex items-center gap-2 font-bold text-sm opacity-90">
+                                        Prediction
+                                    </div>
+                                    <div
+                                        class="bg-primary-container text-on-background border-2 border-on-background px-4 py-2 flex items-center gap-2 font-bold text-sm">
+                                        Explanation
+                                        <span class="material-symbols-outlined text-base">check_circle</span>
+                                    </div>
+                                    <div
+                                        class="bg-surface-container-low text-on-background border-2 border-on-background px-4 py-2 flex items-center gap-2 font-bold text-sm opacity-90">
+                                        Retrieval
+                                    </div>
+                                    <div
+                                        class="bg-surface-container-low text-on-background border-2 border-on-background px-4 py-2 flex items-center gap-2 font-bold text-sm opacity-90">
+                                        Summarising
+                                    </div>
+                                </div>
+                                <div class="bg-on-background/10 border border-white/20 p-4 space-y-4">
+                                    <div class="flex justify-between items-center">
+                                        <span class="font-headline font-bold">Questions Per Focus</span>
+                                        <div
+                                            class="flex items-center gap-4 bg-white text-on-background border-2 border-on-background p-1">
+                                            <button
+                                                class="w-8 h-8 flex items-center justify-center hover:bg-surface-container-high">-</button>
+                                            <span class="font-black text-xl w-6 text-center">5</span>
+                                            <button
+                                                class="w-8 h-8 flex items-center justify-center hover:bg-surface-container-high">+</button>
+                                        </div>
+                                    </div>
+                                    <div class="flex justify-between items-center">
+                                        <span class="font-headline font-bold">Include Answer Key</span>
+                                        <div
+                                            class="w-12 h-6 bg-primary-container border-2 border-on-background relative flex items-center">
+                                            <div class="w-4 h-4 bg-on-background absolute right-1"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="mt-auto pt-6">
+                                    <button
+                                        class="w-full bg-primary-container text-on-background border-2 border-on-background py-5 font-headline font-extrabold text-xl neo-shadow uppercase tracking-tighter hover:bg-[#ffdf92] transition-colors active:translate-x-1 active:translate-y-1 active:shadow-none">
+                                        Generate Activity
+                                    </button>
+                                    <p class="text-center text-xs mt-4 opacity-70 font-bold uppercase tracking-widest">
+                                        Est. 15 seconds to create</p>
+                                </div>
+                            </div>
+                        </section>
+                        <!-- Decorative Bento Mini-Card -->
+                        <div class="grid grid-cols-2 gap-4">
+                            <div
+                                class="bg-tertiary-container border-2 border-on-background p-4 neo-shadow-sm flex flex-col gap-2 relative overflow-hidden">
+                                <span
+                                    class="material-symbols-outlined text-on-tertiary-container text-4xl">lightbulb</span>
+                                <p class="font-headline font-bold text-on-tertiary-container leading-tight">AI Hint: Try
+                                    focusing on retrieval for year 3 students.</p>
+                                <div class="absolute -right-4 -bottom-4 opacity-10">
+                                    <span class="material-symbols-outlined text-8xl"
+                                        style="font-variation-settings: 'FILL' 1;">lightbulb</span>
+                                </div>
+                            </div>
+                            <div
+                                class="bg-[#1c1b1b] border-2 border-on-background p-4 neo-shadow-sm flex flex-col justify-center items-center text-center">
+                                <span class="text-primary-container font-black text-3xl">4.9/5</span>
+                                <p class="text-white text-[10px] font-bold uppercase tracking-widest">Teacher Rating</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Preview Grid (Placeholder) -->
+                <div class="mt-16 mb-20">
+                    <h3 class="font-headline font-bold text-2xl mb-8 flex items-center gap-3">
+                        <span class="material-symbols-outlined text-tertiary">history</span>
+                        Recent Generations
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div
+                            class="group relative bg-surface border-2 border-on-background p-2 transition-all hover:-translate-y-1">
+                            <div
+                                class="aspect-video bg-surface-container overflow-hidden border-b-2 border-on-background">
+                                <img class="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all"
+                                    data-alt="close-up of ancient egyptian papyrus with hieroglyphics in warm desert light with dusty atmosphere"
+                                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuC8FZyBajuvRvMV8AOwRER24JqsIDKdbq7Oas6IRmYkGh8QZ6IJ-9LV6xSN5jr08wwHel83beyAQ4aHneGyya4unp-SSXHy9sTBjw0UjMlZeK9uh3wQyG0CyilPkSmnoxoTLu5kuVWkdoCCN493W_K5tLGNH1Z1FDRe2gP-RW_WCan6fOjJNyY1GVy6u5zcS4M2L2t0TGIs1uzj2f7PZKva9wcUSN8kism2Fq2PM4ZOtMbZZvUAl_DzQGllY8-qvqRdRT_DY12jSw" />
+                            </div>
+                            <div class="p-4">
+                                <p class="text-xs font-bold text-secondary uppercase mb-1">Retrieval • Year 4</p>
+                                <p class="font-headline font-bold">The Nile Civilization</p>
+                            </div>
+                        </div>
+                        <div
+                            class="group relative bg-surface border-2 border-on-background p-2 transition-all hover:-translate-y-1">
+                            <div
+                                class="aspect-video bg-surface-container overflow-hidden border-b-2 border-on-background">
+                                <img class="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all"
+                                    data-alt="magical sunlit forest with tall ancient trees and glowing particles in soft focus background"
+                                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuDbxXUEdgtUn5YgSkNEf7j_mpcTmg2hCtLW7iEsXLwYALh_iAJPyb8EWAUT7qgNzrBBcOVWDQ-_ndiQMXrzsb9RAZgZgeJoWcVi-BJQ92N3tOc1DUMWrF-mEIXcEhNpDCdW8iDpJN9FsXxCgkmxPvKtpmXK-hHWxSMkDaR3kG2T8EQxDjUh_9J7BccBTsDAzy3GNqkM4Vfrc8m4sxo6ytn15feYUHolYPhWI8A_j1Yi93_52If-ib-n-d-PJiI_ghG5E7K-XvX33Q" />
+                            </div>
+                            <div class="p-4">
+                                <p class="text-xs font-bold text-tertiary uppercase mb-1">Inference • Year 6</p>
+                                <p class="font-headline font-bold">Into the Enchanted Woods</p>
+                            </div>
+                        </div>
+                        <div
+                            class="group relative bg-surface border-2 border-on-background p-2 transition-all hover:-translate-y-1">
+                            <div
+                                class="aspect-video bg-surface-container overflow-hidden border-b-2 border-on-background">
+                                <img class="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all"
+                                    data-alt="futuristic laboratory with robotic arms and glowing blue interfaces in a clean sterile environment"
+                                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuAWqBXX2gKb_mIjleF5SOH2p6Qy0z6zirY5sCmpaX6tofgjothmGhkApJWU7TcCzRlnssINRLRu5WuYLmcC5uWcnmxIBjFHRSpbRzMq7P-TEYk-og-g5D7b6AfmEdb4qQ4Bxz-mM6nQfKrxzLv9iNafTSr6TMi4FRWwhfeJNv8CmE1LjvmTowUxH_o67l9Ss3F5COh8fLp0vKi_sUCUHru_joP0R6-7tVXWEbAQMGh0NOTPbrUzyDnw1_zR-tEZHFFMKYifIVBlmw" />
+                            </div>
+                            <div class="p-4">
+                                <p class="text-xs font-bold text-primary uppercase mb-1">Vocabulary • Year 5</p>
+                                <p class="font-headline font-bold">The Future of Robotics</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    <!-- Footer -->
+    <footer class="bg-[#1c1b1b] dark:bg-[#000000] border-t-2 border-[#ffcc33] mt-auto">
+        <div class="flex flex-col md:flex-row justify-between items-center px-8 py-12 w-full">
+            <div class="mb-6 md:mb-0">
+                <span class="font-headline font-black text-[#ffcc33] text-xl">ComprehendAI</span>
+                <p class="text-[#fcf9f8] opacity-80 font-body text-sm mt-2">© 2024 ComprehendAI - The Structured
+                    Playground for Educators</p>
+            </div>
+            <div class="flex gap-8">
+                <a class="text-[#fcf9f8] opacity-80 hover:text-[#ffcc33] transition-colors font-body text-sm"
+                    href="#">Privacy Policy</a>
+                <a class="text-[#fcf9f8] opacity-80 hover:text-[#ffcc33] transition-colors font-body text-sm"
+                    href="#">Terms of Service</a>
+                <a class="text-[#fcf9f8] opacity-80 hover:text-[#ffcc33] transition-colors font-body text-sm"
+                    href="#">Contact Support</a>
+            </div>
+        </div>
+    </footer>
+</body>
+
+</html>

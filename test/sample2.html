@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>ComprehendAI - Generator</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800&amp;family=Manrope:wght@400;500;600;700&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#FFCC33", // Bright Yellow from reference
+                        "secondary": "#7D89D8", // Blue-ish purple from reference
+                        "dark": "#1C1B1B",
+                        "surface": "#FFFFFF",
+                    },
+                    fontFamily: {
+                        "headline": ["Plus Jakarta Sans", "sans-serif"],
+                        "body": ["Manrope", "sans-serif"],
+                    },
+                    borderWidth: {
+                        '3': '3px',
+                    }
+                },
+            },
+        }
+    </script>
+    <style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+
+        .bold-border {
+            border: 2px solid #1C1B1B;
+        }
+
+        .neo-shadow {
+            box-shadow: 6px 6px 0px 0px #1C1B1B;
+        }
+
+        .neo-shadow-sm {
+            box-shadow: 4px 4px 0px 0px #1C1B1B;
+        }
+
+        /* Custom selection style to match reference image 4 focus */
+        .scribble-highlight {
+            position: relative;
+            z-index: 1;
+        }
+
+        .scribble-highlight::after {
+            content: "";
+            position: absolute;
+            bottom: 2px;
+            left: -2px;
+            right: -2px;
+            height: 40%;
+            background: rgba(255, 204, 51, 0.4);
+            z-index: -1;
+            border-radius: 2px;
+        }
+    </style>
+</head>
+
+<body class="bg-[#F8F8F8] font-body text-dark min-h-screen flex flex-col">
+    <!-- Navigation -->
+    <header class="bg-white border-b-2 border-dark sticky top-0 z-50">
+        <nav class="flex justify-between items-center w-full px-8 py-4 max-w-7xl mx-auto">
+            <div class="flex items-center gap-12">
+                <span class="text-2xl font-black font-headline tracking-tighter">ComprehendAI</span>
+                <div class="hidden md:flex gap-8">
+                    <a class="font-headline font-bold text-sm uppercase tracking-tight hover:text-primary transition-colors"
+                        href="#">Dashboard</a>
+                    <a class="font-headline font-bold text-sm uppercase tracking-tight hover:text-primary transition-colors"
+                        href="#">My Texts</a>
+                    <a class="font-headline font-bold text-sm uppercase tracking-tight hover:text-primary transition-colors"
+                        href="#">Curriculum</a>
+                </div>
+            </div>
+            <div class="flex items-center gap-4">
+                <div class="flex items-center gap-2 mr-4 border-l-2 border-dark pl-6">
+                    <span class="material-symbols-outlined">account_circle</span>
+                    <span class="font-bold text-sm">Teacher Pro</span>
+                </div>
+                <button
+                    class="bg-primary bold-border px-4 py-2 font-headline font-extrabold text-sm uppercase neo-shadow-sm hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all">
+                    Settings
+                </button>
+            </div>
+        </nav>
+    </header>
+    <main class="flex-1 max-w-7xl mx-auto w-full p-8 md:p-12">
+        <!-- Header -->
+        <div class="mb-12 text-center md:text-left">
+            <h1 class="text-5xl md:text-6xl font-headline font-black tracking-tighter mb-4">
+                Comprehension <span class="scribble-highlight">Generator</span>
+            </h1>
+            <p class="text-xl font-medium max-w-2xl text-dark/70">
+                Create bespoke literacy activities tailored to your students in seconds.
+                Structured for teachers, designed for learning.
+            </p>
+        </div>
+        <!-- Generator Interface -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-10">
+            <!-- Left Section: Content Inputs -->
+            <div class="lg:col-span-7 space-y-10">
+                <!-- Step 1: Context -->
+                <section class="bg-white bold-border p-8 neo-shadow">
+                    <div class="flex items-center gap-4 mb-8">
+                        <span
+                            class="w-10 h-10 bg-primary bold-border flex items-center justify-center font-black text-lg">1</span>
+                        <h2 class="font-headline font-black text-2xl uppercase tracking-tight">Context &amp; Core</h2>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div class="space-y-3">
+                            <label
+                                class="font-headline font-black text-xs uppercase tracking-widest text-dark/50">Curriculum</label>
+                            <div class="relative">
+                                <select
+                                    class="w-full bg-white bold-border p-4 font-bold appearance-none focus:ring-0 rounded-none">
+                                    <option>National Curriculum (UK)</option>
+                                    <option>Common Core (US)</option>
+                                    <option>IB Primary Years</option>
+                                </select>
+                                <span
+                                    class="material-symbols-outlined absolute right-4 top-4 pointer-events-none">expand_more</span>
+                            </div>
+                        </div>
+                        <div class="space-y-3">
+                            <label class="font-headline font-black text-xs uppercase tracking-widest text-dark/50">Year
+                                Group</label>
+                            <div class="relative">
+                                <select
+                                    class="w-full bg-white bold-border p-4 font-bold appearance-none focus:ring-0 rounded-none">
+                                    <option>Year 3 (Ages 7-8)</option>
+                                    <option>Year 4 (Ages 8-9)</option>
+                                    <option>Year 5 (Ages 9-10)</option>
+                                    <option>Year 6 (Ages 10-11)</option>
+                                </select>
+                                <span
+                                    class="material-symbols-outlined absolute right-4 top-4 pointer-events-none">expand_more</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+                <!-- Step 2: Source -->
+                <section class="bg-white bold-border p-8 neo-shadow">
+                    <div class="flex items-center gap-4 mb-8">
+                        <span
+                            class="w-10 h-10 bg-secondary text-white bold-border flex items-center justify-center font-black text-lg">2</span>
+                        <h2 class="font-headline font-black text-2xl uppercase tracking-tight">Text Source</h2>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4 mb-8">
+                        <button
+                            class="bg-primary bold-border p-6 flex flex-col items-center gap-3 group transition-all neo-shadow-sm">
+                            <span class="material-symbols-outlined text-3xl">auto_fix_high</span>
+                            <span class="font-headline font-black uppercase text-sm">Generate for me</span>
+                        </button>
+                        <button
+                            class="bg-white bold-border p-6 flex flex-col items-center gap-3 opacity-40 hover:opacity-100 transition-all">
+                            <span class="material-symbols-outlined text-3xl">upload_file</span>
+                            <span class="font-headline font-black uppercase text-sm">Use my own text</span>
+                        </button>
+                    </div>
+                    <div class="space-y-6">
+                        <div class="space-y-3">
+                            <label class="font-headline font-black text-xs uppercase tracking-widest text-dark/50">Topic
+                                or Prompt</label>
+                            <input
+                                class="w-full bg-[#F3F3F3] bold-border p-4 font-bold placeholder:text-dark/30 focus:bg-white focus:ring-0 rounded-none"
+                                placeholder="e.g. The life of Mary Seacole during the Crimean War" type="text" />
+                        </div>
+                        <div class="space-y-3">
+                            <label
+                                class="font-headline font-black text-xs uppercase tracking-widest text-dark/50">Complexity
+                                Level</label>
+                            <div class="flex flex-wrap gap-3">
+                                <button
+                                    class="px-6 py-3 bold-border font-black text-xs uppercase hover:bg-primary transition-colors">Simple</button>
+                                <button
+                                    class="px-6 py-3 bold-border bg-primary font-black text-xs uppercase">Standard</button>
+                                <button
+                                    class="px-6 py-3 bold-border font-black text-xs uppercase hover:bg-primary transition-colors">Challenging</button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+            <!-- Right Section: Focus & Generation -->
+            <div class="lg:col-span-5 h-full">
+                <section class="bg-secondary text-white bold-border p-8 neo-shadow h-full flex flex-col">
+                    <div class="flex items-center gap-4 mb-10">
+                        <span
+                            class="w-10 h-10 bg-white text-dark bold-border flex items-center justify-center font-black text-lg">3</span>
+                        <h2 class="font-headline font-black text-2xl uppercase tracking-tight">Reading Focus</h2>
+                    </div>
+                    <div class="flex-1 space-y-10">
+                        <!-- Chip Group -->
+                        <div class="flex flex-wrap gap-3">
+                            <div
+                                class="bg-primary text-dark bold-border px-4 py-3 flex items-center gap-2 font-black text-xs uppercase">
+                                Vocabulary <span class="material-symbols-outlined text-sm">check_circle</span>
+                            </div>
+                            <div
+                                class="bg-white text-dark bold-border px-4 py-3 font-black text-xs uppercase opacity-90 cursor-pointer hover:bg-primary transition-colors">
+                                Inference
+                            </div>
+                            <div
+                                class="bg-white text-dark bold-border px-4 py-3 font-black text-xs uppercase opacity-90 cursor-pointer hover:bg-primary transition-colors">
+                                Prediction
+                            </div>
+                            <div
+                                class="bg-primary text-dark bold-border px-4 py-3 flex items-center gap-2 font-black text-xs uppercase">
+                                Explanation <span class="material-symbols-outlined text-sm">check_circle</span>
+                            </div>
+                            <div
+                                class="bg-white text-dark bold-border px-4 py-3 font-black text-xs uppercase opacity-90 cursor-pointer hover:bg-primary transition-colors">
+                                Retrieval
+                            </div>
+                            <div
+                                class="bg-white text-dark bold-border px-4 py-3 font-black text-xs uppercase opacity-90 cursor-pointer hover:bg-primary transition-colors">
+                                Summarising
+                            </div>
+                        </div>
+                        <!-- Options Group -->
+                        <div class="bg-dark/10 bold-border p-6 space-y-6">
+                            <div class="flex justify-between items-center">
+                                <span class="font-headline font-black uppercase text-xs tracking-widest">Questions Per
+                                    Focus</span>
+                                <div class="flex items-center gap-4 bg-white text-dark bold-border p-1">
+                                    <button
+                                        class="w-10 h-10 flex items-center justify-center hover:bg-primary font-black transition-colors">-</button>
+                                    <span class="font-black text-xl w-6 text-center">5</span>
+                                    <button
+                                        class="w-10 h-10 flex items-center justify-center hover:bg-primary font-black transition-colors">+</button>
+                                </div>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="font-headline font-black uppercase text-xs tracking-widest">Include Answer
+                                    Key</span>
+                                <div
+                                    class="w-14 h-8 bg-white bold-border relative flex items-center cursor-pointer p-1">
+                                    <div class="w-6 h-6 bg-primary bold-border absolute right-1"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Action -->
+                        <div class="pt-8">
+                            <button
+                                class="w-full bg-primary text-dark bold-border py-6 font-headline font-black text-2xl uppercase tracking-tighter neo-shadow hover:translate-x-[4px] hover:translate-y-[4px] hover:shadow-none transition-all">
+                                Generate Activity
+                            </button>
+                            <p class="text-center text-[10px] mt-6 font-black uppercase tracking-[0.2em] opacity-60">
+                                Estimated time: 15 seconds</p>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </main>
+    <!-- Simple Footer -->
+    <footer class="bg-dark text-white border-t-2 border-primary py-12 px-8 mt-20">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8">
+            <div>
+                <span
+                    class="font-headline font-black text-primary text-xl tracking-tighter uppercase">ComprehendAI</span>
+                <p class="text-white/50 text-xs mt-2 font-medium">© 2024 The Structured Playground for Educators</p>
+            </div>
+            <div class="flex gap-10">
+                <a class="text-xs font-black uppercase tracking-widest hover:text-primary" href="#">Privacy</a>
+                <a class="text-xs font-black uppercase tracking-widest hover:text-primary" href="#">Terms</a>
+                <a class="text-xs font-black uppercase tracking-widest hover:text-primary" href="#">Support</a>
+            </div>
+        </div>
+    </footer>
+</body>
+
+</html>
