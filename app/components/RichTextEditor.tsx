@@ -23,7 +23,8 @@ export default function RichTextEditor({ value, onChange }: RichTextEditorProps)
     ],
     content: value,
     onUpdate({ editor }) {
-      onChange(editor.storage.markdown.getMarkdown());
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      onChange((editor.storage as any).markdown.getMarkdown());
     },
     editorProps: {
       attributes: {
@@ -35,7 +36,8 @@ export default function RichTextEditor({ value, onChange }: RichTextEditorProps)
   // Sync if value changes externally (e.g. on first mount)
   useEffect(() => {
     if (!editor) return;
-    const current = editor.storage.markdown.getMarkdown();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const current = (editor.storage as any).markdown.getMarkdown();
     if (current !== value) {
       editor.commands.setContent(value);
     }
