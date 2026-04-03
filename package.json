@@ -10,15 +10,33 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.80.0",
-    "@tiptap/extension-text-align": "^3.21.0",
-    "@tiptap/extension-underline": "^3.21.0",
-    "@tiptap/pm": "^3.21.0",
-    "@tiptap/react": "^3.21.0",
-    "@tiptap/starter-kit": "^3.21.0",
+    "@tiptap/core": "3.22.1",
+    "@tiptap/extension-color": "^3.22.1",
+    "@tiptap/extension-highlight": "^3.22.1",
+    "@tiptap/extension-image": "^3.22.1",
+    "@tiptap/extension-link": "^3.22.1",
+    "@tiptap/extension-subscript": "^3.22.1",
+    "@tiptap/extension-superscript": "^3.22.1",
+    "@tiptap/extension-table": "^3.22.1",
+    "@tiptap/extension-text-align": "^3.22.1",
+    "@tiptap/extension-text-style": "^3.22.1",
+    "@tiptap/extension-underline": "^3.22.1",
+    "@tiptap/pm": "^3.22.1",
+    "@tiptap/react": "^3.22.1",
+    "@tiptap/starter-kit": "^3.22.1",
+    "docx": "^9.6.1",
+    "html2pdf.js": "^0.14.0",
+    "lucide-react": "^1.7.0",
     "next": "16.2.1",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "tiptap-markdown": "^0.9.0"
+  },
+  "pnpm": {
+    "overrides": {
+      "@tiptap/core": "3.22.1",
+      "@tiptap/pm": "3.22.1"
+    }
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

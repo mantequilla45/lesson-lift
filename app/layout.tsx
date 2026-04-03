@@ -20,8 +20,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Comprehension Generator",
-  description: "Generate comprehension activities and questions with AI",
+  title: "Lesson Lift",
+  description: "AI-powered tools built for teachers",
 };
 
 export default function RootLayout({
