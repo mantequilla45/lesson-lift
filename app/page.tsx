@@ -55,6 +55,27 @@ const TOOLS = [
     description: "Generate 5 multisensory activity ideas for any topic, with resources, adaptations and cross-curricular links.",
     tag: "SEND",
   },
+  {
+    href: "/tools/phonics-support",
+    icon: "phonics",
+    label: "Phonics Support",
+    description: "Generate word banks, decodable texts, pseudo-words, and teaching activities for any target phoneme.",
+    tag: "Literacy",
+  },
+  {
+    href: "/tools/model-answer-generator",
+    icon: "model-answer",
+    label: "Model Answer Generator",
+    description: "Generate model answers for exam-style questions worth varying marks, with teacher notes and assessment criteria.",
+    tag: "Assessment",
+  },
+  {
+    href: "/tools/quiz-generator",
+    icon: "quiz",
+    label: "Quiz Generator",
+    description: "Generate a fully editable multiple choice quiz on any topic, then export to Kahoot, Blooket, Gimkit, and more.",
+    tag: "Assessment",
+  },
 ];
 
 import Link from "next/link";
@@ -229,6 +250,34 @@ function ToolIcon({ name, className }: { name: string; className?: string }) {
         <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
         <path d="M9 12.5c-1 1.5-1.5 3-1.5 4.5" strokeDasharray="1.5 1.5" />
         <path d="M15 12.5c1 1.5 1.5 3 1.5 4.5" strokeDasharray="1.5 1.5" />
+      </svg>
+    );
+  }
+  if (name === "phonics") {
+    return (
+      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+        <path d="M4 7V4h16v3" />
+        <path d="M9 20h6" />
+        <path d="M12 4v16" />
+        <path d="M6 12h5" />
+        <path d="M13 12h5" />
+      </svg>
+    );
+  }
+  if (name === "model-answer") {
+    return (
+      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+        <path d="M9 11l3 3L22 4" />
+        <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+      </svg>
+    );
+  }
+  if (name === "quiz") {
+    return (
+      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="10" />
+        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+        <line x1="12" y1="17" x2="12.01" y2="17" strokeWidth={3} />
       </svg>
     );
   }
