@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
+import { buildSystem } from "@/app/lib/systemPrompt";
 
 export interface EYFSPlannerRequest {
   curriculum: string;
@@ -30,21 +31,25 @@ export async function POST(req: NextRequest) {
     ? `\n\nAfter all learning areas, also include the following additional sections: ${additionalSections.join(", ")}.`
     : "";
 
-  const userPrompt = `Create an Early Years Foundation Stage (EYFS) plan for the following:
+  const userPrompt = `Create a comprehensive Early Years Foundation Stage (EYFS) plan for the following:
 
 - Curriculum: ${curriculum}
 - Topic: ${topic}
 - Number of Weeks: ${numberOfWeeks}
 
+This plan is for use in an English Early Years setting (Nursery or Reception). All activities must be grounded in the EYFS Statutory Framework (2021) and aligned with the Early Learning Goals. The plan should reflect the EYFS pedagogical principles: learning through play, a balance of child-initiated and adult-led provision, and a rich enabling environment. Scale the breadth and number of activities so that the plan is realistic and sufficient to sustain approximately ${numberOfWeeks} week(s) of teaching.
+
 Structure the output as follows:
 
-# Early Years Plan for ${topic}
+# Early Years Plan: ${topic}
 
-## Learning Areas in ${curriculum}
+## Overview
 
-Begin with a short paragraph listing which EYFS learning areas this plan addresses.
+Write a short paragraph (3–5 sentences) explaining how the topic "${topic}" will be woven through provision across the 7 areas of learning. Identify 2–3 ELGs that this topic is particularly well-suited to develop. Note any specific vocabulary focus, books, or real-world experiences that will enrich the provision.
 
-Then for each of the 7 EYFS learning areas below, create a full section:
+## Learning Areas
+
+Then for each of the 7 EYFS areas of learning below, create a full, detailed section:
 
 1. Communication and Language
 2. Physical Development
@@ -58,48 +63,47 @@ For each learning area, use this exact structure:
 
 ## [Learning Area Name]
 
-### Child-Led Learning and Continuous Provision
+### Child-Initiated Learning and Continuous Provision
 
 **Indoor:**
 
-- **[Activity Name]:** [Brief description of the activity and how it relates to the topic.]
-  - **Resources:** [List of materials needed]
-  - **Key Vocabulary:** [4–6 relevant words]
-  - **Differentiation:** [How to adapt for different abilities]
-  - **Learning Goal:** "[Relevant ELG statement]" (ELG: [ELG Name])
+- **[Activity Name]:** [A specific, detailed description of the activity, how it relates to the topic, and how it promotes learning in this area. Include the practitioner's role in observing and extending learning.]
+  - **Resources:** [Specific list of materials, books, or equipment needed]
+  - **Key Vocabulary:** [4–6 carefully chosen words that adults should model and children are expected to encounter]
+  - **Differentiation:** [Specific adaptations: one suggestion to extend more confident children, one to support less confident children or those with SEND]
+  - **Learning Goal:** "[Quote the precise ELG statement this activity addresses]" (ELG: [Full ELG Name])
 
-(Provide 2 indoor activities)
+(Provide 2 distinct indoor continuous provision activities per learning area)
 
 **Outdoor:**
 
-- **[Activity Name]:** [Brief description]
-  - **Resources:** [List]
+- **[Activity Name]:** [Detailed description, topic link, and practitioner role]
+  - **Resources:** [Specific list]
   - **Key Vocabulary:** [4–6 words]
-  - **Differentiation:** [Adaptation]
-  - **Learning Goal:** "[ELG statement]" (ELG: [ELG Name])
+  - **Differentiation:** [Two specific adaptations]
+  - **Learning Goal:** "[ELG statement]" (ELG: [Full ELG Name])
 
-(Provide 2 outdoor activities)
+(Provide 2 distinct outdoor continuous provision activities per learning area)
 
 ### Adult-Led Activities
 
-- **[Activity Name]:** [Brief description of the adult-led activity]
-  - **Resources:** [List]
+- **[Activity Name]:** [A detailed description of the structured, adult-led activity including: what the adult does, what children are expected to do, how it develops the learning area, and how it connects to the topic. Include approximate duration.]
+  - **Resources:** [Specific list]
   - **Key Vocabulary:** [4–6 words]
-  - **Differentiation:** [Adaptation]
-  - **Learning Goal:** "[ELG statement]" (ELG: [ELG Name])
+  - **Differentiation:** [Two specific adaptations — one for extension, one for support]
+  - **Learning Goal:** "[ELG statement]" (ELG: [Full ELG Name])
 
-(Provide 2 adult-led activities per learning area)
+(Provide 2 distinct adult-led activities per learning area)
 
-All activities must be clearly linked to the topic "${topic}" and appropriate for Early Years children. Scale the depth and range of activities to cover approximately ${numberOfWeeks} week(s) of teaching.${additionalSection}
+All activities must be clearly, specifically linked to the topic "${topic}" — not just labelled with it. All ELG references must be accurate and drawn from the EYFS Statutory Framework (2021).${additionalSection}
 
-Do not use any emojis. Write in a professional, teacher-friendly tone.`;
+Do not use any emojis. Write in a professional, practitioner-friendly tone appropriate for EYFS settings.`;
 
   const encoder = new TextEncoder();
   const anthropicStream = client.messages.stream({
     model: "claude-sonnet-4-6",
     max_tokens: 8192,
-    system:
-      "You are an expert Early Years teacher and curriculum designer specialising in EYFS planning. You create detailed, structured, and developmentally appropriate plans that cover all seven areas of learning. Always reference the correct Early Learning Goals (ELGs). Write clearly and professionally. Do not use any emojis anywhere in your output.",
+    system: buildSystem("You are an expert Early Years Foundation Stage (EYFS) practitioner and curriculum leader with comprehensive knowledge of the EYFS Statutory Framework (2021), the Early Learning Goals, and best practice in child development. You design rich, purposeful provision that balances child-initiated play with adult-led learning across all seven areas of the EYFS. Your ELG references are always accurate and drawn directly from the 2021 framework. You understand the importance of the enabling environment, sustained shared thinking, and the key person approach. You write in professional UK English using EYFS-specific terminology."),
     messages: [{ role: "user", content: userPrompt }],
   });
 

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
+import { buildSystem } from "@/app/lib/systemPrompt";
 
 export interface SmartTargetsRequest {
   curriculum: string;
@@ -18,33 +19,39 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
   }
 
-  const userPrompt = `Generate a SMART targets table for the following:
+  const userPrompt = `Generate a SMART targets table for the following pupil:
 
 - Curriculum: ${curriculum}
 - Year Group: ${yearGroup}
-- Targets: ${targets}
+- Targets (as provided by the teacher or SENCO): ${targets}
+
+This resource is for use in a UK school context and may be shared with the pupil, their parents or carers, and key support staff. SMART targets are a standard tool in SEND and inclusion practice, aligned with the SEND Code of Practice (2015), which emphasises outcomes-focused planning and pupil participation.
 
 Output a markdown table with the heading "## SMART Targets" followed by a table with exactly these 6 columns:
+
 | Target | Specific | Measurable | Achievable | Relevant | Time-bound |
 
-Rules:
-- Each row corresponds to one target from the input.
-- "Target" — a short, plain-English version of the target (student-facing language).
-- "Specific" — a clear "I will..." statement describing exactly what the student will do.
-- "Measurable" — an "I can..." statement with a concrete, observable measure of success.
-- "Achievable" — how the student will work toward it (resources, support, strategies).
-- "Relevant" — why this target matters to the student's learning or development.
-- "Time-bound" — a realistic deadline (e.g. "By the end of week 2", "Every day for 2 weeks").
-- Write in age-appropriate language for ${yearGroup} students.
-- Do not use emojis.
-- Keep each cell concise — no more than 2 sentences.`;
+Column guidance:
+- **Target**: A short, plain-English summary of the target written in accessible, pupil-facing language. Avoid jargon. If the input target is vague, sharpen it into something precise and meaningful.
+- **Specific**: An "I will..." statement that describes exactly what the pupil will do — not a general aspiration but a precise description of the behaviour, skill, or knowledge the pupil is working towards. Include the context (e.g. in lessons, at home, during group work).
+- **Measurable**: An "I can show this by..." or "I will know I have achieved this when..." statement with a concrete, observable indicator of success. Avoid vague measures like "improvement" — specify frequency, accuracy, or observable output (e.g. "I can read back a sentence I have written without adult support").
+- **Achievable**: Describe the specific support, resources, strategies, or scaffolding that will help the pupil reach the target. This should be realistic and practical — name the type of adult support, the tool, or the adjusted expectation where relevant.
+- **Relevant**: 1–2 sentences explaining why this target matters to the pupil's learning, development, or wellbeing — and how it connects to their wider curriculum progress, EHCP outcomes (if applicable), or personal goals.
+- **Time-bound**: A specific, realistic timeframe (e.g. "By the end of the half-term on [approximate date]", "Within 4 weeks, reviewed at the next SEND review", "Daily for 3 weeks from the plan start date"). Avoid open-ended deadlines.
+
+Additional rules:
+- Write in age-appropriate, accessible language for ${yearGroup} pupils — a pupil should be able to read and understand their own target
+- Each cell must be concise and clear — no more than 2–3 sentences per cell
+- Do not use emojis
+- If multiple targets are provided, each must have its own table row
+- Targets must be genuinely SMART — do not produce generic or aspirational statements that lack specificity`;
+
 
   const encoder = new TextEncoder();
   const anthropicStream = client.messages.stream({
     model: "claude-sonnet-4-6",
     max_tokens: 4096,
-    system:
-      "You are an expert SEND and inclusion teacher specialising in writing SMART targets for students. You write clear, student-friendly targets that are specific, measurable, achievable, relevant, and time-bound. Do not use any emojis anywhere in your output.",
+    system: buildSystem("You are an expert UK SENCO and inclusion specialist with extensive experience writing SMART targets within the framework of the SEND Code of Practice (2015) and EHCPs. You understand that genuinely SMART targets must be outcomes-focused, specific enough to act on, and measurable in a practical classroom context. You write targets that are accessible to pupils and useful to teachers — not bureaucratic tick-boxes. You are skilled at taking vague teacher input and converting it into precise, actionable, pupil-facing targets. You write in professional UK English."),
     messages: [{ role: "user", content: userPrompt }],
   });
 

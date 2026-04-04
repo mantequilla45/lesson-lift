@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
+import { buildSystem } from "@/app/lib/systemPrompt";
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -24,7 +25,9 @@ function buildPrompt(body: {
   const subjectPronoun = body.studentGender === "Male" ? "He" : body.studentGender === "Female" ? "She" : "They";
   const possessivePronoun = body.studentGender === "Male" ? "his" : body.studentGender === "Female" ? "her" : "their";
 
-  return `You are an expert SENCO and behaviour specialist. Create a Behaviour Support Plan for ${body.studentName} (${pronoun}), ${body.yearGroup}, ${body.studentClass || "class not specified"}.
+  return `Create a detailed, evidence-informed Behaviour Support Plan for ${body.studentName} (${pronoun}), ${body.yearGroup}, ${body.studentClass || "class not specified"}.
+
+This plan is for use in a UK school and should reflect best practice in positive behaviour support, consistent with the DfE's guidance on behaviour in schools and the SEND Code of Practice (2015) where the pupil has identified additional needs. The plan must be specific, practical, and immediately usable by all staff who work with ${body.studentName}.
 
 Input data:
 - Additional support needs: ${body.supportNeeds || "None specified"}
@@ -37,6 +40,14 @@ Input data:
 - Strengths and interests: ${body.strengths || "Not specified"}
 - Dislikes: ${body.dislikes || "Not specified"}
 - Previous interventions: ${body.previousInterventions || "None specified"}
+
+Quality requirements:
+- All strategies must be specific and actionable — not generic advice such as "praise good behaviour" but concrete, named actions
+- Targets must be observable and measurable (e.g. "Complete 10 minutes of independent work before requesting support" rather than "improve focus")
+- Reactive strategies must follow a clear de-escalation approach — avoiding language that could inflame the situation
+- Phrases to use and avoid must be verbatim examples that any staff member could use immediately
+- Rewards and motivators must be drawn from the pupil's known strengths and interests
+- The plan must reflect knowledge of the specific triggers and patterns provided — not generic behaviour management advice
 
 CRITICAL FORMATTING RULE: Each table cell must contain only a SINGLE line of text — no line breaks, no bullet lists, no <br> tags inside cells. Each bullet point must be its own separate table row.
 
@@ -167,7 +178,9 @@ Output only the tables. No preamble, no explanation, no code fences. Every cell 
 }
 
 function buildRefinePrompt(result: string, instruction: string): string {
-  return `You are an expert SENCO and behaviour specialist. Modify the following Behaviour Support Plan based on this instruction: "${instruction}"
+  return `Modify the following Behaviour Support Plan based on this instruction: "${instruction}"
+
+Apply the changes precisely. Where new strategies or targets are added, ensure they are specific, actionable, and consistent with positive behaviour support principles used in UK schools. Where content is removed or changed, ensure the plan remains coherent and usable.
 
 Current plan:
 ${result}
@@ -215,7 +228,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
     return streamText(
-      "You are an expert SENCO and behaviour specialist. Return only the updated plan as markdown tables. Each cell must be a single line — no line breaks or <br> tags inside cells.",
+      buildSystem("You are an expert UK SENCO and positive behaviour support specialist with extensive experience writing Behaviour Support Plans in line with the SEND Code of Practice and DfE behaviour guidance. Return only the updated plan as markdown tables. Each cell must be a single line — no line breaks or <br> tags inside cells."),
       buildRefinePrompt(body.result, body.instruction),
     );
   }
@@ -226,7 +239,7 @@ export async function POST(req: NextRequest) {
   }
 
   return streamText(
-    "You are an expert SENCO and behaviour specialist. Output only markdown tables. CRITICAL: every table cell must be a single line — no line breaks, no <br> tags, no multi-line content inside any cell. Each bullet point must be its own table row.",
+    buildSystem("You are an expert UK SENCO, positive behaviour support specialist, and experienced secondary and primary school teacher with thorough knowledge of the SEND Code of Practice (2015), DfE guidance on behaviour in schools, and evidence-based de-escalation approaches. You create Behaviour Support Plans that are specific, practical, and immediately usable by all staff — not generic templates. Output only markdown tables. CRITICAL: every table cell must be a single line — no line breaks, no <br> tags, no multi-line content inside any cell. Each bullet point must be its own table row."),
     buildPrompt(body),
   );
 }

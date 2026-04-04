@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
+import { buildSystem } from "@/app/lib/systemPrompt";
 
 export interface WorksheetRequest {
   curriculum: string;
@@ -24,57 +25,66 @@ export async function POST(req: NextRequest) {
     ? `\nIncorporate the following exam specification or curriculum guidance content: ${examSpec}`
     : "";
 
-  const userPrompt = `Create a classroom worksheet for the following:
+  const userPrompt = `Create a high-quality, classroom-ready worksheet for the following:
 
 - Curriculum: ${curriculum}
 - Year Group: ${yearGroup}
 - Subject: ${subject}
 - Learning Objective: ${learningObjective}${examSpecSection}
 
+This worksheet is for use in a UK school. It should be rigorous, carefully sequenced, and pitched accurately for ${yearGroup} students. The questions must build progressively from knowledge recall through to higher-order thinking, in line with Bloom's Taxonomy.
+
 Structure the worksheet using markdown as follows:
 
-# [Worksheet Title]
+# [Worksheet Title — make this specific to the topic, not generic]
 
 **Curriculum:** ${curriculum} | **Year Group:** ${yearGroup} | **Subject:** ${subject}
 
-**Learning Objective:** [Restate the learning objective clearly for students]
+**Learning Objective:** [Restate the learning objective in clear, student-facing language beginning with "I am learning to..."]
 
 **Name:** ______________________________ **Date:** ______________ **Class:** ______________
 
 ---
 
-## Section A – Knowledge Recall
-[4–5 short-answer or fill-in-the-blank questions testing foundational knowledge. Each question on its own line, numbered.]
+## Section A – Knowledge Recall [1 mark each]
+
+Write 4–5 short-answer or fill-in-the-blank questions that test students' ability to recall key facts, definitions, or processes directly related to the learning objective. Questions should be unambiguous and have a single correct answer. Number each question. Blank lines for each answer should be shown as: ___________________________________
 
 ---
 
-## Section B – Understanding
-[3–4 questions requiring students to explain concepts in their own words or identify key ideas. Include point values in brackets, e.g. [2 marks].]
+## Section B – Understanding [2 marks each]
+
+Write 3–4 questions that require students to demonstrate understanding by explaining concepts in their own words, identifying relationships, or interpreting information. These should go beyond pure recall. Include the mark allocation in brackets after each question, e.g. [2 marks]. Leave adequate answer space (shown as multiple blank lines).
 
 ---
 
-## Section C – Application
-[2–3 questions where students apply knowledge to a scenario or worked example. Include point values.]
+## Section C – Application [3–4 marks each]
+
+Write 2–3 questions where students apply their knowledge to a new scenario, worked example, or unfamiliar context. Include a brief stimulus (e.g. a scenario, data extract, or diagram description) where appropriate. Include mark allocations.
 
 ---
 
-## Section D – Analysis & Evaluation
-[1–2 higher-order questions requiring extended written responses. Clearly state the mark allocation, e.g. [6 marks].]
+## Section D – Analysis and Evaluation [6–8 marks]
+
+Write 1–2 higher-order questions requiring extended written responses. Questions should ask students to analyse, evaluate, justify, or argue a position — not merely describe. Clearly state the mark allocation. Include a note of what a strong response will include (e.g. "Your answer should include: specific examples, a judgement, and use of subject vocabulary.").
 
 ---
 
 ## Answer Key
 
-Provide a clearly labelled answer key for all sections with model answers or marking guidance.
+Provide a comprehensive answer key for all sections with:
+- Section A: exact model answers
+- Section B: mark scheme guidance noting what earns each mark
+- Section C: full model answers with annotations
+- Section D: a level descriptor or bullet-pointed mark scheme indicating what is required for full marks, partial marks, and no marks
 
-Write in a clear, professional tone appropriate for the year group. Do not use any emojis. Number all questions sequentially within each section. When labelling sub-questions use plain text letters in parentheses: (a), (b), (c), (d) — never use the © symbol.`;
+Write in clear, professional language appropriate for ${yearGroup}. Do not use any emojis. Number all questions sequentially within each section. When labelling sub-questions use plain text letters in parentheses: (a), (b), (c), (d) — never use the © symbol.`;
 
   const encoder = new TextEncoder();
   const anthropicStream = client.messages.stream({
     model: "claude-sonnet-4-6",
     max_tokens: 4096,
-    system:
-      "You are an expert teacher and curriculum designer specialising in creating high-quality classroom worksheets. Write clearly and at an appropriate level for the year group specified. Do not use any emojis anywhere in your output. Never use the © symbol — always write sub-question labels as plain text: (a), (b), (c), (d).",
+    system: buildSystem("You are an expert UK teacher and curriculum designer with extensive experience creating high-quality classroom worksheets for KS1 through KS5. You understand Bloom's Taxonomy, tiered questioning, and how to scaffold access without reducing challenge. Your worksheets are precisely pitched for the specified year group, subject-accurate, and built around a clear learning objective. You write in professional UK English and produce materials that could be used in any well-run UK school without amendment. Never use the © symbol — always write sub-question labels as plain text: (a), (b), (c), (d)."),
     messages: [{ role: "user", content: userPrompt }],
   });
 

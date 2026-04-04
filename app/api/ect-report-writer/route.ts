@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
+import { buildSystem } from "@/app/lib/systemPrompt";
 
 export interface ECTReportWriterRequest {
   curriculum: string;
@@ -57,48 +58,58 @@ After the summary, include a structured Professional Development Plan with:
 
 A categorised list including Professional Literature (2 books), Digital Resources and Communities (2 links/platforms), Subject-Specific Support (2 items), and School-Based Support (2 items).` : "";
 
-  const userPrompt = `Write an ECT (Early Career Teacher) assessment report for the following:
+  const userPrompt = `Write a formal, evidence-based ECT (Early Career Teacher) assessment report for the following:
 
 - Curriculum: ${curriculum}
 - ECT Name: ${ectName}${subjectLine}
-- Strengths: ${strengths}
+- Strengths observed: ${strengths}
 - Areas for Development: ${areasForDevelopment}
+
+This report is an official ECT assessment document for use within the UK's Early Career Framework (ECF) induction programme. It must be formal, professional, and structured in a way that would be appropriate for review by a mentor, induction tutor, appropriate body, or headteacher. References to the Teachers' Standards (DfE, 2011) must be accurate — use both the standard number and its full title.
 
 Structure the report as follows:
 
-# Assessment Report: ${ectName}
+# ECT Assessment Report: ${ectName}
 
 ## Strengths
 
-Write 3 substantial paragraphs of evidence for the ECT's strengths. Each paragraph should:
-- Reference specific Teacher Standards (e.g. Teacher Standard 1, TS3) by number and full name
-- Use professional, formal language appropriate for a performance review
-- Include specific examples of what the ECT does in practice and the impact on pupils
-- Be evidence-based, referencing lesson observations, pupil work, and data where appropriate
+Write 3 substantial, evidence-based paragraphs documenting ${ectName}'s professional strengths. Each paragraph must:
+- Open with a clear statement identifying the strength and the relevant Teacher Standard(s) by number and full title (e.g. "Teacher Standard 1: Set high expectations which inspire, motivate and challenge pupils")
+- Provide specific, concrete evidence drawn from lesson observations, pupil work, assessment data, or professional conduct — avoid vague assertions such as "shows enthusiasm"
+- Describe the impact of the strength on pupil learning, progress, or wellbeing — not just the behaviour itself
+- Use formal, third-person language appropriate for an official ECT assessment report
+- Be substantive enough to serve as a genuine professional record — at least 100 words per paragraph
 
 ## Areas for Development
 
-Write 3 substantial paragraphs identifying areas for development. Each paragraph should:
-- Reference specific Teacher Standards
-- Describe the current gap or area requiring improvement
-- Include 2–3 concrete, specific action steps the ECT should take
-- Explain the expected impact on pupil outcomes once addressed
+Write 3 substantial paragraphs identifying areas where ${ectName} needs to develop further. Each paragraph must:
+- Identify the specific Teacher Standard(s) this area relates to, by number and full title
+- Describe the current gap or limitation clearly and constructively — based on the evidence provided, without being punitive or demotivating
+- Provide 2–3 precise, actionable development steps that ${ectName} should take — specific enough to act on independently (e.g. "Observe [named strategy] in [colleague's] lessons and implement in at least two lessons before next review")
+- State the expected impact on pupil outcomes when this area is addressed
+- Be constructive in tone — frame development areas as part of normal professional growth, not as failures
 
-## Summary
+## Professional Summary
 
-Write 3 paragraphs summarising:
-1. The ECT's key strengths and their impact
-2. The principal areas for development and the rationale
-3. An overall professional judgement and forward-looking statement${pdpSection}
+Write 3 substantive paragraphs:
+1. A synthesis of ${ectName}'s key strengths and their overall professional impact to date
+2. The principal areas for development, their significance, and the support that will be provided
+3. An overall professional judgement — including whether ${ectName} is on track to meet the Teachers' Standards at the end of induction — and a forward-looking statement about professional trajectory${pdpSection}
 
-Use ${ectName}'s name throughout. Write in third person. Use formal, professional language appropriate for an official ECT assessment report. Reference Teacher Standards by number and full name. Do not use any emojis.`;
+Throughout the report:
+- Use ${ectName}'s full name on first reference, then surname only
+- Write in third person throughout
+- Use formal, precise language appropriate for an official ECT assessment document
+- Reference Teachers' Standards by number and full title at every mention
+- Do not use emojis
+- Do not use vague descriptors — every claim must be supported by evidence or framed as an observed behaviour`;
+
 
   const encoder = new TextEncoder();
   const anthropicStream = client.messages.stream({
     model: "claude-sonnet-4-6",
     max_tokens: 8192,
-    system:
-      "You are an expert school leader and ECT mentor specialising in writing detailed, evidence-based ECT assessment reports. You write formal, professional reports that make clear links to the Teacher Standards. Do not use any emojis anywhere in your output.",
+    system: buildSystem("You are an expert UK school leader, induction tutor, and ECT mentor with comprehensive knowledge of the Early Career Framework (ECF), the Teachers' Standards (DfE, 2011), and the statutory requirements for ECT induction. You have written many formal ECT assessment reports that have been reviewed by appropriate bodies and used in professional review meetings. Your reports are evidence-based, precisely referenced to the Teachers' Standards by number and full title, and written in formal third-person language that meets the standard of an official professional document. You write in professional UK English."),
     messages: [{ role: "user", content: userPrompt }],
   });
 

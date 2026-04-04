@@ -146,6 +146,27 @@ const TOOLS = [
     description: "Generate self-evaluation questions and preparation actions for any inspection or accreditation body, with optional evidence examples and success criteria.",
     tag: "Leadership",
   },
+  {
+    href: "/tools/learning-walk-report",
+    icon: "learning-walk",
+    label: "Learning Walk Report",
+    description: "Draft a professional learning walk report from your observations, with optional recommendations and a next steps timeline.",
+    tag: "Leadership",
+  },
+  {
+    href: "/tools/lesson-observation-report",
+    icon: "lesson-observation",
+    label: "Lesson Observation Report",
+    description: "Write up a formal lesson observation report from your notes, with optional action plan and follow-up support suggestions.",
+    tag: "Leadership",
+  },
+  {
+    href: "/tools/meeting-planner",
+    icon: "meeting-planner",
+    label: "Meeting Planner",
+    description: "Plan a structured, productive meeting with a facilitation guide, timed agenda, discussion structure, and optional action items.",
+    tag: "Leadership",
+  },
 ];
 
 import Link from "next/link";
@@ -356,6 +377,34 @@ function ToolIcon({ name, className }: { name: string; className?: string }) {
       <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
         <rect x="2" y="3" width="20" height="14" rx="2" />
         <path d="M8 21h8M12 17v4" />
+      </svg>
+    );
+  }
+  if (name === "meeting-planner") {
+    return (
+      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="4" width="18" height="18" rx="2" />
+        <line x1="16" y1="2" x2="16" y2="6" />
+        <line x1="8" y1="2" x2="8" y2="6" />
+        <line x1="3" y1="10" x2="21" y2="10" />
+        <line x1="8" y1="14" x2="8" y2="18" />
+        <line x1="12" y1="14" x2="12" y2="18" />
+        <line x1="16" y1="14" x2="16" y2="18" />
+      </svg>
+    );
+  }
+  if (name === "lesson-observation") {
+    return (
+      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+        <circle cx="12" cy="12" r="3" />
+      </svg>
+    );
+  }
+  if (name === "learning-walk") {
+    return (
+      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+        <path d="M3 12h4l3-9 4 18 3-9h4" />
       </svg>
     );
   }

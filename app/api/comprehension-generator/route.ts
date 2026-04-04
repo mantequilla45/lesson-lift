@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
+import { buildSystem } from "@/app/lib/systemPrompt";
 
 export interface GenerateRequest {
   curriculum: string;
@@ -40,13 +41,48 @@ export async function POST(req: NextRequest) {
 
   const userPrompt =
     textSource === "generate"
-      ? `Generate a reading comprehension activity on the topic: "${topic}".
-First write an engaging passage (around 250–400 words) appropriate for ${yearGroup} students following the ${curriculum}. The complexity level should be ${complexity}.
-Then write ${numQuestions} comprehension question(s) for each of the following reading focuses: ${focusList}.
-Group the questions clearly by reading focus with a heading for each group.${answerKeyInstruction}`
-      : `Using the passage below, write ${numQuestions} comprehension question(s) for each of the following reading focuses: ${focusList}.
-The questions should be ${complexity.toLowerCase()} level and appropriate for ${yearGroup} students following the ${curriculum}.
-Group the questions clearly by reading focus with a heading for each group.${answerKeyInstruction}
+      ? `Generate a complete reading comprehension activity on the topic: "${topic}" for ${yearGroup} students following the ${curriculum}.
+
+Part 1 — Reading Passage
+
+Write an original, engaging non-fiction or fiction passage of approximately 300–400 words. The passage must:
+- Be written at a complexity level appropriate for ${complexity} readers in ${yearGroup}
+- Use varied sentence structures and a rich but accessible vocabulary suited to the year group
+- Contain sufficient content depth to support ${numQuestions} question(s) per reading focus
+- Be clearly titled with a heading above the passage
+- Avoid bullet points or lists — the passage must be written in continuous prose paragraphs
+- Be accurate and well-researched if non-fiction; show craft and characterisation if fiction
+
+Part 2 — Comprehension Questions
+
+Below the passage, write ${numQuestions} comprehension question(s) for each of the following reading focuses: ${focusList}.
+
+Formatting and quality rules:
+- Use a bold ## heading for each reading focus group (e.g. ## Retrieval, ## Inference)
+- Number questions sequentially within each group (1., 2., etc.)
+- Questions must be clearly rooted in the passage — do not ask questions that cannot be answered from the text
+- Vary question types: include literal retrieval, text-based inference, vocabulary in context, authorial intent, and evaluation as appropriate to the focus
+- For inference and evaluation questions, phrase them to require evidence from the text (e.g. "Using evidence from the text, explain...")
+- Allocate marks to each question in brackets, e.g. [2 marks] — align mark allocations with the complexity of the response required
+- ${complexity === "Challenging" ? "Include at least one question per group that requires extended written response or comparative analysis." : complexity === "Simple" ? "Keep questions direct and ensure answers can be found explicitly in the text or require simple inference." : "Balance retrieval and inference questions with one higher-order thinking question per group."}
+
+${answerKeyInstruction}`
+      : `Using the passage below, create a reading comprehension activity for ${yearGroup} students following the ${curriculum}.
+
+The questions should be at ${complexity.toLowerCase()} complexity level.
+
+Write ${numQuestions} comprehension question(s) for each of the following reading focuses: ${focusList}.
+
+Formatting and quality rules:
+- Use a bold ## heading for each reading focus group (e.g. ## Retrieval, ## Inference)
+- Number questions sequentially within each group (1., 2., etc.)
+- Questions must be clearly rooted in the passage — every question must be answerable from the text provided
+- Vary question types: include literal retrieval, text-based inference, vocabulary in context, authorial intent, and evaluation as appropriate to the focus
+- For inference and evaluation questions, phrase them to require evidence from the text (e.g. "Using evidence from the text, explain...")
+- Allocate marks to each question in brackets, e.g. [2 marks] — align mark allocations with the complexity of the response required
+- ${complexity === "Challenging" ? "Include at least one question per group that requires extended written response or comparative analysis." : complexity === "Simple" ? "Keep questions direct and ensure answers can be found explicitly in the text or require simple inference." : "Balance retrieval and inference questions with one higher-order thinking question per group."}
+
+${answerKeyInstruction}
 
 PASSAGE:
 ${ownText}`;
@@ -55,8 +91,7 @@ ${ownText}`;
   const anthropicStream = client.messages.stream({
     model: "claude-sonnet-4-6",
     max_tokens: 4096,
-    system:
-      "You are an expert teacher and curriculum designer. You create high-quality, age-appropriate reading comprehension activities. Write clearly and engagingly. Do not use any emojis anywhere in your output.",
+    system: buildSystem("You are an expert UK English teacher and literacy specialist with in-depth knowledge of the National Curriculum for English and KS1–KS4 reading assessment frameworks. You create high-quality, age-appropriate reading comprehension activities that develop the full range of reading skills — from retrieval and inference through to evaluation and critical response. Your passages are well-crafted, purposeful, and rich enough to sustain genuine comprehension work. Your questions are precise, unambiguous, and matched to the reading focus they are assessing. Write in professional UK English."),
     messages: [{ role: "user", content: userPrompt }],
   });
 

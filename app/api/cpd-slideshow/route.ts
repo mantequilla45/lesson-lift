@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
+import { buildSystem } from "@/app/lib/systemPrompt";
 
 export interface SlideData {
   type: "title" | "content";
@@ -38,39 +39,43 @@ function buildGeneratePrompt(body: GenerateBody): string {
 
   const bulletLine =
     body.contentFormat === "Text and bullet point summary"
-      ? `- Each content slide must include a "bullets" array with exactly 3 concise bullet points summarising key points from the body.`
+      ? `- Each content slide must include a "bullets" array with exactly 3 bullet points. Each bullet must be no more than 6 words. They should be punchy, memorable takeaways — not full sentences.`
       : `- Do not include any "bullets" field.`;
 
   const focusLine =
     body.presentationFocus === "Practical application"
-      ? "Focus on practical classroom application — strategies, activities, and actionable steps teachers can implement immediately."
-      : "Focus on research, theory, and evidence base — academic context, studies, and conceptual frameworks.";
+      ? "Focus on practical classroom application — one concrete strategy or actionable step per slide. Name the technique, describe it in a single clear sentence, and ground it in what it looks like in a UK classroom."
+      : "Focus on the research base and theoretical frameworks — one key finding or concept per slide. Name the researcher or study, state the finding in plain language, and give its direct classroom implication in one sentence.";
 
   const additionalLine = body.additionalFocus?.trim()
-    ? `Additional focus areas to incorporate: ${body.additionalFocus}`
+    ? `Additional focus areas to weave through the presentation: ${body.additionalFocus}`
     : "";
 
-  return `Create a CPD (Continuing Professional Development) slideshow for teachers on: "${body.topic}".
+  return `Create a high-quality CPD (Continuing Professional Development) slideshow for teachers on: "${body.topic}".
 
 ${focusLine}
-${additionalLine}
+${additionalLine ? additionalLine + "\n" : ""}
+This slideshow is for use in a UK school CPD session. It should reflect current best practice and, where relevant, reference the Teachers' Standards, Ofsted's Education Inspection Framework, or DfE guidance.
 
 Output exactly ${body.slideCount} slides: 1 title slide followed by ${body.slideCount - 1} content slides.
 
 IMPORTANT: Output each slide as a single JSON object on its own line. Do not wrap them in an array. Do not output anything else — no brackets, no separators, no explanation. One JSON object per line only.
 
 Title slide format:
-{"type":"title","title":"[compelling presentation title]","presentationTitle":"[same title]","subtitle":"[one-sentence session aim]"}
+{"type":"title","title":"[compelling presentation title — maximum 6 words]","presentationTitle":"[same title]","subtitle":"[one sentence beginning with 'By the end of this session, participants will...']"}
 
 Content slide format:
-{"type":"content","title":"[slide heading]","presentationTitle":"[same title as above]","body":"[3-4 sentence paragraph]","bullets":["...","...","..."],"imageSuggestion":"[search query]"}
+{"type":"content","title":"[action-oriented headline that states the key message of this slide — e.g. 'Retrieval Practice Boosts Long-Term Retention']","presentationTitle":"[same title as above]","body":"[STRICT LIMIT: 2 sentences maximum. First sentence states the single key idea. Second sentence gives one specific example, statistic, or classroom application. Total must not exceed 40 words.]","bullets":["max 6 words","max 6 words","max 6 words"],"imageSuggestion":"[specific image search query]"}
 
-Rules:
+Slide design principles — follow these strictly:
+- ONE key message per slide. If you find yourself writing more than one idea, split it into two slides.
+- The "title" field is the headline — it must communicate the takeaway on its own, not just label the topic. Bad: "Feedback". Good: "Specific Feedback Accelerates Progress".
+- The "body" field is the support — maximum 2 sentences, maximum 40 words total. No padding, no repetition of the title, no filler phrases.
+- Bullet points (if included) are 6 words or fewer each — they are visual anchors, not sentences.
+- Slides must build logically: early slides set the rationale, middle slides deliver the core content, final slides focus on implementation and next steps.
 - "presentationTitle" must be identical on every slide.
-- Content slides have a 3–4 sentence body paragraph.
 ${bulletLine}
 ${imageLine}
-- Professional tone suitable for a teacher CPD session.
 - No emojis. No text outside the JSON objects.`;
 }
 
@@ -110,8 +115,7 @@ export async function POST(req: NextRequest) {
     const anthropicStream = client.messages.stream({
       model: "claude-sonnet-4-6",
       max_tokens: 8192,
-      system:
-        "You are an expert CPD facilitator creating professional development slideshows for teachers. Output each slide as a single JSON object on its own line with no other text. No markdown, no code fences, no arrays, no separators. One valid JSON object per line only. Do not use emojis.",
+      system: buildSystem("You are an expert UK CPD facilitator, school leader, and teacher educator with extensive experience designing and delivering professional development for teachers across all phases. You understand what makes CPD effective — it must be specific, evidence-informed, relevant to classroom practice, and actionable. Your slideshows are substantive and authoritative, referencing current educational research, the Teachers' Standards, and DfE or Ofsted guidance where appropriate. Output each slide as a single JSON object on its own line with no other text. No markdown, no code fences, no arrays, no separators. One valid JSON object per line only."),
       messages: [{ role: "user", content: buildGeneratePrompt(body) }],
     });
 
@@ -153,8 +157,7 @@ export async function POST(req: NextRequest) {
       const message = await client.messages.create({
         model: "claude-sonnet-4-6",
         max_tokens: 8192,
-        system:
-          "You are an expert CPD facilitator editing an existing slideshow. Return valid JSON exactly as requested — no additional text, markdown, or code fences. Do not use emojis.",
+        system: buildSystem("You are an expert UK CPD facilitator editing an existing teacher professional development slideshow. Apply the requested changes precisely and consistently while maintaining the quality, accuracy, and professional tone of the original content. Return valid JSON exactly as requested — no additional text, markdown, or code fences."),
         messages: [{ role: "user", content: buildRefinePrompt(body) }],
       });
 

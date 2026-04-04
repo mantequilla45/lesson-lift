@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
+import { buildSystem } from "@/app/lib/systemPrompt";
 
 export interface QuizQuestion {
   question: string;
@@ -39,18 +40,23 @@ type RequestBody = GenerateBody | AddBody | RefineBody;
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 function buildGeneratePrompt(body: GenerateBody): string {
-  return `Generate a multiple choice quiz with exactly ${body.numQuestions} questions about "${body.topic}" for ${body.yearGroup} students following the ${body.curriculum} in ${body.subject}.
+  return `Generate a multiple choice quiz with exactly ${body.numQuestions} questions about "${body.topic}" for ${body.yearGroup} pupils following the ${body.curriculum} in ${body.subject}.
 
 Each question must have exactly 4 answer options and exactly 1 correct answer.
 
 Return ONLY a raw JSON object — no markdown, no code fences, no explanation. The JSON must follow this exact structure:
 {"questions":[{"question":"Question text here?","options":["Option A","Option B","Option C","Option D"],"correctIndex":2}]}
 
-Rules:
+Rules for question quality:
 - correctIndex is 0–3 (the index of the correct answer in the options array)
-- Vary the position of the correct answer across questions — do not always place it in the same position
-- Questions must be factually accurate and appropriate for ${body.yearGroup} students
-- Test different aspects of the topic across questions
+- Vary the position of the correct answer across questions — distribute it across all four positions
+- Questions must be factually accurate, unambiguous, and pitched correctly for ${body.yearGroup} pupils studying ${body.subject} on the ${body.curriculum}
+- Each question must test a distinct aspect of the topic — do not repeat the same concept
+- Include a range of question types: recall of key facts, application of knowledge, interpretation of a scenario or example, and vocabulary/terminology
+- Distractors (wrong answers) must be plausible and based on common misconceptions or errors — not obviously wrong
+- All answer options must be grammatically consistent with the question stem
+- Questions must be written in clear, age-appropriate UK English
+- Avoid trick questions or questions that depend on ambiguous phrasing
 - No duplicate questions
 - Do not include any text outside the JSON object`;
 }
@@ -59,12 +65,16 @@ function buildAddPrompt(body: AddBody): string {
   const existing = body.existingQuestions
     .map((q, i) => `${i + 1}. ${q.question}`)
     .join("\n");
-  return `You are adding one new question to an existing quiz about ${body.subject} for ${body.yearGroup} students.
+  return `You are adding one new question to an existing quiz about ${body.subject} for ${body.yearGroup} pupils following the ${body.curriculum}.
 
-Existing questions (do not duplicate or closely mirror these):
+Existing questions (do not duplicate, closely mirror, or test the same concept as any of these):
 ${existing}
 
-Generate exactly 1 new multiple choice question that covers a different aspect of the topic.
+Generate exactly 1 new multiple choice question that covers a genuinely different aspect of the topic not already tested. The question must:
+- Be factually accurate and precisely pitched for ${body.yearGroup} pupils
+- Have exactly 4 answer options with exactly 1 correct answer
+- Use plausible distractors based on common misconceptions — not obviously wrong alternatives
+- Be written in clear, unambiguous UK English
 
 Return ONLY a raw JSON object:
 {"questions":[{"question":"...","options":["A","B","C","D"],"correctIndex":0}]}
@@ -72,17 +82,18 @@ Return ONLY a raw JSON object:
 Rules:
 - correctIndex is 0–3
 - 4 options exactly
-- Factually accurate and appropriate for ${body.yearGroup}
 - No text outside the JSON object`;
 }
 
 function buildRefinePrompt(body: RefineBody): string {
-  return `Modify the following quiz questions based on this instruction: "${body.instruction}"
+  return `Modify the following quiz questions according to this instruction: "${body.instruction}"
+
+Apply the instruction precisely and consistently across all questions where it is relevant. Do not make changes beyond what the instruction specifies. Maintain factual accuracy and ensure all questions remain appropriate for the original year group and subject.
 
 Current questions:
 ${JSON.stringify(body.existingQuestions, null, 2)}
 
-Return the modified questions in the same JSON format. Return the same number of questions unless the instruction says to add or remove some.
+Return the same number of questions unless the instruction explicitly says to add or remove questions.
 
 Return ONLY a raw JSON object:
 {"questions":[{"question":"...","options":["A","B","C","D"],"correctIndex":0},...]}
@@ -144,8 +155,7 @@ export async function POST(req: NextRequest) {
     const message = await client.messages.create({
       model: "claude-sonnet-4-6",
       max_tokens: 4096,
-      system:
-        "You are an expert teacher creating multiple choice quizzes for school students. You always return valid JSON exactly as requested, with no additional text, markdown, or code fences. Your questions are accurate, age-appropriate, and test genuine curriculum knowledge.",
+      system: buildSystem("You are an expert UK teacher and assessment specialist creating multiple choice quizzes for school pupils across all year groups and subjects. You have a thorough understanding of what constitutes a well-designed multiple choice question: a clear, unambiguous stem; exactly one unambiguously correct answer; plausible distractors based on common misconceptions; and options that are grammatically parallel. You always return valid JSON exactly as requested, with no additional text, markdown, or code fences. Your questions are subject-accurate, age-appropriate, and test genuine curriculum knowledge rather than trivial recall."),
       messages: [{ role: "user", content: prompt }],
     });
 
