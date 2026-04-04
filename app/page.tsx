@@ -167,6 +167,48 @@ const TOOLS = [
     description: "Plan a structured, productive meeting with a facilitation guide, timed agenda, discussion structure, and optional action items.",
     tag: "Leadership",
   },
+  {
+    href: "/tools/performance-management",
+    icon: "performance-management",
+    label: "Performance Management Targets",
+    description: "Draft SMART performance management targets for any staff role, with objectives, success criteria, evidence, actions, timescales, and review points.",
+    tag: "Leadership",
+  },
+  {
+    href: "/tools/letter-writer",
+    icon: "letter-writer",
+    label: "Letter Writer",
+    description: "Draft letters to parents, staff, governors, or any recipient — simply provide the key information and tone and the AI will write it for you.",
+    tag: "Leadership",
+  },
+  {
+    href: "/tools/pupil-premium-planner",
+    icon: "pupil-premium",
+    label: "Pupil Premium Planner",
+    description: "Generate evidence-based Tier 1, 2, and 3 strategies for any Pupil Premium challenge, aligned with DfE guidance and EEF research.",
+    tag: "Leadership",
+  },
+  {
+    href: "/tools/assembly-planner",
+    icon: "assembly",
+    label: "Assembly Planner",
+    description: "Plan a complete assembly around any theme — with a timed script, speaker notes, story, interactive element, and delivery guidance.",
+    tag: "Planning",
+  },
+  {
+    href: "/tools/newsletter-writer",
+    icon: "newsletter",
+    label: "Newsletter Writer",
+    description: "Write a school newsletter with the tone of your choice, covering as many sections as you need — for parents, staff, or the whole community.",
+    tag: "Leadership",
+  },
+  {
+    href: "/tools/school-improvement-plan",
+    icon: "sip",
+    label: "School Improvement Plans",
+    description: "Draft a detailed, inspection-ready SIP with objectives, action steps, timelines, budget, monitoring schedule, and risk assessment — in table or narrative format.",
+    tag: "Leadership",
+  },
 ];
 
 import Link from "next/link";
@@ -380,6 +422,22 @@ function ToolIcon({ name, className }: { name: string; className?: string }) {
       </svg>
     );
   }
+  if (name === "letter-writer") {
+    return (
+      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+        <polyline points="22,6 12,13 2,6" />
+      </svg>
+    );
+  }
+  if (name === "performance-management") {
+    return (
+      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="10" />
+        <polyline points="12 6 12 12 16 14" />
+      </svg>
+    );
+  }
   if (name === "meeting-planner") {
     return (
       <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
@@ -466,6 +524,42 @@ function ToolIcon({ name, className }: { name: string; className?: string }) {
         <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
         <line x1="8" y1="12" x2="6" y2="20" strokeDasharray="2 2" />
         <line x1="16" y1="12" x2="18" y2="20" strokeDasharray="2 2" />
+      </svg>
+    );
+  }
+  if (name === "sip") {
+    return (
+      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+        <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
+        <polyline points="17 6 23 6 23 12" />
+      </svg>
+    );
+  }
+  if (name === "newsletter") {
+    return (
+      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+        <line x1="2" y1="10" x2="22" y2="10" />
+        <line x1="7" y1="15" x2="17" y2="15" />
+      </svg>
+    );
+  }
+  if (name === "assembly") {
+    return (
+      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+        <circle cx="9" cy="7" r="4" />
+        <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+      </svg>
+    );
+  }
+  if (name === "pupil-premium") {
+    return (
+      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+        <line x1="18" y1="20" x2="18" y2="10" />
+        <line x1="12" y1="20" x2="12" y2="4" />
+        <line x1="6" y1="20" x2="6" y2="14" />
       </svg>
     );
   }

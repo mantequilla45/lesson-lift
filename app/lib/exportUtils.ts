@@ -261,6 +261,12 @@ function friendlyTitle(filename: string): string {
   if (filename.startsWith("learning-walk-report")) return "Learning Walk Report";
   if (filename.startsWith("lesson-observation")) return "Lesson Observation Report";
   if (filename.startsWith("meeting-plan")) return "Meeting Plan";
+  if (filename.startsWith("performance-management")) return "Performance Management Targets";
+  if (filename.startsWith("letter-")) return "Letter";
+  if (filename.startsWith("pupil-premium")) return "Pupil Premium Strategy Plan";
+  if (filename.startsWith("assembly-plan")) return "Assembly Plan";
+  if (filename.startsWith("newsletter")) return "Newsletter";
+  if (filename.startsWith("school-improvement-plan")) return "School Improvement Plan";
   return filename.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
