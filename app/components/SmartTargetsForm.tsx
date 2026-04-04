@@ -2,26 +2,24 @@
 
 import { useState } from "react";
 import CurriculumYearFields, { useCurriculumYear } from "@/app/components/CurriculumYearFields";
-import { Loader2, Sparkles, Minus, Plus } from "lucide-react";
+import { Loader2, Sparkles } from "lucide-react";
 import ResultPanel from "@/app/components/ResultPanel";
 import RefinePanel from "@/app/components/RefinePanel";
 import ConfirmModal from "@/app/components/ConfirmModal";
 
 const REFINE_CHIPS = [
-  "Make more concise",
-  "Make longer",
-  "Increase the complexity",
-  "Reduce the complexity",
-  "Add more examples",
+  "Make the language simpler",
+  "Make the language more challenging",
+  "Make time-bound deadlines shorter",
+  "Make time-bound deadlines longer",
+  "Add more detail to each cell",
   "Translate to French",
 ];
 
-export default function ModelTextGeneratorForm({ sidebar }: { sidebar: React.ReactNode }) {
+export default function SmartTargetsForm({ sidebar }: { sidebar: React.ReactNode }) {
   const { curriculum, setCurriculum, yearGroup, setYearGroup } = useCurriculumYear();
   const [mixed, setMixed] = useState(false);
-  const [write, setWrite] = useState("");
-  const [features, setFeatures] = useState("");
-  const [lengthWords, setLengthWords] = useState("500");
+  const [targets, setTargets] = useState("");
 
   const [result, setResult] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -30,12 +28,9 @@ export default function ModelTextGeneratorForm({ sidebar }: { sidebar: React.Rea
   const [confirmingReset, setConfirmingReset] = useState(false);
   const [lastGenerated, setLastGenerated] = useState<string | null>(null);
 
-  const lengthNum = parseInt(lengthWords, 10);
-  const canGenerate =
-    curriculum && (mixed || yearGroup) && write.trim() &&
-    !isNaN(lengthNum) && lengthNum >= 50 && lengthNum <= 5000;
+  const canGenerate = curriculum && (mixed || yearGroup) && targets.trim();
 
-  const formSnapshot = JSON.stringify({ curriculum, yearGroup, mixed, write, features, lengthWords });
+  const formSnapshot = JSON.stringify({ curriculum, yearGroup, mixed, targets });
   const unchangedSinceGeneration = result !== null && lastGenerated === formSnapshot;
 
   const handleGenerate = async () => {
@@ -44,15 +39,13 @@ export default function ModelTextGeneratorForm({ sidebar }: { sidebar: React.Rea
     setIsGenerating(true);
     setLastGenerated(formSnapshot);
     try {
-      const res = await fetch("/api/model-text-generator", {
+      const res = await fetch("/api/smart-targets", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           curriculum,
           yearGroup: mixed ? "Mixed" : yearGroup,
-          write,
-          features,
-          lengthWords: lengthNum,
+          targets,
         }),
       });
       if (!res.ok) {
@@ -64,8 +57,7 @@ export default function ModelTextGeneratorForm({ sidebar }: { sidebar: React.Rea
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-        const chunk = decoder.decode(value, { stream: true }).replace(/\u00A9/g, "(c)");
-        setResult((prev) => (prev ?? "") + chunk);
+        setResult((prev) => (prev ?? "") + decoder.decode(value, { stream: true }));
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
@@ -73,11 +65,6 @@ export default function ModelTextGeneratorForm({ sidebar }: { sidebar: React.Rea
     } finally {
       setIsGenerating(false);
     }
-  };
-
-  const adjustLength = (delta: number) => {
-    const current = parseInt(lengthWords, 10) || 500;
-    setLengthWords(String(Math.min(5000, Math.max(50, current + delta))));
   };
 
   const inputClass =
@@ -99,65 +86,24 @@ export default function ModelTextGeneratorForm({ sidebar }: { sidebar: React.Rea
             />
 
             <div className="space-y-1.5">
-              <label className="block text-sm font-medium text-gray-700">Write</label>
+              <label className="block text-sm font-medium text-gray-700">Targets</label>
               <textarea
-                value={write}
-                onChange={(e) => setWrite(e.target.value)}
-                placeholder="e.g. Write a non-chronological report about the water cycle for Year 5 students"
-                rows={3}
+                value={targets}
+                onChange={(e) => setTargets(e.target.value)}
+                placeholder="e.g. Improve reading fluency, complete independent tasks without prompting, manage transitions calmly between lessons"
+                rows={5}
                 className={`${inputClass} resize-none`}
               />
               <p className="text-xs text-gray-400">100,000 character maximum input text</p>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="block text-sm font-medium text-gray-700">Features to include</label>
-              <textarea
-                value={features}
-                onChange={(e) => setFeatures(e.target.value)}
-                placeholder="e.g. use of similes, rhetorical questions, fronted adverbials"
-                rows={3}
-                className={`${inputClass} resize-none`}
-              />
-              <p className="text-xs text-gray-400">100,000 character maximum input text</p>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="block text-sm font-medium text-gray-700">Length (approx. words)</label>
-              <div className="flex items-center gap-0">
-                <input
-                  type="number"
-                  min={50}
-                  max={5000}
-                  value={lengthWords}
-                  onChange={(e) => setLengthWords(e.target.value)}
-                  onBlur={() => {
-                    const n = parseInt(lengthWords, 10);
-                    setLengthWords(String(isNaN(n) ? 500 : Math.min(5000, Math.max(50, n))));
-                  }}
-                  className="w-24 border border-gray-300 rounded-l-md px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-center"
-                />
-                <button
-                  type="button"
-                  onClick={() => adjustLength(-50)}
-                  disabled={lengthNum <= 50}
-                  className="h-9 w-9 flex items-center justify-center border border-l-0 border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                >
-                  <Minus className="w-3.5 h-3.5" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => adjustLength(50)}
-                  disabled={lengthNum >= 5000}
-                  className="h-9 w-9 flex items-center justify-center border border-l-0 border-gray-300 rounded-r-md text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                </button>
-              </div>
             </div>
 
             <div className="flex gap-3">
-              <button type="button" onClick={() => setConfirmingReset(true)} disabled={!result} className="border border-gray-300 text-gray-600 py-2.5 px-4 rounded-md text-sm font-medium hover:bg-gray-50 transition-colors disabled:opacity-50">
+              <button
+                type="button"
+                onClick={() => setConfirmingReset(true)}
+                disabled={!result}
+                className="border border-gray-300 text-gray-600 py-2.5 px-4 rounded-md text-sm font-medium hover:bg-gray-50 transition-colors disabled:opacity-50"
+              >
                 Reset
               </button>
               <ConfirmModal
@@ -165,7 +111,15 @@ export default function ModelTextGeneratorForm({ sidebar }: { sidebar: React.Rea
                 title="Reset form?"
                 message="This will clear your current results and reset all form inputs."
                 confirmLabel="Yes, reset"
-                onConfirm={() => { setCurriculum(""); setYearGroup(""); setMixed(false); setWrite(""); setFeatures(""); setLengthWords("500"); setResult(null); setError(null); setConfirmingReset(false); }}
+                onConfirm={() => {
+                  setCurriculum("");
+                  setYearGroup("");
+                  setMixed(false);
+                  setTargets("");
+                  setResult(null);
+                  setError(null);
+                  setConfirmingReset(false);
+                }}
                 onCancel={() => setConfirmingReset(false)}
               />
               <button
@@ -174,7 +128,9 @@ export default function ModelTextGeneratorForm({ sidebar }: { sidebar: React.Rea
                 disabled={!canGenerate || isGenerating || unchangedSinceGeneration}
                 className="flex-1 bg-indigo-600 text-white py-2.5 px-6 rounded-md text-sm font-medium hover:bg-indigo-700 active:bg-indigo-800 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
               >
-                {isGenerating ? <><Loader2 className="w-4 h-4 animate-spin" />Generating...</> : <><Sparkles className="w-4 h-4" />{result ? "Regenerate" : "Generate"}</>}
+                {isGenerating
+                  ? <><Loader2 className="w-4 h-4 animate-spin" />Generating...</>
+                  : <><Sparkles className="w-4 h-4" />{result ? "Regenerate" : "Generate"}</>}
               </button>
             </div>
           </div>
@@ -190,7 +146,7 @@ export default function ModelTextGeneratorForm({ sidebar }: { sidebar: React.Rea
         isGenerating={isGenerating}
         isRefining={isRefining}
         onChange={(md) => setResult(md)}
-        exportFilename={`model-text-${write.slice(0, 30).replace(/\s+/g, "-") || "export"}`}
+        exportFilename="smart-targets"
       />
 
       {result && !isGenerating && (

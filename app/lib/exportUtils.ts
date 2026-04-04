@@ -255,6 +255,9 @@ function friendlyTitle(filename: string): string {
   if (filename.startsWith("eyfs-plan")) return "EYFS Plan";
   if (filename.startsWith("model-text")) return "Model Text";
   if (filename.startsWith("sensory-activities")) return "Sensory Activities";
+  if (filename.startsWith("ect-report")) return "ECT Report";
+  if (filename.startsWith("eyfs-action-plan")) return "EYFS Action Plan";
+  if (filename.startsWith("inspection-prep")) return "Inspection Preparation Guide";
   return filename.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 

@@ -76,6 +76,76 @@ const TOOLS = [
     description: "Generate a fully editable multiple choice quiz on any topic, then export to Kahoot, Blooket, Gimkit, and more.",
     tag: "Assessment",
   },
+  {
+    href: "/tools/report-writer",
+    icon: "report",
+    label: "Report Writer",
+    description: "Generate personalised pupil reports from strengths, areas for development, and targets across multiple subjects.",
+    tag: "Assessment",
+  },
+  {
+    href: "/tools/smart-targets",
+    icon: "smart-targets",
+    label: "SMART Targets",
+    description: "Turn raw targets into a fully structured SMART table — specific, measurable, achievable, relevant, and time-bound.",
+    tag: "SEND",
+  },
+  {
+    href: "/tools/cpd-slideshow",
+    icon: "cpd-slideshow",
+    label: "CPD Slideshow Generator",
+    description: "Generate a professional development presentation for teachers, with slide-by-slide content, bullet points, and image suggestions.",
+    tag: "Planning",
+  },
+  {
+    href: "/tools/policy-generator",
+    icon: "policy",
+    label: "Policy Generator",
+    description: "Draft a full school policy or a policy section structure for any area of school life, ready to customise for your setting.",
+    tag: "Planning",
+  },
+  {
+    href: "/tools/one-page-profile",
+    icon: "one-page-profile",
+    label: "One Page Support Profile",
+    description: "Turn notes from a pupil discussion into a first-person, student-centred one page profile for use with student passports or internal guidance documents.",
+    tag: "SEND",
+  },
+  {
+    href: "/tools/risk-assessment",
+    icon: "risk-assessment",
+    label: "Risk Assessment",
+    description: "Draft a risk assessment for any school trip or activity, with hazards, likelihood, severity, control measures, and further actions.",
+    tag: "Planning",
+  },
+  {
+    href: "/tools/behaviour-support-plan",
+    icon: "behaviour-support-plan",
+    label: "Individual Student Behaviour Plan",
+    description: "Generate a comprehensive behaviour plan with strategies, targets, de-escalation guidance, and monitoring tools for a student with challenging behaviour.",
+    tag: "SEND",
+  },
+  {
+    href: "/tools/ect-report-writer",
+    icon: "ect-report",
+    label: "ECT Report Writer",
+    description: "Draft evidence-based ECT assessment reports with Teacher Standards references, development plans, and recommended resources.",
+    tag: "Leadership",
+  },
+  {
+    href: "/tools/eyfs-action-plan",
+    icon: "eyfs-action-plan",
+    label: "EYFS Action Plan",
+    description: "Generate a structured 4-phase action plan for any EYFS improvement objective, with responsibilities, monitoring, and resource requirements.",
+    tag: "Early Years",
+  },
+  {
+    href: "/tools/inspection-prep",
+    icon: "inspection-prep",
+    label: "Inspection Prep Questions",
+    description: "Generate self-evaluation questions and preparation actions for any inspection or accreditation body, with optional evidence examples and success criteria.",
+    tag: "Leadership",
+  },
 ];
 
 import Link from "next/link";
@@ -278,6 +348,102 @@ function ToolIcon({ name, className }: { name: string; className?: string }) {
         <circle cx="12" cy="12" r="10" />
         <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
         <line x1="12" y1="17" x2="12.01" y2="17" strokeWidth={3} />
+      </svg>
+    );
+  }
+  if (name === "cpd-slideshow") {
+    return (
+      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+        <rect x="2" y="3" width="20" height="14" rx="2" />
+        <path d="M8 21h8M12 17v4" />
+      </svg>
+    );
+  }
+  if (name === "inspection-prep") {
+    return (
+      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="11" cy="11" r="8" />
+        <line x1="21" y1="21" x2="16.65" y2="16.65" />
+        <line x1="11" y1="8" x2="11" y2="14" />
+        <line x1="8" y1="11" x2="14" y2="11" />
+      </svg>
+    );
+  }
+  if (name === "eyfs-action-plan") {
+    return (
+      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+        <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
+        <rect x="9" y="3" width="6" height="4" rx="1" />
+        <path d="M9 12h6" />
+        <path d="M9 16h4" />
+        <path d="M12 12v4" />
+      </svg>
+    );
+  }
+  if (name === "ect-report") {
+    return (
+      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+        <polyline points="14 2 14 8 20 8" />
+        <path d="M9 13h6" />
+        <path d="M9 17h4" />
+        <circle cx="9" cy="9" r="1" fill="currentColor" stroke="none" />
+      </svg>
+    );
+  }
+  if (name === "behaviour-support-plan") {
+    return (
+      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+        <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
+        <rect x="9" y="3" width="6" height="4" rx="1" />
+        <line x1="9" y1="12" x2="15" y2="12" />
+        <line x1="9" y1="16" x2="13" y2="16" />
+      </svg>
+    );
+  }
+  if (name === "risk-assessment") {
+    return (
+      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+        <line x1="12" y1="9" x2="12" y2="13" />
+        <line x1="12" y1="17" x2="12.01" y2="17" strokeWidth={3} />
+      </svg>
+    );
+  }
+  if (name === "one-page-profile") {
+    return (
+      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="8" r="4" />
+        <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
+        <line x1="8" y1="12" x2="6" y2="20" strokeDasharray="2 2" />
+        <line x1="16" y1="12" x2="18" y2="20" strokeDasharray="2 2" />
+      </svg>
+    );
+  }
+  if (name === "policy") {
+    return (
+      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+      </svg>
+    );
+  }
+  if (name === "smart-targets") {
+    return (
+      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="10" />
+        <circle cx="12" cy="12" r="6" />
+        <circle cx="12" cy="12" r="2" />
+      </svg>
+    );
+  }
+  if (name === "report") {
+    return (
+      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+        <polyline points="14 2 14 8 20 8" />
+        <line x1="16" y1="13" x2="8" y2="13" />
+        <line x1="16" y1="17" x2="8" y2="17" />
+        <line x1="10" y1="9" x2="8" y2="9" />
       </svg>
     );
   }
