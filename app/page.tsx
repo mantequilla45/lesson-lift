@@ -1,3 +1,5 @@
+"use client";
+
 const TOOLS = [
   {
     href: "/tools/comprehension-generator",
@@ -212,99 +214,186 @@ const TOOLS = [
 ];
 
 import Link from "next/link";
-import { User, ArrowRight } from "lucide-react";
+import { useState } from "react";
+import { ChevronLeft, Search, Database } from "lucide-react";
+import { FaPenNib } from "react-icons/fa";
+import { MdAssistant } from "react-icons/md";
+import { BiSolidDashboard } from "react-icons/bi";
+import { RiFolder6Fill } from "react-icons/ri";
+
+const TAG_COLORS: Record<string, { bg: string; icon: string }> = {
+  Planning:     { bg: "bg-blue-100",   icon: "text-blue-600" },
+  Literacy:     { bg: "bg-orange-100", icon: "text-orange-500" },
+  Assessment:   { bg: "bg-purple-100", icon: "text-purple-600" },
+  "Early Years":{ bg: "bg-green-100",  icon: "text-green-600" },
+  SEND:         { bg: "bg-teal-100",   icon: "text-teal-600" },
+  Leadership:   { bg: "bg-red-100",    icon: "text-red-500" },
+};
+
+const PINNED_HREFS = ["/tools/lesson-planner", "/tools/worksheet-generator"];
+
+const NAV = [
+  { label: "Dashboard",    icon: BiSolidDashboard, href: "#" },
+  { label: "Tools",        icon: FaPenNib,         href: "/", active: true },
+  { label: "Folders",      icon: RiFolder6Fill,    href: "#" },
+  { label: "AI assistant", icon: MdAssistant,       href: "#" },
+];
 
 export default function Home() {
-  return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
-        <nav className="flex justify-between items-center w-full px-8 py-4 max-w-7xl mx-auto">
-          <div className="flex items-center gap-12">
-            <span className="text-xl font-bold text-gray-900">
-              Lesson Lift
-            </span>
-            <div className="hidden md:flex gap-8">
-              {["Dashboard", "My Texts", "Curriculum"].map((item) => (
-                <a
-                  key={item}
-                  href="#"
-                  className="text-sm text-gray-500 hover:text-gray-900 transition-colors"
-                >
-                  {item}
-                </a>
-              ))}
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <User className="w-4 h-4 text-gray-500" />
-            <span className="text-sm font-medium text-gray-700">Teacher Pro</span>
-          </div>
-        </nav>
-      </header>
+  const [query, setQuery] = useState("");
 
-      {/* Main */}
-      <main className="flex-1 max-w-7xl mx-auto w-full px-8 py-12">
-        <div className="mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">
-            Your Tools
-          </h1>
-          <p className="text-lg text-gray-500">
-            AI-powered tools built for teachers. Pick a tool and get started.
-          </p>
+  const q = query.toLowerCase().trim();
+  const pinned = TOOLS.filter((t) => PINNED_HREFS.includes(t.href));
+  const rest   = TOOLS.filter((t) => !PINNED_HREFS.includes(t.href));
+
+  const filteredPinned = pinned.filter(
+    (t) => !q || t.label.toLowerCase().includes(q) || t.description.toLowerCase().includes(q)
+  );
+  const filteredRest = rest.filter(
+    (t) => !q || t.label.toLowerCase().includes(q) || t.description.toLowerCase().includes(q)
+  );
+
+  return (
+    <div className="min-h-screen flex" style={{ fontFamily: "var(--font-manrope, Manrope, sans-serif)", backgroundColor: "#f5f3eb" }}>
+
+      {/* Sidebar */}
+      <aside className="w-64 shrink-0 flex flex-col h-screen sticky top-0 px-6 py-8" style={{ borderRight: "1px solid rgba(229,231,235,0.5)" }}>
+        <div className="flex items-center justify-between mb-10">
+          <span className="text-xl font-extrabold" style={{ color: "#4a4a4a" }}>Lesson Lift</span>
+          <button className="p-2 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors">
+            <ChevronLeft className="w-4 h-4 text-gray-500" />
+          </button>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {TOOLS.map((tool) => (
+        <nav className="space-y-1 grow">
+          {NAV.map(({ label, icon: Icon, href, active }) => (
             <Link
-              key={tool.href}
-              href={tool.href}
-              className="bg-white border border-gray-200 rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow flex flex-col gap-4"
+              key={label}
+              href={href}
+              className={`flex items-center gap-3 px-4 py-3 text-sm font-semibold rounded-full transition-colors ${
+                active
+                  ? "bg-[#1a1a1a] text-white"
+                  : "text-gray-700 hover:bg-gray-100"
+              }`}
             >
-              <div className="flex items-start justify-between">
-                <div className="w-10 h-10 bg-indigo-50 rounded-lg flex items-center justify-center">
-                  <ToolIcon name={tool.icon} className="w-5 h-5 text-indigo-600" />
-                </div>
-                <span className="text-xs font-medium text-indigo-600 bg-indigo-50 px-2 py-1 rounded-full">
-                  {tool.tag}
-                </span>
-              </div>
-              <div>
-                <h2 className="font-semibold text-gray-900 mb-1">{tool.label}</h2>
-                <p className="text-sm text-gray-500 leading-relaxed">{tool.description}</p>
-              </div>
-              <div className="mt-auto pt-2 flex items-center gap-1 text-sm text-indigo-600 font-medium">
-                Open tool
-                <ArrowRight className="w-3.5 h-3.5" />
-              </div>
+              <Icon className="w-4 h-4 shrink-0" />
+              {label}
             </Link>
           ))}
+        </nav>
+
+        {/* Pinned tools widget */}
+        <div className="mt-auto rounded-2xl p-4" style={{ background: "rgba(255,255,255,0.5)", border: "1px solid #e5e7eb" }}>
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Pinned tools</span>
+          </div>
+          <div className="space-y-3">
+            {pinned.map((t) => {
+              const colors = TAG_COLORS[t.tag] ?? { bg: "bg-gray-100", icon: "text-gray-600" };
+              return (
+                <Link key={t.href} href={t.href} className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors">
+                  <div className={`w-4 h-4 rounded-sm flex items-center justify-center ${colors.bg}`}>
+                    <ToolIcon name={t.icon} className={`w-3 h-3 ${colors.icon}`} />
+                  </div>
+                  {t.label}
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      </aside>
+
+      {/* Main */}
+      <main className="grow flex flex-col overflow-y-auto">
+
+        {/* Top bar */}
+        <header className="flex items-center justify-between px-10 py-6">
+          <h2 className="text-2xl font-bold text-gray-900 shrink-0">Tools</h2>
+          <div className="grow max-w-xl mx-10">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search anything"
+                className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-full bg-white text-sm placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-300"
+              />
+            </div>
+          </div>
+          <button className="flex items-center gap-2 px-5 py-2.5 border border-gray-200 rounded-full text-sm font-bold bg-white hover:bg-gray-50 transition-colors shrink-0">
+            <Database className="w-4 h-4" />
+            Connect Storage
+          </button>
+        </header>
+
+        <div className="px-10 pb-16 space-y-8">
+
+          {/* Hero search */}
+          <section className="bg-white rounded-3xl p-8 shadow-sm">
+            <h3 className="text-2xl font-bold mb-5">What would you like to do?</h3>
+            <div className="relative">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <input
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search for a tool"
+                className="w-full pl-12 pr-4 py-4 border border-gray-100 rounded-2xl bg-gray-50/50 text-base placeholder-gray-400 focus:outline-none focus:border-gray-200 transition-all"
+              />
+            </div>
+          </section>
+
+          {/* Pinned */}
+          {filteredPinned.length > 0 && (
+            <section>
+              <div className="flex items-center gap-4 mb-5">
+                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest shrink-0">Pinned</h4>
+                <div className="h-px bg-gray-200 w-full" />
+              </div>
+              <div className="grid grid-cols-4 gap-4">
+                {filteredPinned.map((tool) => <ToolCard key={tool.href} tool={tool} />)}
+              </div>
+            </section>
+          )}
+
+          {/* All tools */}
+          {filteredRest.length > 0 && (
+            <section>
+              <div className="flex items-center gap-4 mb-5">
+                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest shrink-0">All tools</h4>
+                <div className="h-px bg-gray-200 w-full" />
+              </div>
+              <div className="grid grid-cols-4 gap-4">
+                {filteredRest.map((tool) => <ToolCard key={tool.href} tool={tool} />)}
+              </div>
+            </section>
+          )}
+
+          {filteredPinned.length === 0 && filteredRest.length === 0 && (
+            <p className="text-sm text-gray-400 text-center py-16">No tools match your search.</p>
+          )}
         </div>
       </main>
-
-      {/* Footer */}
-      <footer className="border-t border-gray-200 bg-white py-8 px-8 mt-20">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
-          <div>
-            <span className="font-bold text-gray-900">Lesson Lift</span>
-            <p className="text-sm text-gray-400 mt-1">
-              © 2025 The Structured Playground for Educators
-            </p>
-          </div>
-          <div className="flex gap-8">
-            {["Privacy", "Terms", "Support"].map((link) => (
-              <a
-                key={link}
-                href="#"
-                className="text-sm text-gray-500 hover:text-gray-700 transition-colors"
-              >
-                {link}
-              </a>
-            ))}
-          </div>
-        </div>
-      </footer>
     </div>
+  );
+}
+
+function ToolCard({ tool }: { tool: typeof TOOLS[number] }) {
+  const colors = TAG_COLORS[tool.tag] ?? { bg: "bg-gray-100", icon: "text-gray-600" };
+  return (
+    <Link
+      href={tool.href}
+      className="flex gap-5 items-start p-6 bg-white border border-gray-100 rounded-2xl cursor-pointer transition-shadow hover:shadow-md"
+    >
+      <div className={`w-10 h-10 shrink-0 flex items-center justify-center rounded-lg ${colors.bg}`}>
+        <ToolIcon name={tool.icon} className={`w-5 h-5 ${colors.icon}`} />
+      </div>
+      <div className="min-w-0">
+        <h5 className="font-bold text-[15px] leading-tight mb-1 text-gray-900">{tool.label}</h5>
+        <p className="text-sm text-gray-500 font-medium leading-snug">{tool.description}</p>
+      </div>
+    </Link>
   );
 }
 
