@@ -1,15 +1,48 @@
-# ComprehendAI
+# Lesson Lift
 
-A reading comprehension activity generator for teachers. Provide a topic or your own passage, configure reading focuses and complexity, and get a structured activity with questions — and an optional answer key — in seconds.
+An AI-powered toolkit for teachers and school leaders. Generate lesson plans, worksheets, reports, policies, and more — all tailored to your curriculum, year group, and classroom context.
 
-## Features
+## Tools
 
-- Generate a passage from a topic, or bring your own text
-- Select reading focuses (inference, retrieval, vocabulary, etc.)
-- Choose complexity level: Simple, Standard, or Challenging
-- Configure questions per focus and toggle an answer key
-- Edit the generated activity with a rich text editor (bold, italic, headings, lists, alignment)
-- Copy the result to clipboard
+**Planning**
+- Lesson Planner
+- Topic Overview
+- Medium Term Topic Planner
+- EYFS Planner
+- EYFS Action Plan
+- Assembly Planner
+- Risk Assessment
+- CPD Slideshow Generator
+
+**Literacy**
+- Comprehension Generator
+- Model Text Generator
+- Phonics Support
+
+**Assessment**
+- Worksheet Generator
+- Model Answer Generator
+- Quiz Generator
+- Report Writer
+
+**SEND**
+- Sensory Activities
+- SMART Targets
+- One Page Support Profile
+- Individual Student Behaviour Plan
+
+**Leadership**
+- ECT Report Writer
+- Inspection Prep Questions
+- Learning Walk Report
+- Lesson Observation Report
+- Meeting Planner
+- Performance Management Targets
+- Letter Writer
+- Pupil Premium Planner
+- Newsletter Writer
+- School Improvement Plans
+- Policy Generator
 
 ## Tech Stack
 
@@ -17,7 +50,9 @@ A reading comprehension activity generator for teachers. Provide a topic or your
 - **Tailwind CSS v4**
 - **Anthropic Claude API** (`claude-sonnet-4-6`)
 - **TipTap** (rich text editor)
-- **Plus Jakarta Sans + Manrope** (typography)
+- **react-icons** (icon library)
+- **Bricolage Grotesque** (typography)
+- **pptxgenjs / docx / jsPDF** (export formats)
 
 ## Getting Started
 
