@@ -5,15 +5,18 @@
   --color-secondary: #7D89D8;
   --color-dark: #1C1B1B;
   --color-surface: #FFFFFF;
+  --color-muted: #7E7E7E;
+  --color-line: #DAD8D0;
 
-  --font-sans: var(--font-manrope), Arial, Helvetica, sans-serif;
-  --font-headline: var(--font-jakarta), Arial, Helvetica, sans-serif;
+  --font-sans: var(--font-bricolage), Arial, Helvetica, sans-serif;
+  --font-headline: var(--font-bricolage), Arial, Helvetica, sans-serif;
   --font-mono: var(--font-geist-mono);
 }
 
 body {
   background: #F8F8F8;
-  color: #1C1B1B;
+  color: #030303;
+  font-family: var(--font-bricolage), Arial, Helvetica, sans-serif;
 }
 
 .bold-border {

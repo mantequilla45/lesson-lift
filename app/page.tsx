@@ -215,36 +215,37 @@ const TOOLS = [
 
 import Link from "next/link";
 import { useState } from "react";
-import { ChevronLeft, Search, Database } from "lucide-react";
-import { FaPenNib } from "react-icons/fa";
-import { MdAssistant } from "react-icons/md";
-import { BiSolidDashboard } from "react-icons/bi";
-import { RiFolder6Fill } from "react-icons/ri";
+import { CiSearch } from "react-icons/ci";
+import SideNav from "@/app/components/layout/SideNav";
+import TopBar from "@/app/components/layout/TopBar";
+import Card from "@/app/components/ui/Card";
+import {
+  MdMenuBook, MdCalendarMonth, MdAssignment, MdCheckBox, MdGridView,
+  MdLightbulb, MdEdit, MdEmojiPeople, MdTextFields, MdFactCheck,
+  MdHelp, MdDesktopMac, MdEmail, MdAccessTime, MdDateRange,
+  MdVisibility, MdTrendingUp, MdSearch, MdAssignmentTurnedIn,
+  MdDescription, MdPlaylistAdd, MdWarning, MdBadge, MdShowChart,
+  MdNewspaper, MdGroups, MdBarChart, MdSecurity, MdTrackChanges,
+  MdSummarize,
+} from "react-icons/md";
 
 const TAG_COLORS: Record<string, { bg: string; icon: string }> = {
-  Planning:     { bg: "bg-blue-100",   icon: "text-blue-600" },
-  Literacy:     { bg: "bg-orange-100", icon: "text-orange-500" },
-  Assessment:   { bg: "bg-purple-100", icon: "text-purple-600" },
-  "Early Years":{ bg: "bg-green-100",  icon: "text-green-600" },
-  SEND:         { bg: "bg-teal-100",   icon: "text-teal-600" },
-  Leadership:   { bg: "bg-red-100",    icon: "text-red-500" },
+  Planning: { bg: "bg-blue-100", icon: "text-blue-600" },
+  Literacy: { bg: "bg-amber-100", icon: "text-amber-600" },
+  Assessment: { bg: "bg-violet-100", icon: "text-violet-600" },
+  "Early Years": { bg: "bg-emerald-100", icon: "text-emerald-600" },
+  SEND: { bg: "bg-emerald-100", icon: "text-emerald-600" },
+  Leadership: { bg: "bg-rose-100", icon: "text-rose-600" },
 };
 
 const PINNED_HREFS = ["/tools/lesson-planner", "/tools/worksheet-generator"];
-
-const NAV = [
-  { label: "Dashboard",    icon: BiSolidDashboard, href: "#" },
-  { label: "Tools",        icon: FaPenNib,         href: "/", active: true },
-  { label: "Folders",      icon: RiFolder6Fill,    href: "#" },
-  { label: "AI assistant", icon: MdAssistant,       href: "#" },
-];
 
 export default function Home() {
   const [query, setQuery] = useState("");
 
   const q = query.toLowerCase().trim();
   const pinned = TOOLS.filter((t) => PINNED_HREFS.includes(t.href));
-  const rest   = TOOLS.filter((t) => !PINNED_HREFS.includes(t.href));
+  const rest = TOOLS.filter((t) => !PINNED_HREFS.includes(t.href));
 
   const filteredPinned = pinned.filter(
     (t) => !q || t.label.toLowerCase().includes(q) || t.description.toLowerCase().includes(q)
@@ -254,124 +255,61 @@ export default function Home() {
   );
 
   return (
-    <div className="min-h-screen flex" style={{ fontFamily: "var(--font-manrope, Manrope, sans-serif)", backgroundColor: "#f5f3eb" }}>
+    <div className="min-h-screen flex" style={{ backgroundColor: "#F1EFE3" }}>
 
-      {/* Sidebar */}
-      <aside className="w-64 shrink-0 flex flex-col h-screen sticky top-0 px-6 py-8" style={{ borderRight: "1px solid rgba(229,231,235,0.5)" }}>
-        <div className="flex items-center justify-between mb-10">
-          <span className="text-xl font-extrabold" style={{ color: "#4a4a4a" }}>Lesson Lift</span>
-          <button className="p-2 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors">
-            <ChevronLeft className="w-4 h-4 text-gray-500" />
-          </button>
-        </div>
-
-        <nav className="space-y-1 grow">
-          {NAV.map(({ label, icon: Icon, href, active }) => (
-            <Link
-              key={label}
-              href={href}
-              className={`flex items-center gap-3 px-4 py-3 text-sm font-semibold rounded-full transition-colors ${
-                active
-                  ? "bg-[#1a1a1a] text-white"
-                  : "text-gray-700 hover:bg-gray-100"
-              }`}
-            >
-              <Icon className="w-4 h-4 shrink-0" />
-              {label}
-            </Link>
-          ))}
-        </nav>
-
-        {/* Pinned tools widget */}
-        <div className="mt-auto rounded-2xl p-4" style={{ background: "rgba(255,255,255,0.5)", border: "1px solid #e5e7eb" }}>
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Pinned tools</span>
-          </div>
-          <div className="space-y-3">
-            {pinned.map((t) => {
-              const colors = TAG_COLORS[t.tag] ?? { bg: "bg-gray-100", icon: "text-gray-600" };
-              return (
-                <Link key={t.href} href={t.href} className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors">
-                  <div className={`w-4 h-4 rounded-sm flex items-center justify-center ${colors.bg}`}>
-                    <ToolIcon name={t.icon} className={`w-3 h-3 ${colors.icon}`} />
-                  </div>
-                  {t.label}
-                </Link>
-              );
-            })}
-          </div>
-        </div>
-      </aside>
+      <SideNav />
 
       {/* Main */}
       <main className="grow flex flex-col overflow-y-auto">
+        <TopBar title="Tools" showSearch searchValue={query} onSearchChange={setQuery} />
 
-        {/* Top bar */}
-        <header className="flex items-center justify-between px-10 py-6">
-          <h2 className="text-2xl font-bold text-gray-900 shrink-0">Tools</h2>
-          <div className="grow max-w-xl mx-10">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <input
-                type="text"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search anything"
-                className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-full bg-white text-sm placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-300"
-              />
-            </div>
-          </div>
-          <button className="flex items-center gap-2 px-5 py-2.5 border border-gray-200 rounded-full text-sm font-bold bg-white hover:bg-gray-50 transition-colors shrink-0">
-            <Database className="w-4 h-4" />
-            Connect Storage
-          </button>
-        </header>
-
-        <div className="px-10 pb-16 space-y-8">
+        <div className="px-10 pb-16 space-y-4">
 
           {/* Hero search */}
-          <section className="bg-white rounded-3xl p-8 shadow-sm">
-            <h3 className="text-2xl font-bold mb-5">What would you like to do?</h3>
+          <Card>
+            <h3 className="text-2xl font-medium mb-5">What would you like to do?</h3>
             <div className="relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <CiSearch className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted" />
               <input
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search for a tool"
-                className="w-full pl-12 pr-4 py-4 border border-gray-100 rounded-2xl bg-gray-50/50 text-base placeholder-gray-400 focus:outline-none focus:border-gray-200 transition-all"
+                className="w-full pl-12 pr-3 py-3 border border-[#F1EFE3] font-light rounded-2xl bg-white text-sm placeholder-[#A5A5A5] focus:outline-none focus:border-line transition-all"
               />
             </div>
-          </section>
+          </Card>
 
-          {/* Pinned */}
-          {filteredPinned.length > 0 && (
-            <section>
-              <div className="flex items-center gap-4 mb-5">
-                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest shrink-0">Pinned</h4>
-                <div className="h-px bg-gray-200 w-full" />
-              </div>
-              <div className="grid grid-cols-4 gap-4">
-                {filteredPinned.map((tool) => <ToolCard key={tool.href} tool={tool} />)}
-              </div>
-            </section>
-          )}
+          <Card className="p-10">
+            {/* Pinned */}
+            {filteredPinned.length > 0 && (
+              <section className=" mb-5">
+                <div className="flex items-center gap-4 mb-5">
+                  <h4 className="text-sm text-muted shrink-0">Pinned</h4>
+                  <div className="h-px bg-muted/30 w-full" />
+                </div>
+                <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(350px, 1fr))" }}>
+                  {filteredPinned.map((tool) => <ToolCard key={tool.href} tool={tool} />)}
+                </div>
+              </section>
+            )}
 
-          {/* All tools */}
-          {filteredRest.length > 0 && (
-            <section>
-              <div className="flex items-center gap-4 mb-5">
-                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest shrink-0">All tools</h4>
-                <div className="h-px bg-gray-200 w-full" />
-              </div>
-              <div className="grid grid-cols-4 gap-4">
-                {filteredRest.map((tool) => <ToolCard key={tool.href} tool={tool} />)}
-              </div>
-            </section>
-          )}
+            {/* All tools */}
+            {filteredRest.length > 0 && (
+              <section>
+                <div className="flex items-center gap-4 mb-5">
+                  <h4 className="text-sm text-muted shrink-0">All tools</h4>
+                  <div className="h-px bg-muted/30 w-full" />
+                </div>
+                <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(350px, 1fr))" }}>
+                  {filteredRest.map((tool) => <ToolCard key={tool.href} tool={tool} />)}
+                </div>
+              </section>
+            )}
+          </Card>
 
           {filteredPinned.length === 0 && filteredRest.length === 0 && (
-            <p className="text-sm text-gray-400 text-center py-16">No tools match your search.</p>
+            <p className="text-sm text-muted text-center py-16">No tools match your search.</p>
           )}
         </div>
       </main>
@@ -384,300 +322,54 @@ function ToolCard({ tool }: { tool: typeof TOOLS[number] }) {
   return (
     <Link
       href={tool.href}
-      className="flex gap-5 items-start p-6 bg-white border border-gray-100 rounded-2xl cursor-pointer transition-shadow hover:shadow-md"
+      className="group flex gap-4 items-start p-5 border border-line rounded-2xl cursor-pointer hover:bg-[#F1EFE3] hover:border-[#F1EFE3]"
     >
-      <div className={`w-10 h-10 shrink-0 flex items-center justify-center rounded-lg ${colors.bg}`}>
+      <div className={`w-10 h-10 shrink-0 flex items-center justify-center rounded-xl transition-colors bg-[#F1EFE3] group-hover:bg-white`}>
         <ToolIcon name={tool.icon} className={`w-5 h-5 ${colors.icon}`} />
       </div>
       <div className="min-w-0">
-        <h5 className="font-bold text-[15px] leading-tight mb-1 text-gray-900">{tool.label}</h5>
-        <p className="text-sm text-gray-500 font-medium leading-snug">{tool.description}</p>
+        <h5 className="font-semibold text-md  mb-0.5">{tool.label}</h5>
+        <p className="text-sm text-muted font-light line-clamp-2">{tool.description}</p>
       </div>
     </Link>
   );
 }
 
+const TOOL_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+  "comprehension": MdMenuBook,
+  "planner": MdCalendarMonth,
+  "worksheet": MdAssignment,
+  "topic": MdCheckBox,
+  "medium-term": MdGridView,
+  "sensory": MdLightbulb,
+  "model-text": MdEdit,
+  "eyfs": MdEmojiPeople,
+  "phonics": MdTextFields,
+  "model-answer": MdFactCheck,
+  "quiz": MdHelp,
+  "cpd-slideshow": MdDesktopMac,
+  "letter-writer": MdEmail,
+  "performance-management": MdAccessTime,
+  "meeting-planner": MdDateRange,
+  "lesson-observation": MdVisibility,
+  "learning-walk": MdTrendingUp,
+  "inspection-prep": MdSearch,
+  "eyfs-action-plan": MdAssignmentTurnedIn,
+  "ect-report": MdDescription,
+  "behaviour-support-plan": MdPlaylistAdd,
+  "risk-assessment": MdWarning,
+  "one-page-profile": MdBadge,
+  "sip": MdShowChart,
+  "newsletter": MdNewspaper,
+  "assembly": MdGroups,
+  "pupil-premium": MdBarChart,
+  "policy": MdSecurity,
+  "smart-targets": MdTrackChanges,
+  "report": MdSummarize,
+};
+
 function ToolIcon({ name, className }: { name: string; className?: string }) {
-  if (name === "comprehension") {
-    return (
-      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
-        <line x1="9" y1="9" x2="15" y2="9" />
-        <line x1="9" y1="13" x2="15" y2="13" />
-      </svg>
-    );
-  }
-  if (name === "planner") {
-    return (
-      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-        <rect x="3" y="4" width="18" height="18" rx="2" />
-        <line x1="16" y1="2" x2="16" y2="6" />
-        <line x1="8" y1="2" x2="8" y2="6" />
-        <line x1="3" y1="10" x2="21" y2="10" />
-        <path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01" strokeWidth={2.5} />
-      </svg>
-    );
-  }
-  if (name === "worksheet") {
-    return (
-      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-        <polyline points="14 2 14 8 20 8" />
-        <line x1="16" y1="13" x2="8" y2="13" />
-        <line x1="16" y1="17" x2="8" y2="17" />
-        <line x1="10" y1="9" x2="8" y2="9" />
-      </svg>
-    );
-  }
-  if (name === "topic") {
-    return (
-      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-        <path d="M9 11l3 3L22 4" />
-        <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
-      </svg>
-    );
-  }
-  if (name === "medium-term") {
-    return (
-      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-        <rect x="3" y="3" width="18" height="18" rx="2" />
-        <line x1="3" y1="9" x2="21" y2="9" />
-        <line x1="3" y1="15" x2="21" y2="15" />
-        <line x1="9" y1="9" x2="9" y2="21" />
-      </svg>
-    );
-  }
-  if (name === "sensory") {
-    return (
-      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-        <path d="M12 2a7 7 0 0 1 7 7c0 4-3 6-4 9H9c-1-3-4-5-4-9a7 7 0 0 1 7-7z" />
-        <path d="M9 18h6" />
-        <path d="M10 22h4" />
-      </svg>
-    );
-  }
-  if (name === "model-text") {
-    return (
-      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-        <path d="M12 20h9" />
-        <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
-      </svg>
-    );
-  }
-  if (name === "eyfs") {
-    return (
-      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-        <path d="M12 2a5 5 0 1 0 0 10A5 5 0 0 0 12 2z" />
-        <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
-        <path d="M9 12.5c-1 1.5-1.5 3-1.5 4.5" strokeDasharray="1.5 1.5" />
-        <path d="M15 12.5c1 1.5 1.5 3 1.5 4.5" strokeDasharray="1.5 1.5" />
-      </svg>
-    );
-  }
-  if (name === "phonics") {
-    return (
-      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-        <path d="M4 7V4h16v3" />
-        <path d="M9 20h6" />
-        <path d="M12 4v16" />
-        <path d="M6 12h5" />
-        <path d="M13 12h5" />
-      </svg>
-    );
-  }
-  if (name === "model-answer") {
-    return (
-      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-        <path d="M9 11l3 3L22 4" />
-        <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
-      </svg>
-    );
-  }
-  if (name === "quiz") {
-    return (
-      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="12" cy="12" r="10" />
-        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
-        <line x1="12" y1="17" x2="12.01" y2="17" strokeWidth={3} />
-      </svg>
-    );
-  }
-  if (name === "cpd-slideshow") {
-    return (
-      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-        <rect x="2" y="3" width="20" height="14" rx="2" />
-        <path d="M8 21h8M12 17v4" />
-      </svg>
-    );
-  }
-  if (name === "letter-writer") {
-    return (
-      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-        <polyline points="22,6 12,13 2,6" />
-      </svg>
-    );
-  }
-  if (name === "performance-management") {
-    return (
-      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="12" cy="12" r="10" />
-        <polyline points="12 6 12 12 16 14" />
-      </svg>
-    );
-  }
-  if (name === "meeting-planner") {
-    return (
-      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-        <rect x="3" y="4" width="18" height="18" rx="2" />
-        <line x1="16" y1="2" x2="16" y2="6" />
-        <line x1="8" y1="2" x2="8" y2="6" />
-        <line x1="3" y1="10" x2="21" y2="10" />
-        <line x1="8" y1="14" x2="8" y2="18" />
-        <line x1="12" y1="14" x2="12" y2="18" />
-        <line x1="16" y1="14" x2="16" y2="18" />
-      </svg>
-    );
-  }
-  if (name === "lesson-observation") {
-    return (
-      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-        <circle cx="12" cy="12" r="3" />
-      </svg>
-    );
-  }
-  if (name === "learning-walk") {
-    return (
-      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-        <path d="M3 12h4l3-9 4 18 3-9h4" />
-      </svg>
-    );
-  }
-  if (name === "inspection-prep") {
-    return (
-      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="11" cy="11" r="8" />
-        <line x1="21" y1="21" x2="16.65" y2="16.65" />
-        <line x1="11" y1="8" x2="11" y2="14" />
-        <line x1="8" y1="11" x2="14" y2="11" />
-      </svg>
-    );
-  }
-  if (name === "eyfs-action-plan") {
-    return (
-      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-        <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
-        <rect x="9" y="3" width="6" height="4" rx="1" />
-        <path d="M9 12h6" />
-        <path d="M9 16h4" />
-        <path d="M12 12v4" />
-      </svg>
-    );
-  }
-  if (name === "ect-report") {
-    return (
-      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-        <polyline points="14 2 14 8 20 8" />
-        <path d="M9 13h6" />
-        <path d="M9 17h4" />
-        <circle cx="9" cy="9" r="1" fill="currentColor" stroke="none" />
-      </svg>
-    );
-  }
-  if (name === "behaviour-support-plan") {
-    return (
-      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-        <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
-        <rect x="9" y="3" width="6" height="4" rx="1" />
-        <line x1="9" y1="12" x2="15" y2="12" />
-        <line x1="9" y1="16" x2="13" y2="16" />
-      </svg>
-    );
-  }
-  if (name === "risk-assessment") {
-    return (
-      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-        <line x1="12" y1="9" x2="12" y2="13" />
-        <line x1="12" y1="17" x2="12.01" y2="17" strokeWidth={3} />
-      </svg>
-    );
-  }
-  if (name === "one-page-profile") {
-    return (
-      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="12" cy="8" r="4" />
-        <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
-        <line x1="8" y1="12" x2="6" y2="20" strokeDasharray="2 2" />
-        <line x1="16" y1="12" x2="18" y2="20" strokeDasharray="2 2" />
-      </svg>
-    );
-  }
-  if (name === "sip") {
-    return (
-      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-        <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
-        <polyline points="17 6 23 6 23 12" />
-      </svg>
-    );
-  }
-  if (name === "newsletter") {
-    return (
-      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-        <line x1="2" y1="10" x2="22" y2="10" />
-        <line x1="7" y1="15" x2="17" y2="15" />
-      </svg>
-    );
-  }
-  if (name === "assembly") {
-    return (
-      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-        <circle cx="9" cy="7" r="4" />
-        <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-      </svg>
-    );
-  }
-  if (name === "pupil-premium") {
-    return (
-      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-        <line x1="18" y1="20" x2="18" y2="10" />
-        <line x1="12" y1="20" x2="12" y2="4" />
-        <line x1="6" y1="20" x2="6" y2="14" />
-      </svg>
-    );
-  }
-  if (name === "policy") {
-    return (
-      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-      </svg>
-    );
-  }
-  if (name === "smart-targets") {
-    return (
-      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="12" cy="12" r="10" />
-        <circle cx="12" cy="12" r="6" />
-        <circle cx="12" cy="12" r="2" />
-      </svg>
-    );
-  }
-  if (name === "report") {
-    return (
-      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-        <polyline points="14 2 14 8 20 8" />
-        <line x1="16" y1="13" x2="8" y2="13" />
-        <line x1="16" y1="17" x2="8" y2="17" />
-        <line x1="10" y1="9" x2="8" y2="9" />
-      </svg>
-    );
-  }
-  return null;
+  const Icon = TOOL_ICONS[name];
+  if (!Icon) return null;
+  return <Icon className={className} />;
 }

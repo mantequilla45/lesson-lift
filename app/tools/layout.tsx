@@ -1,30 +1,63 @@
+"use client";
+
 import Link from "next/link";
-import { User } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
+import SideNav from "@/app/components/layout/SideNav";
+import TopBar from "@/app/components/layout/TopBar";
+
+const ROUTE_LABELS: Record<string, string> = {
+  "/tools/lesson-planner": "Lesson Planner",
+  "/tools/worksheet-generator": "Worksheet Generator",
+  "/tools/comprehension-generator": "Comprehension Generator",
+  "/tools/topic-overview": "Topic Overview",
+  "/tools/medium-term-planner": "Medium Term Planner",
+  "/tools/eyfs-planner": "EYFS Planner",
+  "/tools/model-text-generator": "Model Text Generator",
+  "/tools/sensory-activities": "Sensory Activities",
+  "/tools/phonics-support": "Phonics Support",
+  "/tools/model-answer-generator": "Model Answer Generator",
+  "/tools/quiz-generator": "Quiz Generator",
+  "/tools/report-writer": "Report Writer",
+  "/tools/smart-targets": "SMART Targets",
+  "/tools/cpd-slideshow": "CPD Slideshow Generator",
+  "/tools/policy-generator": "Policy Generator",
+  "/tools/one-page-profile": "One Page Support Profile",
+  "/tools/risk-assessment": "Risk Assessment",
+  "/tools/behaviour-support-plan": "Individual Student Behaviour Plan",
+  "/tools/ect-report-writer": "ECT Report Writer",
+  "/tools/eyfs-action-plan": "EYFS Action Plan",
+  "/tools/inspection-prep": "Inspection Prep Questions",
+  "/tools/learning-walk-report": "Learning Walk Report",
+  "/tools/lesson-observation-report": "Lesson Observation Report",
+  "/tools/meeting-planner": "Meeting Planner",
+  "/tools/performance-management": "Performance Management Targets",
+  "/tools/letter-writer": "Letter Writer",
+  "/tools/pupil-premium-planner": "Pupil Premium Planner",
+  "/tools/assembly-planner": "Assembly Planner",
+  "/tools/newsletter-writer": "Newsletter Writer",
+  "/tools/school-improvement-plan": "School Improvement Plans",
+};
 
 export default function ToolsLayout({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const label = ROUTE_LABELS[pathname] ?? "Tools";
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-8">
-            <Link href="/" className="text-xl font-bold text-gray-900 tracking-tight">
-              Lesson Lift
-            </Link>
-            <nav className="hidden md:flex items-center gap-6">
-              <Link href="/" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">
-                Dashboard
-              </Link>
-              <a href="#" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">My Content</a>
-              <a href="#" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">Tools</a>
-            </nav>
-          </div>
-          <div className="flex items-center gap-2 text-sm text-gray-600">
-            <User className="w-4 h-4" />
-            <span>Teacher Pro</span>
-          </div>
+    <div className="min-h-screen flex" style={{ backgroundColor: "#F1EFE3" }}>
+      <SideNav />
+      <main className="grow overflow-y-auto flex flex-col">
+        <TopBar title={label} />
+        <div className="px-10 pb-4 shrink-0">
+          <Link href="/" className="flex items-center gap-1.5 text-sm text-muted hover:text-gray-700 transition-colors w-fit">
+            <ArrowLeft className="w-3.5 h-3.5" />
+            Back to tools
+          </Link>
         </div>
-      </header>
-      {children}
+        <div className="grow px-10 pb-16">
+          {children}
+        </div>
+      </main>
     </div>
   );
 }

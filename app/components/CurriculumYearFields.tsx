@@ -21,7 +21,7 @@ interface Props {
 }
 
 const selectClass =
-  "w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white";
+  "w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-transparent bg-white";
 
 export default function CurriculumYearFields({
   curriculum,
@@ -35,7 +35,7 @@ export default function CurriculumYearFields({
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
       <div className="space-y-1.5">
-        <label className="block text-sm font-medium text-gray-700">Curriculum</label>
+        <label className="block text-sm font-semibold text-gray-800 mb-1.5">Curriculum</label>
         <select value={curriculum} onChange={(e) => onCurriculumChange(e.target.value)} className={selectClass}>
           <option value="" disabled>Select curriculum</option>
           {CURRICULA.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
@@ -43,7 +43,7 @@ export default function CurriculumYearFields({
       </div>
       <div className="space-y-1.5">
         <div className="flex items-center justify-between">
-          <label className="text-sm font-medium text-gray-700">Year group</label>
+          <label className="text-sm font-semibold text-gray-800">Year group</label>
           <label className="flex items-center gap-1.5 cursor-pointer text-sm text-gray-600">
             <input type="checkbox" checked={mixed} onChange={(e) => onMixedChange(e.target.checked)} className="rounded accent-indigo-600" />
             Mixed
