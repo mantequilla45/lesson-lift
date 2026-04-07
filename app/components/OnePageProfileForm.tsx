@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Loader2, Sparkles } from "lucide-react";
 import ConfirmModal from "@/app/components/ConfirmModal";
+import Card from "@/app/components/ui/Card";
 import ResultPanel from "@/app/components/ResultPanel";
 import CurriculumYearFields, { useCurriculumYear } from "@/app/components/CurriculumYearFields";
 
@@ -42,7 +43,7 @@ export default function OnePageProfileForm({ sidebar }: { sidebar: React.ReactNo
   const unchangedSinceGeneration = result !== null && lastGenerated === formSnapshot;
 
   const inputClass =
-    "w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent";
+    "w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-transparent bg-white";
 
   const streamResponse = async (body: object, onChunk: (c: string) => void) => {
     const res = await fetch("/api/one-page-profile", {
@@ -104,7 +105,7 @@ export default function OnePageProfileForm({ sidebar }: { sidebar: React.ReactNo
         <div className="lg:col-span-1">{sidebar}</div>
 
         <div className="lg:col-span-2">
-          <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6 space-y-5">
+          <Card className="space-y-6">
 
             <CurriculumYearFields
               curriculum={curriculum}
@@ -117,7 +118,7 @@ export default function OnePageProfileForm({ sidebar }: { sidebar: React.ReactNo
             />
 
             <div className="space-y-1.5">
-              <label className="block text-sm font-medium text-gray-700">Name <span className="text-gray-400 font-normal">(first name only)</span></label>
+              <label className="block text-sm font-semibold text-gray-800">Name <span className="text-gray-400 font-normal">(first name only)</span></label>
               <input
                 type="text"
                 value={name}
@@ -135,7 +136,7 @@ export default function OnePageProfileForm({ sidebar }: { sidebar: React.ReactNo
               { label: "The student's hopes and wishes for the future", value: hopes, onChange: setHopes, placeholder: "e.g. Would like to work with animals, wants to improve reading, hopes to make more friends" },
             ].map(({ label, value, onChange, placeholder }) => (
               <div key={label} className="space-y-1.5">
-                <label className="block text-sm font-medium text-gray-700">{label}</label>
+                <label className="block text-sm font-semibold text-gray-800">{label}</label>
                 <textarea
                   value={value}
                   onChange={(e) => onChange(e.target.value)}
@@ -148,7 +149,7 @@ export default function OnePageProfileForm({ sidebar }: { sidebar: React.ReactNo
             ))}
 
             <div className="space-y-1.5">
-              <label className="block text-sm font-medium text-gray-700">
+              <label className="block text-sm font-semibold text-gray-800">
                 Intervention groups <span className="text-gray-400 font-normal">(optional)</span>
               </label>
               <textarea
@@ -162,7 +163,7 @@ export default function OnePageProfileForm({ sidebar }: { sidebar: React.ReactNo
             </div>
 
             <div className="space-y-1.5">
-              <label className="block text-sm font-medium text-gray-700">
+              <label className="block text-sm font-semibold text-gray-800">
                 Outside agency input <span className="text-gray-400 font-normal">(optional)</span>
               </label>
               <textarea
@@ -176,13 +177,13 @@ export default function OnePageProfileForm({ sidebar }: { sidebar: React.ReactNo
             </div>
 
             <div className="space-y-1.5">
-              <label className="block text-sm font-medium text-gray-700">Include additional support suggestions</label>
+              <label className="block text-sm font-semibold text-gray-800">Include additional support suggestions</label>
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={includeAdditionalSupport}
                   onChange={(e) => setIncludeAdditionalSupport(e.target.checked)}
-                  className="accent-indigo-600 w-4 h-4"
+                  className="accent-gray-900 w-4 h-4"
                 />
                 <span className="text-sm text-gray-700">Include additional support suggestions</span>
               </label>
@@ -193,7 +194,7 @@ export default function OnePageProfileForm({ sidebar }: { sidebar: React.ReactNo
                 type="button"
                 onClick={() => setConfirmingReset(true)}
                 disabled={!result}
-                className="border border-gray-300 text-gray-600 py-2.5 px-4 rounded-md text-sm font-medium hover:bg-gray-50 transition-colors disabled:opacity-50"
+                className="border border-gray-200 text-gray-600 py-3 px-5 rounded-xl text-sm font-semibold hover:bg-gray-50 transition-colors disabled:opacity-50"
               >
                 Reset
               </button>
@@ -214,14 +215,14 @@ export default function OnePageProfileForm({ sidebar }: { sidebar: React.ReactNo
                 type="button"
                 onClick={handleGenerate}
                 disabled={!canGenerate || isGenerating || unchangedSinceGeneration}
-                className="flex-1 bg-indigo-600 text-white py-2.5 px-6 rounded-md text-sm font-medium hover:bg-indigo-700 active:bg-indigo-800 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                className="flex-1 bg-[#1a1a1a] text-white py-3 px-6 rounded-xl text-sm font-semibold hover:bg-gray-800 active:bg-gray-900 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {isGenerating
                   ? <><Loader2 className="w-4 h-4 animate-spin" />Generating...</>
                   : <><Sparkles className="w-4 h-4" />{result ? "Regenerate" : "Generate"}</>}
               </button>
             </div>
-          </div>
+          </Card>
         </div>
       </div>
 
@@ -238,15 +239,15 @@ export default function OnePageProfileForm({ sidebar }: { sidebar: React.ReactNo
       />
 
       {result && !isGenerating && (
-        <div className="bg-indigo-50 border border-indigo-100 rounded-lg p-6 space-y-4">
-          <h3 className="text-base font-semibold text-indigo-900">Want to refine your results?</h3>
-          <p className="text-sm font-medium text-indigo-700">What would you like to change?</p>
+        <div className="bg-gray-50 border border-gray-200 rounded-xl p-6 space-y-4">
+          <h3 className="text-base font-semibold text-gray-900">Want to refine your results?</h3>
+          <p className="text-sm font-medium text-gray-600">What would you like to change?</p>
           <textarea
             value={refineInstruction}
             onChange={(e) => setRefineInstruction(e.target.value)}
             placeholder="Type changes here"
             rows={2}
-            className="w-full border border-indigo-200 rounded-md px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none bg-white"
+            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-transparent resize-none bg-white"
           />
           <div className="flex flex-wrap gap-2">
             {REFINE_CHIPS.map((chip) => (
@@ -254,7 +255,7 @@ export default function OnePageProfileForm({ sidebar }: { sidebar: React.ReactNo
                 key={chip}
                 type="button"
                 onClick={() => setRefineInstruction(chip)}
-                className="text-xs text-indigo-600 border border-indigo-200 rounded-full px-3 py-1 hover:bg-indigo-100 transition-colors"
+                className="text-xs text-gray-600 border border-gray-200 rounded-full px-3 py-1 hover:bg-gray-100 transition-colors"
               >
                 {chip}
               </button>
@@ -264,7 +265,7 @@ export default function OnePageProfileForm({ sidebar }: { sidebar: React.ReactNo
             type="button"
             onClick={() => handleRefine(refineInstruction)}
             disabled={isRefining || !refineInstruction.trim()}
-            className="bg-indigo-600 text-white py-2 px-6 rounded-md text-sm font-medium hover:bg-indigo-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+            className="bg-[#1a1a1a] text-white py-2 px-6 rounded-xl text-sm font-medium hover:bg-gray-800 transition-colors disabled:opacity-50 flex items-center gap-2"
           >
             {isRefining ? <><Loader2 className="w-4 h-4 animate-spin" />Refining...</> : "Refine results"}
           </button>

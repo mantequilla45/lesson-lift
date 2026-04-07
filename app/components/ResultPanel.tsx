@@ -97,13 +97,13 @@ export default function ResultPanel({
           <div className="flex items-center gap-3">
             <h2 className="font-semibold text-gray-900 text-sm">My results</h2>
             {isGenerating && (
-              <div className="flex items-center gap-1.5 text-xs text-indigo-600">
+              <div className="flex items-center gap-1.5 text-xs text-gray-500">
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
                 Generating…
               </div>
             )}
             {isRefining && (
-              <div className="flex items-center gap-1.5 text-xs text-indigo-600">
+              <div className="flex items-center gap-1.5 text-xs text-gray-500">
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
                 Refining…
               </div>

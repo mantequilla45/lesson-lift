@@ -110,7 +110,7 @@ return (
               <div className="flex gap-5">
                 {(["yes", "no"] as const).map((val) => (
                   <label key={val} className="flex items-center gap-2 cursor-pointer text-sm text-gray-700">
-                    <input type="radio" name="pedagogicalTheory" value={val} checked={pedagogicalTheory === val} onChange={() => setPedagogicalTheory(val)} className="accent-indigo-600" />
+                    <input type="radio" name="pedagogicalTheory" value={val} checked={pedagogicalTheory === val} onChange={() => setPedagogicalTheory(val)} className="accent-gray-900" />
                     {val.charAt(0).toUpperCase() + val.slice(1)}
                   </label>
                 ))}
@@ -125,7 +125,7 @@ return (
               <div className="flex gap-5">
                 {(["yes", "no"] as const).map((val) => (
                   <label key={val} className="flex items-center gap-2 cursor-pointer text-sm text-gray-700">
-                    <input type="radio" name="examSpec" value={val} checked={examSpec === val} onChange={() => setExamSpec(val)} className="accent-indigo-600" />
+                    <input type="radio" name="examSpec" value={val} checked={examSpec === val} onChange={() => setExamSpec(val)} className="accent-gray-900" />
                     {val.charAt(0).toUpperCase() + val.slice(1)}
                   </label>
                 ))}

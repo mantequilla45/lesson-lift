@@ -45,7 +45,7 @@ export default function CurriculumYearFields({
         <div className="flex items-center justify-between">
           <label className="text-sm font-semibold text-gray-800">Year group</label>
           <label className="flex items-center gap-1.5 cursor-pointer text-sm text-gray-600">
-            <input type="checkbox" checked={mixed} onChange={(e) => onMixedChange(e.target.checked)} className="rounded accent-indigo-600" />
+            <input type="checkbox" checked={mixed} onChange={(e) => onMixedChange(e.target.checked)} className="rounded accent-gray-900" />
             Mixed
           </label>
         </div>

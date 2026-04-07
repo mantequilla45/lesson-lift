@@ -5,6 +5,7 @@ import { Loader2, Sparkles } from "lucide-react";
 import ResultPanel from "@/app/components/ResultPanel";
 import RefinePanel from "@/app/components/RefinePanel";
 import ConfirmModal from "@/app/components/ConfirmModal";
+import Card from "@/app/components/ui/Card";
 
 const SCHOOL_TYPES = [
   "Primary",
@@ -25,10 +26,10 @@ const REFINE_CHIPS = [
 ];
 
 const selectClass =
-  "w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white";
+  "w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-transparent bg-white";
 
 const inputClass =
-  "w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent";
+  "w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-transparent bg-white";
 
 export default function SchoolImprovementPlanForm({ sidebar }: { sidebar: React.ReactNode }) {
   const [schoolType, setSchoolType] = useState("Primary");
@@ -84,10 +85,10 @@ export default function SchoolImprovementPlanForm({ sidebar }: { sidebar: React.
         <div className="lg:col-span-1">{sidebar}</div>
 
         <div className="lg:col-span-2">
-          <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6 space-y-5">
+          <Card className="space-y-6">
 
             <div className="space-y-1.5">
-              <label className="block text-sm font-medium text-gray-700">School type</label>
+              <label className="block text-sm font-semibold text-gray-800">School type</label>
               <select value={schoolType} onChange={(e) => setSchoolType(e.target.value)} className={selectClass}>
                 {SCHOOL_TYPES.map((t) => (
                   <option key={t} value={t}>{t}</option>
@@ -96,19 +97,19 @@ export default function SchoolImprovementPlanForm({ sidebar }: { sidebar: React.
             </div>
 
             <div className="space-y-1.5">
-              <label className="block text-sm font-medium text-gray-700">Areas to improve</label>
+              <label className="block text-sm font-semibold text-gray-800">Areas to improve</label>
               <textarea
                 value={areasToImprove}
                 onChange={(e) => setAreasToImprove(e.target.value)}
                 placeholder="e.g. attendance, reading outcomes in KS2, behaviour and attitudes"
                 rows={3}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
+                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-transparent resize-none bg-white"
               />
               <p className="text-xs text-gray-400">100,000 character maximum input text</p>
             </div>
 
             <div className="space-y-1.5">
-              <label className="block text-sm font-medium text-gray-700">
+              <label className="block text-sm font-semibold text-gray-800">
                 School context <span className="text-gray-400 font-normal">(optional)</span>
               </label>
               <textarea
@@ -116,13 +117,13 @@ export default function SchoolImprovementPlanForm({ sidebar }: { sidebar: React.
                 onChange={(e) => setSchoolContext(e.target.value)}
                 placeholder="Key information about the school's size, demographics, and previous inspection outcomes"
                 rows={3}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
+                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-transparent resize-none bg-white"
               />
               <p className="text-xs text-gray-400">100,000 character maximum input text</p>
             </div>
 
             <div className="space-y-1.5">
-              <label className="block text-sm font-medium text-gray-700">Plan timeframe (years)</label>
+              <label className="block text-sm font-semibold text-gray-800">Plan timeframe (years)</label>
               <input
                 type="number"
                 min={1}
@@ -137,7 +138,7 @@ export default function SchoolImprovementPlanForm({ sidebar }: { sidebar: React.
             </div>
 
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700">Output format</label>
+              <label className="block text-sm font-semibold text-gray-800">Output format</label>
               <div className="flex flex-wrap gap-6">
                 {[
                   { value: "table", label: "Table format", sub: "a briefer summary" },
@@ -150,7 +151,7 @@ export default function SchoolImprovementPlanForm({ sidebar }: { sidebar: React.
                       value={value}
                       checked={outputFormat === value}
                       onChange={() => setOutputFormat(value as "table" | "narrative")}
-                      className="mt-0.5 accent-indigo-600"
+                      className="mt-0.5 accent-gray-900"
                     />
                     <span className="text-sm text-gray-700">
                       {label} <span className="text-gray-400">({sub})</span>
@@ -165,7 +166,7 @@ export default function SchoolImprovementPlanForm({ sidebar }: { sidebar: React.
                 type="button"
                 onClick={() => setConfirmingReset(true)}
                 disabled={!result}
-                className="border border-gray-300 text-gray-600 py-2.5 px-4 rounded-md text-sm font-medium hover:bg-gray-50 transition-colors disabled:opacity-50"
+                className="border border-gray-200 text-gray-600 py-3 px-5 rounded-xl text-sm font-semibold hover:bg-gray-50 transition-colors disabled:opacity-50"
               >
                 Reset
               </button>
@@ -190,14 +191,14 @@ export default function SchoolImprovementPlanForm({ sidebar }: { sidebar: React.
                 type="button"
                 onClick={handleGenerate}
                 disabled={!canGenerate || isGenerating || unchangedSinceGeneration}
-                className="flex-1 bg-indigo-600 text-white py-2.5 px-6 rounded-md text-sm font-medium hover:bg-indigo-700 active:bg-indigo-800 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                className="flex-1 bg-[#1a1a1a] text-white py-3 px-6 rounded-xl text-sm font-semibold hover:bg-gray-800 active:bg-gray-900 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {isGenerating
                   ? <><Loader2 className="w-4 h-4 animate-spin" />Generating...</>
                   : <><Sparkles className="w-4 h-4" />{result ? "Regenerate" : "Generate"}</>}
               </button>
             </div>
-          </div>
+          </Card>
         </div>
       </div>
 

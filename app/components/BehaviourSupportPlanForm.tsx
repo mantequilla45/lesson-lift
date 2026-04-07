@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Loader2, Sparkles } from "lucide-react";
 import ConfirmModal from "@/app/components/ConfirmModal";
+import Card from "@/app/components/ui/Card";
 import ResultPanel from "@/app/components/ResultPanel";
 import CurriculumYearFields, { useCurriculumYear } from "@/app/components/CurriculumYearFields";
 
@@ -18,10 +19,10 @@ const REFINE_CHIPS = [
 ];
 
 const inputClass =
-  "w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent";
+  "w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-transparent bg-white";
 
 const selectClass =
-  "w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white";
+  "w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-transparent bg-white";
 
 function RequiredTextarea({
   label, value, onChange, placeholder, touched,
@@ -31,7 +32,7 @@ function RequiredTextarea({
   const invalid = touched && !value.trim();
   return (
     <div className="space-y-1.5">
-      <label className="block text-sm font-medium text-gray-700">{label}</label>
+      <label className="block text-sm font-semibold text-gray-800">{label}</label>
       <textarea
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -140,7 +141,7 @@ export default function BehaviourSupportPlanForm({ sidebar }: { sidebar: React.R
         <div className="lg:col-span-1">{sidebar}</div>
 
         <div className="lg:col-span-2">
-          <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6 space-y-5">
+          <Card className="space-y-6">
 
             <CurriculumYearFields
               curriculum={curriculum}
@@ -154,7 +155,7 @@ export default function BehaviourSupportPlanForm({ sidebar }: { sidebar: React.R
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <div className="space-y-1.5">
-                <label className="block text-sm font-medium text-gray-700">Student name</label>
+                <label className="block text-sm font-semibold text-gray-800">Student name</label>
                 <input
                   type="text"
                   value={studentName}
@@ -164,7 +165,7 @@ export default function BehaviourSupportPlanForm({ sidebar }: { sidebar: React.R
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="block text-sm font-medium text-gray-700">Student gender</label>
+                <label className="block text-sm font-semibold text-gray-800">Student gender</label>
                 <select value={studentGender} onChange={(e) => setStudentGender(e.target.value as Gender)} className={selectClass}>
                   <option value="Male">Male</option>
                   <option value="Female">Female</option>
@@ -174,7 +175,7 @@ export default function BehaviourSupportPlanForm({ sidebar }: { sidebar: React.R
             </div>
 
             <div className="space-y-1.5">
-              <label className="block text-sm font-medium text-gray-700">Student's class</label>
+              <label className="block text-sm font-semibold text-gray-800">Student's class</label>
               <input
                 type="text"
                 value={studentClass}
@@ -185,7 +186,7 @@ export default function BehaviourSupportPlanForm({ sidebar }: { sidebar: React.R
             </div>
 
             <div className="space-y-1.5">
-              <label className="block text-sm font-medium text-gray-700">Additional support needs</label>
+              <label className="block text-sm font-semibold text-gray-800">Additional support needs</label>
               <textarea
                 value={supportNeeds}
                 onChange={(e) => setSupportNeeds(e.target.value)}
@@ -197,7 +198,7 @@ export default function BehaviourSupportPlanForm({ sidebar }: { sidebar: React.R
             </div>
 
             <div className="space-y-1.5">
-              <label className="block text-sm font-medium text-gray-700">Key staff working with student</label>
+              <label className="block text-sm font-semibold text-gray-800">Key staff working with student</label>
               <input
                 type="text"
                 value={keyStaff}
@@ -230,7 +231,7 @@ export default function BehaviourSupportPlanForm({ sidebar }: { sidebar: React.R
               { label: "Previous interventions", value: previousInterventions, onChange: setPreviousInterventions, placeholder: "e.g. Daily check-in/check-out, seating plan adjustment, reward chart (discontinued after 4 weeks), referral to school counsellor" },
             ].map(({ label, value, onChange, placeholder }) => (
               <div key={label} className="space-y-1.5">
-                <label className="block text-sm font-medium text-gray-700">{label}</label>
+                <label className="block text-sm font-semibold text-gray-800">{label}</label>
                 <textarea
                   value={value}
                   onChange={(e) => onChange(e.target.value)}
@@ -244,7 +245,7 @@ export default function BehaviourSupportPlanForm({ sidebar }: { sidebar: React.R
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <div className="space-y-1.5">
-                <label className="block text-sm font-medium text-gray-700">Plan start date</label>
+                <label className="block text-sm font-semibold text-gray-800">Plan start date</label>
                 <input
                   type="date"
                   value={planStartDate}
@@ -253,7 +254,7 @@ export default function BehaviourSupportPlanForm({ sidebar }: { sidebar: React.R
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="block text-sm font-medium text-gray-700">Next review date</label>
+                <label className="block text-sm font-semibold text-gray-800">Next review date</label>
                 <input
                   type="date"
                   value={reviewDate}
@@ -268,7 +269,7 @@ export default function BehaviourSupportPlanForm({ sidebar }: { sidebar: React.R
                 type="button"
                 onClick={() => setConfirmingReset(true)}
                 disabled={!result}
-                className="border border-gray-300 text-gray-600 py-2.5 px-4 rounded-md text-sm font-medium hover:bg-gray-50 transition-colors disabled:opacity-50"
+                className="border border-gray-200 text-gray-600 py-3 px-5 rounded-xl text-sm font-semibold hover:bg-gray-50 transition-colors disabled:opacity-50"
               >
                 Reset
               </button>
@@ -290,14 +291,14 @@ export default function BehaviourSupportPlanForm({ sidebar }: { sidebar: React.R
                 type="button"
                 onClick={handleGenerate}
                 disabled={isGenerating || unchangedSinceGeneration}
-                className="flex-1 bg-indigo-600 text-white py-2.5 px-6 rounded-md text-sm font-medium hover:bg-indigo-700 active:bg-indigo-800 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                className="flex-1 bg-[#1a1a1a] text-white py-3 px-6 rounded-xl text-sm font-semibold hover:bg-gray-800 active:bg-gray-900 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {isGenerating
                   ? <><Loader2 className="w-4 h-4 animate-spin" />Generating...</>
                   : <><Sparkles className="w-4 h-4" />{result ? "Regenerate" : "Generate"}</>}
               </button>
             </div>
-          </div>
+          </Card>
         </div>
       </div>
 
@@ -314,15 +315,15 @@ export default function BehaviourSupportPlanForm({ sidebar }: { sidebar: React.R
       />
 
       {result && !isGenerating && (
-        <div className="bg-indigo-50 border border-indigo-100 rounded-lg p-6 space-y-4">
-          <h3 className="text-base font-semibold text-indigo-900">Want to refine your results?</h3>
-          <p className="text-sm font-medium text-indigo-700">What would you like to change?</p>
+        <div className="bg-gray-50 border border-gray-200 rounded-xl p-6 space-y-4">
+          <h3 className="text-base font-semibold text-gray-900">Want to refine your results?</h3>
+          <p className="text-sm font-medium text-gray-600">What would you like to change?</p>
           <textarea
             value={refineInstruction}
             onChange={(e) => setRefineInstruction(e.target.value)}
             placeholder="Type changes here"
             rows={2}
-            className="w-full border border-indigo-200 rounded-md px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none bg-white"
+            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-transparent resize-none bg-white"
           />
           <div className="flex flex-wrap gap-2">
             {REFINE_CHIPS.map((chip) => (
@@ -330,7 +331,7 @@ export default function BehaviourSupportPlanForm({ sidebar }: { sidebar: React.R
                 key={chip}
                 type="button"
                 onClick={() => setRefineInstruction(chip)}
-                className="text-xs text-indigo-600 border border-indigo-200 rounded-full px-3 py-1 hover:bg-indigo-100 transition-colors"
+                className="text-xs text-gray-600 border border-gray-200 rounded-full px-3 py-1 hover:bg-gray-100 transition-colors"
               >
                 {chip}
               </button>
@@ -340,7 +341,7 @@ export default function BehaviourSupportPlanForm({ sidebar }: { sidebar: React.R
             type="button"
             onClick={() => handleRefine(refineInstruction)}
             disabled={isRefining || !refineInstruction.trim()}
-            className="bg-indigo-600 text-white py-2 px-6 rounded-md text-sm font-medium hover:bg-indigo-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+            className="bg-[#1a1a1a] text-white py-2 px-6 rounded-xl text-sm font-medium hover:bg-gray-800 transition-colors disabled:opacity-50 flex items-center gap-2"
           >
             {isRefining ? <><Loader2 className="w-4 h-4 animate-spin" />Refining...</> : "Refine results"}
           </button>

@@ -5,6 +5,7 @@ import { Loader2, Sparkles } from "lucide-react";
 import ResultPanel from "@/app/components/ResultPanel";
 import RefinePanel from "@/app/components/RefinePanel";
 import ConfirmModal from "@/app/components/ConfirmModal";
+import Card from "@/app/components/ui/Card";
 import { CURRICULA } from "@/app/lib/formOptions";
 import { useLocalStorage } from "@/app/lib/useLocalStorage";
 
@@ -18,10 +19,10 @@ const REFINE_CHIPS = [
 ];
 
 const selectClass =
-  "w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white";
+  "w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-transparent bg-white";
 
 const inputClass =
-  "w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent";
+  "w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-transparent bg-white";
 
 export default function EYFSActionPlanForm({ sidebar }: { sidebar: React.ReactNode }) {
   const [curriculum, setCurriculum] = useLocalStorage("ll:curriculum", "");
@@ -74,10 +75,10 @@ export default function EYFSActionPlanForm({ sidebar }: { sidebar: React.ReactNo
         <div className="lg:col-span-1">{sidebar}</div>
 
         <div className="lg:col-span-2">
-          <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6 space-y-5">
+          <Card className="space-y-6">
 
             <div className="space-y-1.5">
-              <label className="block text-sm font-medium text-gray-700">Curriculum</label>
+              <label className="block text-sm font-semibold text-gray-800">Curriculum</label>
               <select value={curriculum} onChange={(e) => setCurriculum(e.target.value)} className={selectClass}>
                 <option value="" disabled>Select curriculum</option>
                 {CURRICULA.map((c) => (
@@ -87,7 +88,7 @@ export default function EYFSActionPlanForm({ sidebar }: { sidebar: React.ReactNo
             </div>
 
             <div className="space-y-1.5">
-              <label className="block text-sm font-medium text-gray-700">EYFS Objective</label>
+              <label className="block text-sm font-semibold text-gray-800">EYFS Objective</label>
               <textarea
                 value={objective}
                 onChange={(e) => setObjective(e.target.value)}
@@ -103,7 +104,7 @@ export default function EYFSActionPlanForm({ sidebar }: { sidebar: React.ReactNo
                 type="button"
                 onClick={() => setConfirmingReset(true)}
                 disabled={!result}
-                className="border border-gray-300 text-gray-600 py-2.5 px-4 rounded-md text-sm font-medium hover:bg-gray-50 transition-colors disabled:opacity-50"
+                className="border border-gray-200 text-gray-600 py-3 px-5 rounded-xl text-sm font-semibold hover:bg-gray-50 transition-colors disabled:opacity-50"
               >
                 Reset
               </button>
@@ -124,14 +125,14 @@ export default function EYFSActionPlanForm({ sidebar }: { sidebar: React.ReactNo
                 type="button"
                 onClick={handleGenerate}
                 disabled={!canGenerate || isGenerating || unchangedSinceGeneration}
-                className="flex-1 bg-indigo-600 text-white py-2.5 px-6 rounded-md text-sm font-medium hover:bg-indigo-700 active:bg-indigo-800 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                className="flex-1 bg-[#1a1a1a] text-white py-3 px-6 rounded-xl text-sm font-semibold hover:bg-gray-800 active:bg-gray-900 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {isGenerating
                   ? <><Loader2 className="w-4 h-4 animate-spin" />Generating...</>
                   : <><Sparkles className="w-4 h-4" />{result ? "Regenerate" : "Generate"}</>}
               </button>
             </div>
-          </div>
+          </Card>
         </div>
       </div>
 

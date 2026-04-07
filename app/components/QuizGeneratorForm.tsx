@@ -7,6 +7,7 @@ import { Loader2, Sparkles, Minus, Plus, Trash2, Download, ChevronDown, PlusCirc
 import ConfirmModal from "@/app/components/ConfirmModal";
 import RefinePanel from "@/app/components/RefinePanel";
 import { exportToDocx } from "@/app/lib/exportUtils";
+import Card from "@/app/components/ui/Card";
 
 interface QuizQuestion {
   question: string;
@@ -28,10 +29,10 @@ const ANSWER_TYPES = [
 ];
 
 const inputClass =
-  "w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent";
+  "w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-transparent bg-white";
 
 const selectClass =
-  "w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white";
+  "w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-transparent bg-white";
 
 // ---- Download helpers ----
 
@@ -240,7 +241,7 @@ function QuizCard({
   const setCorrect = (i: number) => onChange({ ...question, correctIndex: i });
 
   const optionInput =
-    "flex-1 border border-gray-200 rounded px-2 py-1.5 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400 bg-white";
+    "flex-1 border border-gray-200 rounded px-2 py-1.5 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-300 focus:border-gray-300 bg-white";
 
   return (
     <div className="bg-white border border-gray-200 rounded-lg p-5 space-y-4">
@@ -252,13 +253,13 @@ function QuizCard({
             type="text"
             value={question.question}
             onChange={(e) => setQuestion(e.target.value)}
-            className="w-full border-0 border-b border-gray-300 pb-1 text-sm font-medium text-gray-900 focus:outline-none focus:border-indigo-500 bg-transparent"
+            className="w-full border-0 border-b border-gray-300 pb-1 text-sm font-medium text-gray-900 focus:outline-none focus:border-gray-500 bg-transparent"
           />
         </div>
         <button
           type="button"
           onClick={onRemove}
-          className="flex items-center gap-1.5 text-xs font-medium text-white bg-indigo-600 hover:bg-indigo-700 px-2.5 py-1.5 rounded transition-colors shrink-0"
+          className="flex items-center gap-1.5 text-xs font-medium text-white bg-[#1a1a1a] hover:bg-gray-800 px-2.5 py-1.5 rounded transition-colors shrink-0"
         >
           <Trash2 className="w-3.5 h-3.5" />
           Remove
@@ -271,7 +272,7 @@ function QuizCard({
           <div
             key={i}
             className={`flex items-center gap-2 border rounded-md px-3 py-2 ${
-              i === question.correctIndex ? "border-indigo-400 bg-indigo-50/40" : "border-gray-200 bg-white"
+              i === question.correctIndex ? "border-gray-400 bg-gray-50" : "border-gray-200 bg-white"
             }`}
           >
             <input
@@ -488,7 +489,7 @@ export default function QuizGeneratorForm({ sidebar }: { sidebar: React.ReactNod
         <div className="lg:col-span-1">{sidebar}</div>
 
         <div className="lg:col-span-2">
-          <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6 space-y-5">
+          <Card className="space-y-6">
 
             <CurriculumYearFields
               curriculum={curriculum} onCurriculumChange={setCurriculum}
@@ -498,7 +499,7 @@ export default function QuizGeneratorForm({ sidebar }: { sidebar: React.ReactNod
             />
 
             <div className="space-y-1.5">
-              <label className="block text-sm font-medium text-gray-700">Subject</label>
+              <label className="block text-sm font-semibold text-gray-800">Subject</label>
               <input
                 type="text"
                 value={subject}
@@ -509,7 +510,7 @@ export default function QuizGeneratorForm({ sidebar }: { sidebar: React.ReactNod
             </div>
 
             <div className="space-y-1.5">
-              <label className="block text-sm font-medium text-gray-700">Topic</label>
+              <label className="block text-sm font-semibold text-gray-800">Topic</label>
               <input
                 type="text"
                 value={topic}
@@ -522,7 +523,7 @@ export default function QuizGeneratorForm({ sidebar }: { sidebar: React.ReactNod
             {/* Number of questions + Time limit */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <div className="space-y-1.5">
-                <label className="block text-sm font-medium text-gray-700">Number of questions</label>
+                <label className="block text-sm font-semibold text-gray-800">Number of questions</label>
                 <div className="flex items-center border border-gray-300 rounded-md overflow-hidden">
                   <span className="flex-1 px-3 py-2 text-sm text-gray-900">{numQuestions}</span>
                   <button
@@ -550,7 +551,7 @@ export default function QuizGeneratorForm({ sidebar }: { sidebar: React.ReactNod
               </div>
 
               <div className="space-y-1.5">
-                <label className="block text-sm font-medium text-gray-700">Time limit per question (seconds)</label>
+                <label className="block text-sm font-semibold text-gray-800">Time limit per question (seconds)</label>
                 <div className="flex items-center border border-gray-300 rounded-md overflow-hidden">
                   <span className="flex-1 px-3 py-2 text-sm text-gray-900">{timeLimit}</span>
                   <button
@@ -576,7 +577,7 @@ export default function QuizGeneratorForm({ sidebar }: { sidebar: React.ReactNod
             </div>
 
             <div className="space-y-1.5">
-              <label className="block text-sm font-medium text-gray-700">Single or multiple choice</label>
+              <label className="block text-sm font-semibold text-gray-800">Single or multiple choice</label>
               <select value={answerType} onChange={(e) => setAnswerType(e.target.value)} className={selectClass}>
                 {ANSWER_TYPES.map((t) => (
                   <option key={t.value} value={t.value}>{t.label}</option>
@@ -589,7 +590,7 @@ export default function QuizGeneratorForm({ sidebar }: { sidebar: React.ReactNod
                 type="button"
                 onClick={() => setConfirmingReset(true)}
                 disabled={!questions.length}
-                className="border border-gray-300 text-gray-600 py-2.5 px-4 rounded-md text-sm font-medium hover:bg-gray-50 transition-colors disabled:opacity-50"
+                className="border border-gray-200 text-gray-600 py-3 px-5 rounded-xl text-sm font-semibold hover:bg-gray-50 transition-colors disabled:opacity-50"
               >
                 Reset
               </button>
@@ -610,14 +611,14 @@ export default function QuizGeneratorForm({ sidebar }: { sidebar: React.ReactNod
                 type="button"
                 onClick={handleGenerate}
                 disabled={!canGenerate || isGenerating || unchangedSinceGeneration}
-                className="flex-1 bg-indigo-600 text-white py-2.5 px-6 rounded-md text-sm font-medium hover:bg-indigo-700 active:bg-indigo-800 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                className="flex-1 bg-[#1a1a1a] text-white py-3 px-6 rounded-xl text-sm font-semibold hover:bg-gray-800 active:bg-gray-900 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {isGenerating
                   ? <><Loader2 className="w-4 h-4 animate-spin" />Generating...</>
                   : <><Sparkles className="w-4 h-4" />{questions.length ? "Regenerate" : "Generate"}</>}
               </button>
             </div>
-          </div>
+          </Card>
         </div>
       </div>
 
@@ -656,7 +657,7 @@ export default function QuizGeneratorForm({ sidebar }: { sidebar: React.ReactNod
               type="button"
               onClick={handleAddAI}
               disabled={isAdding}
-              className="flex items-center gap-2 border border-indigo-500 text-indigo-600 text-sm font-medium px-4 py-2 rounded-full hover:bg-indigo-50 transition-colors disabled:opacity-50"
+              className="flex items-center gap-2 border border-gray-900 text-gray-900 text-sm font-medium px-4 py-2 rounded-full hover:bg-gray-50 transition-colors disabled:opacity-50"
             >
               {isAdding
                 ? <Loader2 className="w-4 h-4 animate-spin" />

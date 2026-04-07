@@ -5,6 +5,7 @@ import { Loader2, Sparkles } from "lucide-react";
 import ResultPanel from "@/app/components/ResultPanel";
 import RefinePanel from "@/app/components/RefinePanel";
 import ConfirmModal from "@/app/components/ConfirmModal";
+import Card from "@/app/components/ui/Card";
 
 const REFINE_CHIPS = [
   "Translate to...",
@@ -15,7 +16,7 @@ const REFINE_CHIPS = [
 ];
 
 const inputClass =
-  "w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent";
+  "w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-transparent bg-white";
 
 export default function InspectionPrepForm({ sidebar }: { sidebar: React.ReactNode }) {
   const [inspectionBody, setInspectionBody] = useState("");
@@ -71,10 +72,10 @@ export default function InspectionPrepForm({ sidebar }: { sidebar: React.ReactNo
         <div className="lg:col-span-1">{sidebar}</div>
 
         <div className="lg:col-span-2">
-          <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6 space-y-5">
+          <Card className="space-y-6">
 
             <div className="space-y-1.5">
-              <label className="block text-sm font-medium text-gray-700">Inspection/accreditation body</label>
+              <label className="block text-sm font-semibold text-gray-800">Inspection/accreditation body</label>
               <input
                 type="text"
                 value={inspectionBody}
@@ -85,7 +86,7 @@ export default function InspectionPrepForm({ sidebar }: { sidebar: React.ReactNo
             </div>
 
             <div className="space-y-1.5">
-              <label className="block text-sm font-medium text-gray-700">
+              <label className="block text-sm font-semibold text-gray-800">
                 Inspection focus <span className="text-gray-400 font-normal">(optional)</span>
               </label>
               <textarea
@@ -100,39 +101,39 @@ export default function InspectionPrepForm({ sidebar }: { sidebar: React.ReactNo
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-3">
-                <p className="text-sm font-medium text-gray-700">Include evidence examples</p>
+                <p className="text-sm font-semibold text-gray-800">Include evidence examples</p>
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={includeEvidence}
                     onChange={(e) => setIncludeEvidence(e.target.checked)}
-                    className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                    className="w-4 h-4 rounded border-gray-300 accent-gray-900"
                   />
                   <span className="text-sm text-gray-700">Yes</span>
                 </label>
               </div>
 
               <div className="space-y-3">
-                <p className="text-sm font-medium text-gray-700">Include success criteria</p>
+                <p className="text-sm font-semibold text-gray-800">Include success criteria</p>
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={includeSuccessCriteria}
                     onChange={(e) => setIncludeSuccessCriteria(e.target.checked)}
-                    className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                    className="w-4 h-4 rounded border-gray-300 accent-gray-900"
                   />
                   <span className="text-sm text-gray-700">Yes</span>
                 </label>
               </div>
 
               <div className="space-y-3">
-                <p className="text-sm font-medium text-gray-700">Include recent policy changes</p>
+                <p className="text-sm font-semibold text-gray-800">Include recent policy changes</p>
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={includePolicyChanges}
                     onChange={(e) => setIncludePolicyChanges(e.target.checked)}
-                    className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                    className="w-4 h-4 rounded border-gray-300 accent-gray-900"
                   />
                   <span className="text-sm text-gray-700">Yes</span>
                 </label>
@@ -144,7 +145,7 @@ export default function InspectionPrepForm({ sidebar }: { sidebar: React.ReactNo
                 type="button"
                 onClick={() => setConfirmingReset(true)}
                 disabled={!result}
-                className="border border-gray-300 text-gray-600 py-2.5 px-4 rounded-md text-sm font-medium hover:bg-gray-50 transition-colors disabled:opacity-50"
+                className="border border-gray-200 text-gray-600 py-3 px-5 rounded-xl text-sm font-semibold hover:bg-gray-50 transition-colors disabled:opacity-50"
               >
                 Reset
               </button>
@@ -169,14 +170,14 @@ export default function InspectionPrepForm({ sidebar }: { sidebar: React.ReactNo
                 type="button"
                 onClick={handleGenerate}
                 disabled={!canGenerate || isGenerating || unchangedSinceGeneration}
-                className="flex-1 bg-indigo-600 text-white py-2.5 px-6 rounded-md text-sm font-medium hover:bg-indigo-700 active:bg-indigo-800 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                className="flex-1 bg-[#1a1a1a] text-white py-3 px-6 rounded-xl text-sm font-semibold hover:bg-gray-800 active:bg-gray-900 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {isGenerating
                   ? <><Loader2 className="w-4 h-4 animate-spin" />Generating...</>
                   : <><Sparkles className="w-4 h-4" />{result ? "Regenerate" : "Generate"}</>}
               </button>
             </div>
-          </div>
+          </Card>
         </div>
       </div>
 

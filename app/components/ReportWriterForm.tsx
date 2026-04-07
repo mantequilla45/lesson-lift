@@ -5,6 +5,7 @@ import { Loader2, Sparkles, Plus, Trash2, Minus } from "lucide-react";
 import ResultPanel from "@/app/components/ResultPanel";
 import RefinePanel from "@/app/components/RefinePanel";
 import ConfirmModal from "@/app/components/ConfirmModal";
+import Card from "@/app/components/ui/Card";
 
 const GENDER_OPTIONS = ["Male", "Female", "Non-Binary"] as const;
 type Gender = (typeof GENDER_OPTIONS)[number];
@@ -104,7 +105,7 @@ export default function ReportWriterForm({ sidebar }: { sidebar: React.ReactNode
   };
 
   const inputClass =
-    "w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent";
+    "w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-transparent bg-white";
 
   return (
     <div className="space-y-8">
@@ -112,12 +113,12 @@ export default function ReportWriterForm({ sidebar }: { sidebar: React.ReactNode
         <div className="lg:col-span-1">{sidebar}</div>
 
         <div className="lg:col-span-2 space-y-4">
-          <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6 space-y-5">
+          <Card className="space-y-6">
 
             {/* Name + Gender */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <label className="block text-sm font-medium text-gray-700">Name (first name only)</label>
+                <label className="block text-sm font-semibold text-gray-800">Name (first name only)</label>
                 <input
                   type="text"
                   value={name}
@@ -127,7 +128,7 @@ export default function ReportWriterForm({ sidebar }: { sidebar: React.ReactNode
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="block text-sm font-medium text-gray-700">Gender</label>
+                <label className="block text-sm font-semibold text-gray-800">Gender</label>
                 <select
                   value={gender}
                   onChange={(e) => setGender(e.target.value as Gender)}
@@ -144,7 +145,7 @@ export default function ReportWriterForm({ sidebar }: { sidebar: React.ReactNode
             {/* Word count + Include targets */}
             <div className="grid grid-cols-2 gap-4 items-start">
               <div className="space-y-1.5">
-                <label className="block text-sm font-medium text-gray-700">Word count (approximate)</label>
+                <label className="block text-sm font-semibold text-gray-800">Word count (approximate)</label>
                 <div className="flex items-center gap-0">
                   <input
                     type="number"
@@ -156,7 +157,7 @@ export default function ReportWriterForm({ sidebar }: { sidebar: React.ReactNode
                       const n = parseInt(wordCount, 10);
                       setWordCount(String(isNaN(n) ? 150 : Math.min(1000, Math.max(50, n))));
                     }}
-                    className="w-20 border border-gray-300 rounded-l-md px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-center"
+                    className="w-20 border border-gray-200 rounded-l-md px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-transparent text-center"
                   />
                   <button
                     type="button"
@@ -178,7 +179,7 @@ export default function ReportWriterForm({ sidebar }: { sidebar: React.ReactNode
               </div>
 
               <div className="space-y-1.5">
-                <label className="block text-sm font-medium text-gray-700">Include targets?</label>
+                <label className="block text-sm font-semibold text-gray-800">Include targets?</label>
                 <div className="flex gap-6 pt-2">
                   {[true, false].map((val) => (
                     <label key={String(val)} className="flex items-center gap-2 cursor-pointer">
@@ -187,7 +188,7 @@ export default function ReportWriterForm({ sidebar }: { sidebar: React.ReactNode
                         name="includeTargets"
                         checked={includeTargets === val}
                         onChange={() => setIncludeTargets(val)}
-                        className="accent-indigo-600"
+                        className="accent-gray-900"
                       />
                       <span className="text-sm text-gray-700">{val ? "Yes" : "No"}</span>
                     </label>
@@ -198,7 +199,7 @@ export default function ReportWriterForm({ sidebar }: { sidebar: React.ReactNode
 
             {/* Tone */}
             <div className="space-y-1.5">
-              <label className="block text-sm font-medium text-gray-700">Tone</label>
+              <label className="block text-sm font-semibold text-gray-800">Tone</label>
               <input
                 type="text"
                 value={tone}
@@ -207,11 +208,11 @@ export default function ReportWriterForm({ sidebar }: { sidebar: React.ReactNode
                 className={inputClass}
               />
             </div>
-          </div>
+          </Card>
 
           {/* Subject sections */}
           {subjects.map((s, i) => (
-            <div key={i} className="bg-white border border-gray-200 rounded-lg shadow-sm p-6 space-y-4">
+            <Card key={i} className="space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-semibold text-gray-700">Subject / focus {i + 1}</h3>
                 {subjects.length > 1 && (
@@ -227,7 +228,7 @@ export default function ReportWriterForm({ sidebar }: { sidebar: React.ReactNode
               </div>
 
               <div className="space-y-1.5">
-                <label className="block text-sm font-medium text-gray-700">Subject or Focus</label>
+                <label className="block text-sm font-semibold text-gray-800">Subject or Focus</label>
                 <input
                   type="text"
                   value={s.subject}
@@ -238,7 +239,7 @@ export default function ReportWriterForm({ sidebar }: { sidebar: React.ReactNode
               </div>
 
               <div className="space-y-1.5">
-                <label className="block text-sm font-medium text-gray-700">Strengths</label>
+                <label className="block text-sm font-semibold text-gray-800">Strengths</label>
                 <textarea
                   value={s.strengths}
                   onChange={(e) => updateSubject(i, "strengths", e.target.value)}
@@ -250,7 +251,7 @@ export default function ReportWriterForm({ sidebar }: { sidebar: React.ReactNode
               </div>
 
               <div className="space-y-1.5">
-                <label className="block text-sm font-medium text-gray-700">Areas for development</label>
+                <label className="block text-sm font-semibold text-gray-800">Areas for development</label>
                 <textarea
                   value={s.areasForDevelopment}
                   onChange={(e) => updateSubject(i, "areasForDevelopment", e.target.value)}
@@ -263,7 +264,7 @@ export default function ReportWriterForm({ sidebar }: { sidebar: React.ReactNode
 
               {includeTargets && (
                 <div className="space-y-1.5">
-                  <label className="block text-sm font-medium text-gray-700">Targets</label>
+                  <label className="block text-sm font-semibold text-gray-800">Targets</label>
                   <textarea
                     value={s.targets}
                     onChange={(e) => updateSubject(i, "targets", e.target.value)}
@@ -274,14 +275,14 @@ export default function ReportWriterForm({ sidebar }: { sidebar: React.ReactNode
                   <p className="text-xs text-gray-400">100,000 character maximum input text</p>
                 </div>
               )}
-            </div>
+            </Card>
           ))}
 
           {subjects.length < 10 && (
             <button
               type="button"
               onClick={addSubject}
-              className="flex items-center gap-2 text-sm text-indigo-600 font-medium hover:text-indigo-700 transition-colors"
+              className="flex items-center gap-2 text-sm text-gray-800 font-medium hover:text-gray-600 transition-colors"
             >
               <Plus className="w-4 h-4" />
               Add another subject
@@ -294,7 +295,7 @@ export default function ReportWriterForm({ sidebar }: { sidebar: React.ReactNode
               type="button"
               onClick={() => setConfirmingReset(true)}
               disabled={!result}
-              className="border border-gray-300 text-gray-600 py-2.5 px-4 rounded-md text-sm font-medium hover:bg-gray-50 transition-colors disabled:opacity-50"
+              className="border border-gray-200 text-gray-600 py-3 px-5 rounded-xl text-sm font-semibold hover:bg-gray-50 transition-colors disabled:opacity-50"
             >
               Reset
             </button>
@@ -320,7 +321,7 @@ export default function ReportWriterForm({ sidebar }: { sidebar: React.ReactNode
               type="button"
               onClick={handleGenerate}
               disabled={!canGenerate || isGenerating || unchangedSinceGeneration}
-              className="flex-1 bg-indigo-600 text-white py-2.5 px-6 rounded-md text-sm font-medium hover:bg-indigo-700 active:bg-indigo-800 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              className="flex-1 bg-[#1a1a1a] text-white py-3 px-6 rounded-xl text-sm font-semibold hover:bg-gray-800 active:bg-gray-900 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {isGenerating
                 ? <><Loader2 className="w-4 h-4 animate-spin" />Generating...</>

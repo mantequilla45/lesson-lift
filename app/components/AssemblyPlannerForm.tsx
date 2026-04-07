@@ -5,6 +5,7 @@ import { Loader2, Sparkles, Minus, Plus } from "lucide-react";
 import ResultPanel from "@/app/components/ResultPanel";
 import RefinePanel from "@/app/components/RefinePanel";
 import ConfirmModal from "@/app/components/ConfirmModal";
+import Card from "@/app/components/ui/Card";
 
 const STAGE_OPTIONS = [
   "Early Years",
@@ -29,10 +30,10 @@ const REFINE_CHIPS = [
 ];
 
 const selectClass =
-  "w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white";
+  "w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-transparent bg-white";
 
 const inputClass =
-  "w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent";
+  "w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-transparent bg-white";
 
 export default function AssemblyPlannerForm({ sidebar }: { sidebar: React.ReactNode }) {
   const [theme, setTheme] = useState("");
@@ -91,11 +92,11 @@ export default function AssemblyPlannerForm({ sidebar }: { sidebar: React.ReactN
         <div className="lg:col-span-1">{sidebar}</div>
 
         <div className="lg:col-span-2">
-          <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6 space-y-5">
+          <Card className="space-y-6">
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <div className="space-y-1.5">
-                <label className="block text-sm font-medium text-gray-700">Stage of school</label>
+                <label className="block text-sm font-semibold text-gray-800">Stage of school</label>
                 <select value={stageOfSchool} onChange={(e) => setStageOfSchool(e.target.value)} className={selectClass}>
                   {STAGE_OPTIONS.map((s) => (
                     <option key={s} value={s}>{s}</option>
@@ -104,7 +105,7 @@ export default function AssemblyPlannerForm({ sidebar }: { sidebar: React.ReactN
               </div>
 
               <div className="space-y-1.5">
-                <label className="block text-sm font-medium text-gray-700">Length of assembly (minutes)</label>
+                <label className="block text-sm font-semibold text-gray-800">Length of assembly (minutes)</label>
                 <div className="flex items-center border border-gray-300 rounded-md overflow-hidden">
                   <button
                     type="button"
@@ -121,7 +122,7 @@ export default function AssemblyPlannerForm({ sidebar }: { sidebar: React.ReactN
                       const v = parseInt(e.target.value);
                       if (!isNaN(v)) setLengthMinutes(Math.max(5, Math.min(120, v)));
                     }}
-                    className="flex-1 text-center text-sm text-gray-900 py-2 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500"
+                    className="flex-1 text-center text-sm text-gray-900 py-2 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-gray-300"
                   />
                   <button
                     type="button"
@@ -136,7 +137,7 @@ export default function AssemblyPlannerForm({ sidebar }: { sidebar: React.ReactN
             </div>
 
             <div className="space-y-1.5">
-              <label className="block text-sm font-medium text-gray-700">Theme</label>
+              <label className="block text-sm font-semibold text-gray-800">Theme</label>
               <textarea
                 value={theme}
                 onChange={(e) => setTheme(e.target.value)}
@@ -148,7 +149,7 @@ export default function AssemblyPlannerForm({ sidebar }: { sidebar: React.ReactN
             </div>
 
             <div className="space-y-1.5">
-              <label className="block text-sm font-medium text-gray-700">
+              <label className="block text-sm font-semibold text-gray-800">
                 Additional Notes <span className="text-gray-400 font-normal">(optional)</span>
               </label>
               <input
@@ -165,7 +166,7 @@ export default function AssemblyPlannerForm({ sidebar }: { sidebar: React.ReactN
                 type="button"
                 onClick={() => setConfirmingReset(true)}
                 disabled={!result}
-                className="border border-gray-300 text-gray-600 py-2.5 px-4 rounded-md text-sm font-medium hover:bg-gray-50 transition-colors disabled:opacity-50"
+                className="border border-gray-200 text-gray-600 py-3 px-5 rounded-xl text-sm font-semibold hover:bg-gray-50 transition-colors disabled:opacity-50"
               >
                 Reset
               </button>
@@ -189,14 +190,14 @@ export default function AssemblyPlannerForm({ sidebar }: { sidebar: React.ReactN
                 type="button"
                 onClick={handleGenerate}
                 disabled={!canGenerate || isGenerating || unchangedSinceGeneration}
-                className="flex-1 bg-indigo-600 text-white py-2.5 px-6 rounded-md text-sm font-medium hover:bg-indigo-700 active:bg-indigo-800 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                className="flex-1 bg-[#1a1a1a] text-white py-3 px-6 rounded-xl text-sm font-semibold hover:bg-gray-800 active:bg-gray-900 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {isGenerating
                   ? <><Loader2 className="w-4 h-4 animate-spin" />Generating...</>
                   : <><Sparkles className="w-4 h-4" />{result ? "Regenerate" : "Generate"}</>}
               </button>
             </div>
-          </div>
+          </Card>
         </div>
       </div>
 

@@ -5,6 +5,7 @@ import { Loader2, Sparkles } from "lucide-react";
 import ResultPanel from "@/app/components/ResultPanel";
 import RefinePanel from "@/app/components/RefinePanel";
 import ConfirmModal from "@/app/components/ConfirmModal";
+import Card from "@/app/components/ui/Card";
 
 const TONES = ["Formal", "Semi-formal", "Informal"];
 
@@ -17,10 +18,10 @@ const REFINE_CHIPS = [
 ];
 
 const selectClass =
-  "w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white";
+  "w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-transparent bg-white";
 
 const inputClass =
-  "w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent";
+  "w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-transparent bg-white";
 
 export default function LetterWriterForm({ sidebar }: { sidebar: React.ReactNode }) {
   const [recipient, setRecipient] = useState("");
@@ -75,10 +76,10 @@ export default function LetterWriterForm({ sidebar }: { sidebar: React.ReactNode
         <div className="lg:col-span-1">{sidebar}</div>
 
         <div className="lg:col-span-2">
-          <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6 space-y-5">
+          <Card className="space-y-6">
 
             <div className="space-y-1.5">
-              <label className="block text-sm font-medium text-gray-700">Who is the letter for?</label>
+              <label className="block text-sm font-semibold text-gray-800">Who is the letter for?</label>
               <input
                 type="text"
                 value={recipient}
@@ -89,7 +90,7 @@ export default function LetterWriterForm({ sidebar }: { sidebar: React.ReactNode
             </div>
 
             <div className="space-y-1.5">
-              <label className="block text-sm font-medium text-gray-700">Summary of key information for letter content</label>
+              <label className="block text-sm font-semibold text-gray-800">Summary of key information for letter content</label>
               <textarea
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
@@ -102,17 +103,17 @@ export default function LetterWriterForm({ sidebar }: { sidebar: React.ReactNode
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <label className="block text-sm font-medium text-gray-700">Date</label>
+                <label className="block text-sm font-semibold text-gray-800">Date</label>
                 <input
                   type="date"
                   value={date}
                   onChange={(e) => setDate(e.target.value)}
-                  className="border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent w-full"
+                  className="border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-transparent bg-white w-full"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <label className="block text-sm font-medium text-gray-700">Tone</label>
+                <label className="block text-sm font-semibold text-gray-800">Tone</label>
                 <select value={tone} onChange={(e) => setTone(e.target.value)} className={selectClass}>
                   {TONES.map((t) => (
                     <option key={t} value={t}>{t}</option>
@@ -126,7 +127,7 @@ export default function LetterWriterForm({ sidebar }: { sidebar: React.ReactNode
                 type="button"
                 onClick={() => setConfirmingReset(true)}
                 disabled={!result}
-                className="border border-gray-300 text-gray-600 py-2.5 px-4 rounded-md text-sm font-medium hover:bg-gray-50 transition-colors disabled:opacity-50"
+                className="border border-gray-200 text-gray-600 py-3 px-5 rounded-xl text-sm font-semibold hover:bg-gray-50 transition-colors disabled:opacity-50"
               >
                 Reset
               </button>
@@ -150,14 +151,14 @@ export default function LetterWriterForm({ sidebar }: { sidebar: React.ReactNode
                 type="button"
                 onClick={handleGenerate}
                 disabled={!canGenerate || isGenerating || unchangedSinceGeneration}
-                className="flex-1 bg-indigo-600 text-white py-2.5 px-6 rounded-md text-sm font-medium hover:bg-indigo-700 active:bg-indigo-800 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                className="flex-1 bg-[#1a1a1a] text-white py-3 px-6 rounded-xl text-sm font-semibold hover:bg-gray-800 active:bg-gray-900 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {isGenerating
                   ? <><Loader2 className="w-4 h-4 animate-spin" />Generating...</>
                   : <><Sparkles className="w-4 h-4" />{result ? "Regenerate" : "Generate"}</>}
               </button>
             </div>
-          </div>
+          </Card>
         </div>
       </div>
 

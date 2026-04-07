@@ -6,6 +6,7 @@ import { toTitleCase } from "@/app/lib/formOptions";
 import { Wand2, Upload, Check, Loader2, Sparkles } from "lucide-react";
 import ResultPanel from "@/app/components/ResultPanel";
 import ConfirmModal from "@/app/components/ConfirmModal";
+import Card from "@/app/components/ui/Card";
 
 const READING_FOCUSES = [
   "Word meaning",
@@ -98,10 +99,10 @@ export default function ComprehensionForm({ sidebar }: { sidebar: React.ReactNod
     readingFocuses.length > 0;
 
   const inputClass =
-    "w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent";
+    "w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-transparent bg-white";
 
   const selectClass =
-    "w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white";
+    "w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-transparent bg-white";
 
   return (
     <div className="space-y-8">
@@ -109,7 +110,7 @@ export default function ComprehensionForm({ sidebar }: { sidebar: React.ReactNod
         <div className="lg:col-span-1">{sidebar}</div>
 
         <div className="lg:col-span-2">
-          <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6 space-y-5">
+          <Card className="space-y-6">
 
             <CurriculumYearFields
               curriculum={curriculum} onCurriculumChange={setCurriculum}
@@ -119,14 +120,14 @@ export default function ComprehensionForm({ sidebar }: { sidebar: React.ReactNod
 
             {/* Text Source */}
             <div className="space-y-1.5">
-              <label className="block text-sm font-medium text-gray-700">Text Source</label>
+              <label className="block text-sm font-semibold text-gray-800">Text Source</label>
               <div className="grid grid-cols-2 gap-3">
                 <button
                   type="button"
                   onClick={() => { setTextSource("generate"); setTimeout(() => topicInputRef.current?.focus(), 0); }}
                   className={`border rounded-md p-4 flex flex-col items-center gap-2 text-sm font-medium cursor-pointer transition-colors ${
                     textSource === "generate"
-                      ? "border-indigo-500 bg-indigo-50 text-indigo-700"
+                      ? "border-gray-900 bg-gray-100 text-gray-900"
                       : "border-gray-200 text-gray-500 hover:border-gray-300"
                   }`}
                 >
@@ -138,7 +139,7 @@ export default function ComprehensionForm({ sidebar }: { sidebar: React.ReactNod
                   onClick={() => setTextSource("own")}
                   className={`border rounded-md p-4 flex flex-col items-center gap-2 text-sm font-medium cursor-pointer transition-colors ${
                     textSource === "own"
-                      ? "border-indigo-500 bg-indigo-50 text-indigo-700"
+                      ? "border-gray-900 bg-gray-100 text-gray-900"
                       : "border-gray-200 text-gray-500 hover:border-gray-300"
                   }`}
                 >
@@ -151,7 +152,7 @@ export default function ComprehensionForm({ sidebar }: { sidebar: React.ReactNod
             {/* Topic or Own Text */}
             {textSource === "generate" && (
               <div className="space-y-1.5">
-                <label className="block text-sm font-medium text-gray-700">Topic or Prompt</label>
+                <label className="block text-sm font-semibold text-gray-800">Topic or Prompt</label>
                 <input
                   ref={topicInputRef}
                   type="text"
@@ -164,7 +165,7 @@ export default function ComprehensionForm({ sidebar }: { sidebar: React.ReactNod
             )}
             {textSource === "own" && (
               <div className="space-y-1.5">
-                <label className="block text-sm font-medium text-gray-700">Your Text</label>
+                <label className="block text-sm font-semibold text-gray-800">Your Text</label>
                 <textarea
                   value={ownText}
                   onChange={(e) => setOwnText(e.target.value)}
@@ -177,7 +178,7 @@ export default function ComprehensionForm({ sidebar }: { sidebar: React.ReactNod
 
             {/* Complexity */}
             <div className="space-y-1.5">
-              <label className="block text-sm font-medium text-gray-700">Complexity</label>
+              <label className="block text-sm font-semibold text-gray-800">Complexity</label>
               <div className="flex gap-2">
                 {COMPLEXITY_LEVELS.map((level) => (
                   <button
@@ -186,7 +187,7 @@ export default function ComprehensionForm({ sidebar }: { sidebar: React.ReactNod
                     onClick={() => setComplexity(level)}
                     className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
                       complexity === level
-                        ? "bg-indigo-600 text-white"
+                        ? "bg-[#1a1a1a] text-white"
                         : "border border-gray-300 text-gray-600 hover:bg-gray-50"
                     }`}
                   >
@@ -198,7 +199,7 @@ export default function ComprehensionForm({ sidebar }: { sidebar: React.ReactNod
 
             {/* Reading Focuses */}
             <div className="space-y-1.5">
-              <label className="block text-sm font-medium text-gray-700">Reading Focuses</label>
+              <label className="block text-sm font-semibold text-gray-800">Reading Focuses</label>
               <div className="flex flex-wrap gap-2">
                 {READING_FOCUSES.map((focus) => (
                   <button
@@ -207,7 +208,7 @@ export default function ComprehensionForm({ sidebar }: { sidebar: React.ReactNod
                     onClick={() => toggleFocus(focus)}
                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm border transition-colors ${
                       readingFocuses.includes(focus)
-                        ? "bg-indigo-100 text-indigo-700 border-indigo-200"
+                        ? "bg-gray-200 text-gray-900 border-gray-300"
                         : "border-gray-200 text-gray-600 hover:bg-gray-50"
                     }`}
                   >
@@ -219,9 +220,9 @@ export default function ComprehensionForm({ sidebar }: { sidebar: React.ReactNod
             </div>
 
             {/* Questions per focus + Answer Key */}
-            <div className="bg-gray-50 border border-gray-200 rounded-md p-4 space-y-4">
+            <div className="bg-gray-50 border border-gray-200 rounded-xl p-5 space-y-4">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-gray-700">Questions per focus</span>
+                <span className="text-sm font-semibold text-gray-800">Questions per focus</span>
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
@@ -241,7 +242,7 @@ export default function ComprehensionForm({ sidebar }: { sidebar: React.ReactNod
                 </div>
               </div>
               <div className="flex items-center justify-between">
-                <label htmlFor="answer-key" className="text-sm font-medium text-gray-700 cursor-pointer">
+                <label htmlFor="answer-key" className="text-sm font-semibold text-gray-800 cursor-pointer">
                   Include answer key
                 </label>
                 <input
@@ -249,13 +250,13 @@ export default function ComprehensionForm({ sidebar }: { sidebar: React.ReactNod
                   type="checkbox"
                   checked={includeAnswerKey}
                   onChange={(e) => setIncludeAnswerKey(e.target.checked)}
-                  className="rounded accent-indigo-600 w-4 h-4 cursor-pointer"
+                  className="rounded accent-gray-900 w-4 h-4 cursor-pointer"
                 />
               </div>
             </div>
 
             <div className="flex gap-3">
-              <button type="button" onClick={() => setConfirmingReset(true)} disabled={!result} className="border border-gray-300 text-gray-600 py-2.5 px-4 rounded-md text-sm font-medium hover:bg-gray-50 transition-colors disabled:opacity-50">
+              <button type="button" onClick={() => setConfirmingReset(true)} disabled={!result} className="border border-gray-200 text-gray-600 py-3 px-5 rounded-xl text-sm font-semibold hover:bg-gray-50 transition-colors disabled:opacity-50">
                 Reset
               </button>
               <ConfirmModal
@@ -270,14 +271,14 @@ export default function ComprehensionForm({ sidebar }: { sidebar: React.ReactNod
                 type="button"
                 onClick={handleGenerate}
                 disabled={!canGenerate || isGenerating || unchangedSinceGeneration}
-                className="flex-1 bg-indigo-600 text-white py-2.5 px-6 rounded-md text-sm font-medium hover:bg-indigo-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                className="flex-1 bg-[#1a1a1a] text-white py-3 px-6 rounded-xl text-sm font-semibold hover:bg-gray-800 active:bg-gray-900 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {isGenerating
                   ? <><Loader2 className="w-4 h-4 animate-spin" />Generating...</>
                   : <><Sparkles className="w-4 h-4" />{result ? "Regenerate" : "Generate"}</>}
               </button>
             </div>
-          </div>
+          </Card>
         </div>
       </div>
 

@@ -27,16 +27,31 @@ export default function TopBar({ title, showSearch = false, searchValue = "", on
             />
           </div>
         )}
-        <button className="flex items-center gap-2 px-4 py-2 border border-line rounded-2xl text-sm font-semibold transition-colors hover:bg-gray-50">
-          Connect Storage
-          <ChevronDown className="w-4 h-4 text-muted" />
-        </button>
-        <button className="w-9 h-9 flex items-center justify-center rounded-2xl border border-line bg-white hover:bg-gray-50 transition-colors">
-          <Bell className="w-4 h-4 text-muted" />
-        </button>
-        <button className="w-9 h-9 flex items-center justify-center rounded-2xl border border-line bg-white hover:bg-gray-50 transition-colors">
-          <UserCircle className="w-5 h-5 text-muted" />
-        </button>
+        <div className="relative group/storage">
+          <button disabled className="flex items-center gap-2 px-4 py-2 border border-line rounded-2xl text-sm font-semibold text-muted/50 cursor-not-allowed opacity-50">
+            Connect Storage
+            <ChevronDown className="w-4 h-4" />
+          </button>
+          <span className="pointer-events-none absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-gray-800 px-2 py-1 text-xs text-white opacity-0 group-hover/storage:opacity-100 transition-opacity">
+            Coming soon
+          </span>
+        </div>
+        <div className="relative group/bell">
+          <button disabled className="w-9 h-9 flex items-center justify-center rounded-2xl border border-line bg-white opacity-50 cursor-not-allowed">
+            <Bell className="w-4 h-4 text-muted" />
+          </button>
+          <span className="pointer-events-none absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-gray-800 px-2 py-1 text-xs text-white opacity-0 group-hover/bell:opacity-100 transition-opacity">
+            Coming soon
+          </span>
+        </div>
+        <div className="relative group/profile">
+          <button disabled className="w-9 h-9 flex items-center justify-center rounded-2xl border border-line bg-white opacity-50 cursor-not-allowed">
+            <UserCircle className="w-5 h-5 text-muted" />
+          </button>
+          <span className="pointer-events-none absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-gray-800 px-2 py-1 text-xs text-white opacity-0 group-hover/profile:opacity-100 transition-opacity">
+            Coming soon
+          </span>
+        </div>
       </div>
     </header>
   );

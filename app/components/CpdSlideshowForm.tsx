@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Loader2, Sparkles, Minus, Plus, Copy, Check, ChevronDown } from "lucide-react";
 import ConfirmModal from "@/app/components/ConfirmModal";
+import Card from "@/app/components/ui/Card";
 
 interface SlideData {
   type: "title" | "content";
@@ -572,7 +573,7 @@ export default function CpdSlideshowForm({ sidebar }: { sidebar: React.ReactNode
   };
 
   const inputClass =
-    "w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent";
+    "w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-transparent bg-white";
 
   const showResults = slides !== null && (slides.length > 0 || isGenerating);
   const expectedCount = slideCount;
@@ -583,10 +584,10 @@ export default function CpdSlideshowForm({ sidebar }: { sidebar: React.ReactNode
         <div className="lg:col-span-1">{sidebar}</div>
 
         <div className="lg:col-span-2">
-          <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6 space-y-5">
+          <Card className="space-y-6">
 
             <div className="space-y-1.5">
-              <label className="block text-sm font-medium text-gray-700">Topic</label>
+              <label className="block text-sm font-semibold text-gray-800">Topic</label>
               <textarea
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
@@ -598,7 +599,7 @@ export default function CpdSlideshowForm({ sidebar }: { sidebar: React.ReactNode
             </div>
 
             <div className="space-y-1.5">
-              <label className="block text-sm font-medium text-gray-700">Number of slides</label>
+              <label className="block text-sm font-semibold text-gray-800">Number of slides</label>
               <div className="flex items-center gap-0">
                 <input
                   type="number"
@@ -607,7 +608,7 @@ export default function CpdSlideshowForm({ sidebar }: { sidebar: React.ReactNode
                   value={slideCount}
                   onChange={(e) => setSlideCount(Number(e.target.value))}
                   onBlur={() => setSlideCount(Math.min(20, Math.max(2, slideCount || 4)))}
-                  className="w-20 border border-gray-300 rounded-l-md px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-center"
+                  className="w-20 border border-gray-200 rounded-l-md px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-transparent text-center"
                 />
                 <button type="button" onClick={() => setSlideCount((n) => Math.max(2, n - 1))} disabled={slideCount <= 2}
                   className="h-9 w-9 flex items-center justify-center border border-l-0 border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
@@ -621,7 +622,7 @@ export default function CpdSlideshowForm({ sidebar }: { sidebar: React.ReactNode
             </div>
 
             <div className="space-y-1.5">
-              <label className="block text-sm font-medium text-gray-700">Additional focus areas</label>
+              <label className="block text-sm font-semibold text-gray-800">Additional focus areas</label>
               <textarea
                 value={additionalFocus}
                 onChange={(e) => setAdditionalFocus(e.target.value)}
@@ -634,12 +635,12 @@ export default function CpdSlideshowForm({ sidebar }: { sidebar: React.ReactNode
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <div className="space-y-1.5">
-                <label className="block text-sm font-medium text-gray-700">Presentation focus</label>
+                <label className="block text-sm font-semibold text-gray-800">Presentation focus</label>
                 <div className="flex flex-col gap-2 pt-1">
                   {(["Practical application", "Research and theory"] as PresentationFocus[]).map((val) => (
                     <label key={val} className="flex items-center gap-2 cursor-pointer">
                       <input type="radio" name="presentationFocus" checked={presentationFocus === val}
-                        onChange={() => setPresentationFocus(val)} className="accent-indigo-600" />
+                        onChange={() => setPresentationFocus(val)} className="accent-gray-900" />
                       <span className="text-sm text-gray-700">{val}</span>
                     </label>
                   ))}
@@ -647,12 +648,12 @@ export default function CpdSlideshowForm({ sidebar }: { sidebar: React.ReactNode
               </div>
 
               <div className="space-y-1.5">
-                <label className="block text-sm font-medium text-gray-700">Content format</label>
+                <label className="block text-sm font-semibold text-gray-800">Content format</label>
                 <div className="flex flex-col gap-2 pt-1">
                   {(["Text", "Text and bullet point summary"] as ContentFormat[]).map((val) => (
                     <label key={val} className="flex items-center gap-2 cursor-pointer">
                       <input type="radio" name="contentFormat" checked={contentFormat === val}
-                        onChange={() => setContentFormat(val)} className="accent-indigo-600" />
+                        onChange={() => setContentFormat(val)} className="accent-gray-900" />
                       <span className="text-sm text-gray-700">{val}</span>
                     </label>
                   ))}
@@ -661,18 +662,18 @@ export default function CpdSlideshowForm({ sidebar }: { sidebar: React.ReactNode
             </div>
 
             <div className="space-y-1.5">
-              <label className="block text-sm font-medium text-gray-700">Additional options</label>
+              <label className="block text-sm font-semibold text-gray-800">Additional options</label>
               <label className="flex items-center gap-2 cursor-pointer">
                 <input type="checkbox" checked={includeImageSuggestions}
                   onChange={(e) => setIncludeImageSuggestions(e.target.checked)}
-                  className="accent-indigo-600 w-4 h-4" />
+                  className="accent-gray-900 w-4 h-4" />
                 <span className="text-sm text-gray-700">Include image suggestions</span>
               </label>
             </div>
 
             <div className="flex gap-3">
               <button type="button" onClick={() => setConfirmingReset(true)} disabled={!slides}
-                className="border border-gray-300 text-gray-600 py-2.5 px-4 rounded-md text-sm font-medium hover:bg-gray-50 transition-colors disabled:opacity-50">
+                className="border border-gray-200 text-gray-600 py-3 px-5 rounded-xl text-sm font-semibold hover:bg-gray-50 transition-colors disabled:opacity-50">
                 Reset
               </button>
               <ConfirmModal
@@ -691,13 +692,13 @@ export default function CpdSlideshowForm({ sidebar }: { sidebar: React.ReactNode
               />
               <button type="button" onClick={handleGenerate}
                 disabled={!canGenerate || isGenerating || unchangedSinceGeneration}
-                className="flex-1 bg-indigo-600 text-white py-2.5 px-6 rounded-md text-sm font-medium hover:bg-indigo-700 active:bg-indigo-800 transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
+                className="flex-1 bg-[#1a1a1a] text-white py-3 px-6 rounded-xl text-sm font-semibold hover:bg-gray-800 active:bg-gray-900 transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
                 {isGenerating
                   ? <><Loader2 className="w-4 h-4 animate-spin" />Generating...</>
                   : <><Sparkles className="w-4 h-4" />{slides ? "Regenerate" : "Generate"}</>}
               </button>
             </div>
-          </div>
+          </Card>
         </div>
       </div>
 
@@ -711,7 +712,7 @@ export default function CpdSlideshowForm({ sidebar }: { sidebar: React.ReactNode
             <div className="flex items-center gap-3">
               <h2 className="text-lg font-semibold text-gray-900">My results</h2>
               {isGenerating && (
-                <span className="text-xs text-indigo-500 font-medium">
+                <span className="text-xs text-gray-500 font-medium">
                   {slides!.length} of {expectedCount} slides
                 </span>
               )}
@@ -719,12 +720,12 @@ export default function CpdSlideshowForm({ sidebar }: { sidebar: React.ReactNode
             {slides && slides.length > 0 && !isGenerating && (
               <div className="flex items-center gap-2">
                 <button onClick={handleCopy}
-                  className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-md text-sm font-medium hover:bg-indigo-700 transition-colors">
+                  className="flex items-center gap-2 px-4 py-2 bg-[#1a1a1a] text-white rounded-xl text-sm font-medium hover:bg-gray-800 transition-colors">
                   {copied ? <><Check className="w-4 h-4" />Copied</> : <><Copy className="w-4 h-4" />Copy to clipboard</>}
                 </button>
                 <div className="relative">
                   <button onClick={() => setShowDownloadMenu((v) => !v)}
-                    className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-md text-sm font-medium hover:bg-indigo-700 transition-colors">
+                    className="flex items-center gap-2 px-4 py-2 bg-[#1a1a1a] text-white rounded-xl text-sm font-medium hover:bg-gray-800 transition-colors">
                     Download <ChevronDown className="w-4 h-4" />
                   </button>
                   {showDownloadMenu && (
@@ -764,27 +765,27 @@ export default function CpdSlideshowForm({ sidebar }: { sidebar: React.ReactNode
       )}
 
       {slides && slides.length > 0 && !isGenerating && (
-        <div className="bg-indigo-50 border border-indigo-100 rounded-lg p-6 space-y-4">
-          <h3 className="text-base font-semibold text-indigo-900">Want to refine your results?</h3>
-          <p className="text-sm font-medium text-indigo-700">What would you like to change?</p>
+        <div className="bg-gray-50 border border-gray-200 rounded-xl p-6 space-y-4">
+          <h3 className="text-base font-semibold text-gray-900">Want to refine your results?</h3>
+          <p className="text-sm font-medium text-gray-600">What would you like to change?</p>
           <textarea
             value={refineInstruction}
             onChange={(e) => setRefineInstruction(e.target.value)}
             placeholder="Type changes here"
             rows={2}
-            className="w-full border border-indigo-200 rounded-md px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none bg-white"
+            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-transparent resize-none bg-white"
           />
           <div className="flex flex-wrap gap-2">
             {REFINE_CHIPS.map((chip) => (
               <button key={chip} type="button" onClick={() => setRefineInstruction(chip)}
-                className="text-xs text-indigo-600 border border-indigo-200 rounded-full px-3 py-1 hover:bg-indigo-100 transition-colors">
+                className="text-xs text-gray-600 border border-gray-200 rounded-full px-3 py-1 hover:bg-gray-100 transition-colors">
                 {chip}
               </button>
             ))}
           </div>
           <button type="button" onClick={() => handleRefine(refineInstruction)}
             disabled={isRefining || !refineInstruction.trim()}
-            className="bg-indigo-600 text-white py-2 px-6 rounded-md text-sm font-medium hover:bg-indigo-700 transition-colors disabled:opacity-50 flex items-center gap-2">
+            className="bg-[#1a1a1a] text-white py-2 px-6 rounded-xl text-sm font-medium hover:bg-gray-800 transition-colors disabled:opacity-50 flex items-center gap-2">
             {isRefining ? <><Loader2 className="w-4 h-4 animate-spin" />Refining...</> : "Refine results"}
           </button>
         </div>

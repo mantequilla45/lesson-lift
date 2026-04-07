@@ -5,6 +5,7 @@ import { Loader2, Sparkles, Plus, X } from "lucide-react";
 import ResultPanel from "@/app/components/ResultPanel";
 import RefinePanel from "@/app/components/RefinePanel";
 import ConfirmModal from "@/app/components/ConfirmModal";
+import Card from "@/app/components/ui/Card";
 
 const TONE_OPTIONS = [
   "Professional and formal",
@@ -22,10 +23,10 @@ const REFINE_CHIPS = [
 ];
 
 const selectClass =
-  "w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white";
+  "w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-transparent bg-white";
 
 const inputClass =
-  "w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent";
+  "w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-transparent bg-white";
 
 export default function NewsletterWriterForm({ sidebar }: { sidebar: React.ReactNode }) {
   const [newsletterTitle, setNewsletterTitle] = useState("");
@@ -92,11 +93,11 @@ export default function NewsletterWriterForm({ sidebar }: { sidebar: React.React
         <div className="lg:col-span-1">{sidebar}</div>
 
         <div className="lg:col-span-2">
-          <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6 space-y-5">
+          <Card className="space-y-6">
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <div className="space-y-1.5">
-                <label className="block text-sm font-medium text-gray-700">Newsletter title</label>
+                <label className="block text-sm font-semibold text-gray-800">Newsletter title</label>
                 <input
                   type="text"
                   value={newsletterTitle}
@@ -106,7 +107,7 @@ export default function NewsletterWriterForm({ sidebar }: { sidebar: React.React
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="block text-sm font-medium text-gray-700">School name</label>
+                <label className="block text-sm font-semibold text-gray-800">School name</label>
                 <input
                   type="text"
                   value={schoolName}
@@ -118,7 +119,7 @@ export default function NewsletterWriterForm({ sidebar }: { sidebar: React.React
             </div>
 
             <div className="space-y-1.5">
-              <label className="block text-sm font-medium text-gray-700">Newsletter tone</label>
+              <label className="block text-sm font-semibold text-gray-800">Newsletter tone</label>
               <select value={tone} onChange={(e) => setTone(e.target.value)} className={selectClass}>
                 <option value="">Please select an option</option>
                 {TONE_OPTIONS.map((t) => (
@@ -131,7 +132,7 @@ export default function NewsletterWriterForm({ sidebar }: { sidebar: React.React
               {sections.map((section, index) => (
                 <div key={index} className="space-y-1.5">
                   {index === 0 && (
-                    <label className="block text-sm font-medium text-gray-700">Sections</label>
+                    <label className="block text-sm font-semibold text-gray-800">Sections</label>
                   )}
                   <div className="relative">
                     <textarea
@@ -143,7 +144,7 @@ export default function NewsletterWriterForm({ sidebar }: { sidebar: React.React
                           : `Enter details for section ${index + 1} here`
                       }
                       rows={3}
-                      className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none pr-8"
+                      className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-transparent resize-none pr-8 bg-white"
                     />
                     {sections.length > 1 && (
                       <button
@@ -162,7 +163,7 @@ export default function NewsletterWriterForm({ sidebar }: { sidebar: React.React
               <button
                 type="button"
                 onClick={addSection}
-                className="flex items-center gap-1.5 text-sm text-indigo-600 hover:text-indigo-700 font-medium transition-colors"
+                className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-gray-800 font-medium transition-colors"
               >
                 <Plus className="w-4 h-4" />
                 Add another
@@ -174,7 +175,7 @@ export default function NewsletterWriterForm({ sidebar }: { sidebar: React.React
                 type="button"
                 onClick={() => setConfirmingReset(true)}
                 disabled={!result}
-                className="border border-gray-300 text-gray-600 py-2.5 px-4 rounded-md text-sm font-medium hover:bg-gray-50 transition-colors disabled:opacity-50"
+                className="border border-gray-200 text-gray-600 py-3 px-5 rounded-xl text-sm font-semibold hover:bg-gray-50 transition-colors disabled:opacity-50"
               >
                 Reset
               </button>
@@ -198,14 +199,14 @@ export default function NewsletterWriterForm({ sidebar }: { sidebar: React.React
                 type="button"
                 onClick={handleGenerate}
                 disabled={!canGenerate || isGenerating || unchangedSinceGeneration}
-                className="flex-1 bg-indigo-600 text-white py-2.5 px-6 rounded-md text-sm font-medium hover:bg-indigo-700 active:bg-indigo-800 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                className="flex-1 bg-[#1a1a1a] text-white py-3 px-6 rounded-xl text-sm font-semibold hover:bg-gray-800 active:bg-gray-900 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {isGenerating
                   ? <><Loader2 className="w-4 h-4 animate-spin" />Generating...</>
                   : <><Sparkles className="w-4 h-4" />{result ? "Regenerate" : "Generate"}</>}
               </button>
             </div>
-          </div>
+          </Card>
         </div>
       </div>
 

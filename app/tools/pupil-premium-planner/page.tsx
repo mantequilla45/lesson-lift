@@ -1,50 +1,23 @@
-import Link from "next/link";
-import { TrendingUp, ArrowLeft } from "lucide-react";
+import { TrendingUp } from "lucide-react";
 import PupilPremiumPlannerForm from "@/app/components/PupilPremiumPlannerForm";
-
-function Sidebar() {
-  return (
-    <div className="space-y-4">
-      <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6">
-        <div className="flex items-start gap-3 mb-4">
-          <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center shrink-0">
-            <TrendingUp className="w-5 h-5 text-indigo-600" />
-          </div>
-          <h1 className="text-lg font-bold text-gray-900 mt-1.5">Pupil Premium Planner</h1>
-        </div>
-        <p className="text-sm text-gray-600 leading-relaxed">
-          This tool can be used to suggest Tier 1, 2, and 3 (as defined in the DfE Pupil Premium
-          Guidance) strategies to support disadvantaged students receiving funding. Simply enter
-          the challenge(s), up to 3, you are aiming to tackle.
-        </p>
-        <div className="mt-5 pt-5 border-t border-gray-100">
-          <h2 className="text-sm font-semibold text-gray-700 mb-3">Guidance</h2>
-          <ol className="space-y-3">
-            {[
-              "Read the examples in the inputs to ensure you're entering the challenges clearly.",
-              "It is important to be specific when entering the challenge — provide any important additional information to be really clear on the challenges your students face.",
-              "Ideas for use: generating evidence-based ideas for Pupil Premium funding.",
-            ].map((tip, i) => (
-              <li key={i} className="flex gap-3 text-sm text-gray-600">
-                <span className="w-5 h-5 rounded-full bg-indigo-100 text-indigo-700 text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">{i + 1}</span>
-                {tip}
-              </li>
-            ))}
-          </ol>
-        </div>
-      </div>
-      <Link href="/" className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 transition-colors">
-        <ArrowLeft className="w-4 h-4" />
-        Back to all tools
-      </Link>
-    </div>
-  );
-}
+import ToolInfoPanel from "@/app/components/ToolInfoPanel";
 
 export default function PupilPremiumPlannerPage() {
   return (
-    <main className="max-w-7xl mx-auto px-6 py-10">
-      <PupilPremiumPlannerForm sidebar={<Sidebar />} />
-    </main>
+    <PupilPremiumPlannerForm
+      sidebar={
+        <ToolInfoPanel
+          icon={<TrendingUp className="w-5 h-5 text-rose-600" />}
+          heroBg="bg-rose-50"
+          title="Pupil Premium Planner"
+          description="This tool can be used to suggest Tier 1, 2, and 3 (as defined in the DfE Pupil Premium Guidance) strategies to support disadvantaged students receiving funding. Simply enter the challenge(s), up to 3, you are aiming to tackle."
+          steps={[
+            { label: "Enter your challenges", detail: "Be specific — provide important additional context about the challenges your students face." },
+            { label: "Generate strategies", detail: "Get evidence-based Tier 1, 2, and 3 strategies aligned with DfE guidance and EEF research." },
+            { label: "Review and apply", detail: "Use the strategies to inform your Pupil Premium funding decisions." },
+          ]}
+        />
+      }
+    />
   );
 }
