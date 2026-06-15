@@ -129,18 +129,23 @@ export async function POST(req: NextRequest) {
         .map((s) => `"${s.trim()}"`)
         .join(", ")}.`
     : "";
-  const instructionsLine = body.extraInstructions?.trim()
-    ? `Additional steering from the teacher: ${body.extraInstructions.trim()}`
+  const hasInstruction = !!body.extraInstructions?.trim();
+  const instructionsLine = hasInstruction
+    ? `★ PRIORITY INSTRUCTION FROM THE TEACHER — this DRIVES the search; follow it literally and above everything else (topic, title, and aspects below are only secondary context): "${body.extraInstructions!.trim()}"`
     : "";
   const prompt = `For a classroom lesson on: "${body.topic}".
 
+${instructionsLine}
 ${deckLine}
 ${slideLine}
 ${yearLine}
-${instructionsLine}
 
 Return three things:
-1. "query" — a focused YouTube search query (4-8 words, no quotes). Aim for educational channels (BBC Bitesize, CrashCourse, Kurzgesagt, TED-Ed, etc.). The query MUST tie to the lesson title above, not just the broad topic, so the result is actually relevant to what the presentation covers. NEVER include "shorts", "tiktok", or "reel".
+1. "query" — a focused YouTube search query (4-8 words, no quotes). ${
+    hasInstruction
+      ? "Build the query DIRECTLY from the teacher's PRIORITY INSTRUCTION above — match the exact subject, medium, and format they asked for (e.g. if they ask for a 'children's storybook read-aloud', search for exactly that, NOT the broad lesson topic). Do not substitute the topic for what they explicitly requested."
+      : "The query MUST tie to the lesson title above, not just the broad topic, so the result is actually relevant to what the presentation covers."
+  } Aim for educational/reputable channels where appropriate (BBC Bitesize, CrashCourse, Kurzgesagt, TED-Ed, etc.). NEVER include "shorts", "tiktok", or "reel".
 2. "slideHeading" — a short ALL-CAPS slide title that previews the video, e.g. "WATCH: READING BETWEEN THE LINES" or "WATCH: HOW VOLCANOES ERUPT". Start with "WATCH:" and keep the whole heading under 40 characters so it fits on one line.
 3. "slideSubtitle" — one warm, classroom-friendly sentence that introduces why pupils are watching. Under 90 characters. Example: "Let's see how inference works in action with some helpful tips!"`;
   let searchQuery = body.topic;

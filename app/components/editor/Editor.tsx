@@ -1,8 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Trash2, Check } from "lucide-react";
+import { Trash2, Check, Loader2 } from "lucide-react";
 import EditorTopBar from "./EditorTopBar";
+import EditPromptModal from "./EditPromptModal";
+import { GENERATION_STORAGE_KEY } from "@/app/components/slideshow/GenerateModal";
 import ContextualToolbar, { type EditorSelection } from "./ContextualToolbar";
 import Sidebar, { type ActivityKind, type ActivityConfig } from "./Sidebar";
 import SlideTray, { type SlideEntry } from "./SlideTray";
@@ -148,6 +150,25 @@ function measureTextLines(
 
 export default function Editor({ presentation, generationParams }: Props) {
   const [title, setTitle] = useState(presentation.title);
+  // The params this deck was generated from (if any), powering the "Edit prompt"
+  // button → reopen the prompt and regenerate over this same presentation.
+  const savedGenParams = (presentation.generation_params ?? null) as Record<string, unknown> | null;
+  const [editPromptOpen, setEditPromptOpen] = useState(false);
+  const handleRegeneratePrompt = (v: { topic: string; additionalInstructions: string }) => {
+    if (!savedGenParams) return;
+    const merged = {
+      ...savedGenParams,
+      topic: v.topic,
+      additionalInstructions: v.additionalInstructions || undefined,
+    };
+    try {
+      sessionStorage.setItem(`${GENERATION_STORAGE_KEY}:${presentation.id}`, JSON.stringify(merged));
+    } catch {}
+    void updatePresentation(presentation.id, { generation_params: merged });
+    // Full reload so the editor page re-reads sessionStorage and re-runs the
+    // generation stream over this presentation (replacing the current deck).
+    window.location.href = `/editor/${presentation.id}`;
+  };
   const [slides, setSlides] = useState<SlideState[]>(() => {
     const src = presentation.slides?.length ? presentation.slides : [BLANK_SLIDE];
     // Scrub any `isPending: true` flags off media that never got a `src` —
@@ -207,12 +228,22 @@ export default function Editor({ presentation, generationParams }: Props) {
   const [adjustingBackground, setAdjustingBackground] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [presenting, setPresenting] = useState(false);
-  const [removingBg, setRemovingBg] = useState(false);
+  // Background removal is per-image (which image is processing), with download/
+  // processing progress and an error message, so a slow first-run model download
+  // can't look like an app-wide infinite hang.
+  const [removingBgId, setRemovingBgId] = useState<string | null>(null);
+  const [removeBgPct, setRemoveBgPct] = useState<number | null>(null);
+  const [removeBgError, setRemoveBgError] = useState<string | null>(null);
+  useEffect(() => {
+    if (!removeBgError) return;
+    const t = setTimeout(() => setRemoveBgError(null), 6000);
+    return () => clearTimeout(t);
+  }, [removeBgError]);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [zoom, setZoom] = useState(1);
   const [fontPanelOpen, setFontPanelOpen] = useState(false);
   // Imperative open request for the Sidebar (canvas "Swap image" → Pictures).
-  const [sidebarOpenSignal, setSidebarOpenSignal] = useState<{ tab: "pictures"; subTab?: "stock" | "upload" | "ai"; nonce: number } | undefined>(undefined);
+  const [sidebarOpenSignal, setSidebarOpenSignal] = useState<{ tab: "pictures" | "audio"; subTab?: "stock" | "upload" | "ai"; nonce: number } | undefined>(undefined);
   // When the user clicks "Swap image" on a selected image, we record its id
   // here. The next image picked from the Pictures sidebar replaces this image's
   // src instead of adding a new element. Cleared after one use or on deselect.
@@ -407,9 +438,13 @@ export default function Editor({ presentation, generationParams }: Props) {
       const v = (slide.videos ?? []).find((x) => x.id === selectedVideoId);
       return v ? { kind: "video", video: v } : null;
     }
+    if (selectedAudioId) {
+      const a = (slide.audios ?? []).find((x) => x.id === selectedAudioId);
+      return a ? { kind: "audio", audio: a } : null;
+    }
     if (slideSelected) return { kind: "slide", slide };
     return null;
-  }, [selectedTextId, selectedShapeId, selectedImageId, selectedVideoId, slideSelected, slides, activeIndex]);
+  }, [selectedTextId, selectedShapeId, selectedImageId, selectedVideoId, selectedAudioId, slideSelected, slides, activeIndex]);
 
   const clearSelection = useCallback(() => {
     setSelectedTextId(null);
@@ -1309,6 +1344,13 @@ export default function Editor({ presentation, generationParams }: Props) {
     setSidebarOpenSignal({ tab: "pictures", subTab: "stock", nonce: Date.now() });
   }, [selectedImageId]);
 
+  // Audio toolbar "Replace audio" → open the sidebar Audio panel. Generating
+  // there replaces the selected clip (see onAddAudioActivity).
+  const handleReplaceAudio = useCallback(() => {
+    if (!selectedAudioId) return;
+    setSidebarOpenSignal({ tab: "audio", nonce: Date.now() });
+  }, [selectedAudioId]);
+
   // Replace a target image's src in place, loading the new bytes first so we
   // can reset pan/scale and store natural dims (mirrors the old file-swap).
   const swapImageSrc = useCallback((targetId: string, src: string) => {
@@ -1355,11 +1397,23 @@ export default function Editor({ presentation, generationParams }: Props) {
   }, [selectedImageId, mutateActiveSlide]);
 
   const handleRemoveBg = useCallback(async () => {
-    if (!selectedImageId || removingBg) return;
+    // Capture the image id up-front so the async work targets THIS image even if
+    // the user clicks another one mid-process. One removal at a time.
+    const imageId = selectedImageId;
+    if (!imageId || removingBgId) return;
     const slide = slidesRef.current[activeIndexRef.current];
-    const image = slide?.images.find((i) => i.id === selectedImageId);
+    const image = slide?.images.find((i) => i.id === imageId);
     if (!image?.src) return;
-    setRemovingBg(true);
+    setRemovingBgId(imageId);
+    setRemoveBgPct(0);
+    setRemoveBgError(null);
+    // The first run downloads a ~80MB model from a CDN; if that stalls, fail
+    // cleanly instead of hanging forever.
+    const withTimeout = <T,>(p: Promise<T>, ms: number): Promise<T> =>
+      Promise.race([
+        p,
+        new Promise<T>((_, reject) => setTimeout(() => reject(new Error("bg-timeout")), ms)),
+      ]);
     try {
       // Client-side matting via @imgly/background-removal — a U2Net/ISNet
       // ONNX model running in WASM. Free, no API cost or rate limits, and it
@@ -1372,10 +1426,15 @@ export default function Editor({ presentation, generationParams }: Props) {
       // foreground regions (white pages, pale skin) semi-transparent — exactly
       // the "faded" look the user hit. Full precision is markedly cleaner.
       const { removeBackground } = await import("@imgly/background-removal");
-      const rawBlob = await removeBackground(image.src, {
+      const rawBlob = await withTimeout(removeBackground(image.src, {
         model: "isnet",
         output: { format: "image/png" },
-      });
+        // Surface download/processing progress so a long first run reads as
+        // "loading 42%" rather than a frozen app.
+        progress: (_key: string, current: number, total: number) => {
+          if (total > 0) setRemoveBgPct(Math.min(100, Math.round((current / total) * 100)));
+        },
+      }), 180_000);
       // Even the full model can leave interior fill a touch translucent. Apply
       // an alpha gain that pushes near-opaque pixels to fully opaque while
       // preserving the genuinely soft edges (hair, fur) at low alpha.
@@ -1398,17 +1457,23 @@ export default function Editor({ presentation, generationParams }: Props) {
         console.error("Remove background: upload failed:", err);
         // Fall back to inlining the data URL so the cutout still applies even
         // if Storage is unavailable.
-        updateImage(selectedImageId, { src: dataUrl });
+        updateImage(imageId, { src: dataUrl });
         return;
       }
       const { src: newSrc } = await res.json();
-      if (newSrc) updateImage(selectedImageId, { src: newSrc });
+      if (newSrc) updateImage(imageId, { src: newSrc });
     } catch (err) {
       console.error("Remove background error:", err);
+      setRemoveBgError(
+        err instanceof Error && err.message === "bg-timeout"
+          ? "Background removal timed out. The first run downloads a ~80MB model — check your connection and try again."
+          : "Background removal failed. Please try again.",
+      );
     } finally {
-      setRemovingBg(false);
+      setRemovingBgId(null);
+      setRemoveBgPct(null);
     }
-  }, [selectedImageId, removingBg, updateImage]);
+  }, [selectedImageId, removingBgId, updateImage]);
 
   const updateAudio = useCallback((id: string, patch: Partial<AudioObject>) => {
     mutateActiveSlide((s) => ({
@@ -2632,6 +2697,40 @@ export default function Editor({ presentation, generationParams }: Props) {
             rotate: rot || undefined,
           });
         }
+
+        // Audio — embed the mp3 so the deck plays narration in PowerPoint.
+        // pptxgenjs needs the media inlined as base64 in the browser (a remote
+        // path isn't fetched for media the way it is for images), so pull the
+        // bytes and convert to a data URL first.
+        for (const a of s.audios ?? []) {
+          if (!a.src) continue;
+          try {
+            let dataUrl = a.src;
+            if (!a.src.startsWith("data:")) {
+              const resp = await fetch(a.src);
+              const blob = await resp.blob();
+              dataUrl = await new Promise<string>((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result as string);
+                reader.onerror = () => reject(reader.error);
+                reader.readAsDataURL(blob);
+              });
+            }
+            // pptxgenjs maps the extension from the data-URL mime; normalise
+            // audio/mpeg → audio/mp3 so it's recognised.
+            dataUrl = dataUrl.replace(/^data:audio\/mpeg/, "data:audio/mp3");
+            slide.addMedia({
+              type: "audio",
+              data: dataUrl,
+              x: toIn(a.x, "w"),
+              y: toIn(a.y, "h"),
+              w: toIn(a.width, "w"),
+              h: toIn(a.height, "h"),
+            });
+          } catch (err) {
+            console.warn("PPTX export: could not embed audio:", err);
+          }
+        }
       }
       await pptx.writeFile({ fileName: `${titleRef.current || "presentation"}.pptx` });
     } catch (err) {
@@ -3422,6 +3521,7 @@ export default function Editor({ presentation, generationParams }: Props) {
         onPresent={() => setPresenting(true)}
         isExporting={isExporting}
         saveStatus={saveStatus}
+        onEditPrompt={savedGenParams ? () => setEditPromptOpen(true) : undefined}
         disableHistory={!!generating}
         themeId={slides[0]?.themeId ?? DEFAULT_THEME_ID}
         onThemeChange={handleThemeChange}
@@ -3442,6 +3542,32 @@ export default function Editor({ presentation, generationParams }: Props) {
           galleryRefreshTrigger={galleryRefreshTrigger}
           openSignal={sidebarOpenSignal}
           onAddAudioActivity={(audio) => {
+            // If an audio clip is selected, REPLACE it in place (new clip +
+            // metadata) rather than adding a new slide — this is how the sidebar
+            // Audio panel swaps the entire audio.
+            if (selectedAudioId) {
+              const active = slidesRef.current[activeIndexRef.current];
+              if (active?.audios?.some((a) => a.id === selectedAudioId)) {
+                updateAudio(selectedAudioId, {
+                  src: audio.src,
+                  title: audio.title,
+                  description: audio.description,
+                  transcript: audio.transcript,
+                  questions: audio.questions ?? [],
+                });
+                // Refresh the on-slide numbered questions text, if there is one.
+                mutateActiveSlide((s) => ({
+                  ...s,
+                  texts: s.texts.map((t) =>
+                    t.listType === "number"
+                      ? { ...t, text: (audio.questions ?? []).join("\n") }
+                      : t,
+                  ),
+                }));
+                scheduleSave();
+                return;
+              }
+            }
             // Same layout the AI wizard uses — separate text elements + thin
             // player bar — on a brand-new slide inserted right after the
             // current one. Uses neutral defaults since no theme is in scope.
@@ -3947,18 +4073,21 @@ export default function Editor({ presentation, generationParams }: Props) {
                     else if (selectedShapeId) deleteSelectedShape();
                     else if (selectedImageId) deleteSelectedImage();
                     else if (selectedVideoId) deleteSelectedVideo();
+                    else if (selectedAudioId) deleteSelectedAudio();
                   }}
                   onToggleLock={() => {
                     if (selection?.kind === "text" && selectedTextId) updateText(selectedTextId, { locked: !selection.text.locked });
                     else if (selection?.kind === "shape" && selectedShapeId) updateShape(selectedShapeId, { locked: !selection.shape.locked });
                     else if (selection?.kind === "image" && selectedImageId) updateImage(selectedImageId, { locked: !selection.image.locked });
                     else if (selection?.kind === "video" && selectedVideoId) updateVideo(selectedVideoId, { locked: !selection.video.locked });
+                    else if (selection?.kind === "audio" && selectedAudioId) updateAudio(selectedAudioId, { locked: !selection.audio.locked });
                   }}
                   onOpenFontPanel={() => setFontPanelOpen(true)}
                   onOpenEditVideo={selectedVideoId ? () => setEditVideoPanelOpen(true) : undefined}
                   onRemoveBg={selectedImageId ? handleRemoveBg : undefined}
-                  removingBg={removingBg}
+                  removingBg={removingBgId === selectedImageId}
                   onSwapImage={selectedImageId ? handleSwapImage : undefined}
+                  onReplaceAudio={selectedAudioId ? handleReplaceAudio : undefined}
                 />
               )}
             </div>
@@ -4032,6 +4161,32 @@ export default function Editor({ presentation, generationParams }: Props) {
               </div>
             );
           })()}
+
+          {/* Remove-background progress / error — so a slow first-run model
+              download (or a failure) is visible instead of a silent hang. */}
+          {removingBgId && (
+            <div className="absolute top-2 left-1/2 -translate-x-1/2 z-50 pointer-events-none">
+              <div
+                className="inline-flex items-center gap-2 rounded-2xl border shadow-lg px-4 py-2 text-sm pointer-events-auto"
+                style={{ backgroundColor: "#1a1a1a", color: "#fff", borderColor: "#1a1a1a" }}
+              >
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                <span className="font-medium">
+                  Removing background{removeBgPct !== null ? `… ${removeBgPct}%` : "…"}
+                </span>
+              </div>
+            </div>
+          )}
+          {removeBgError && (
+            <div className="absolute top-2 left-1/2 -translate-x-1/2 z-50 pointer-events-none">
+              <div
+                className="inline-flex items-center gap-2 rounded-2xl border shadow-lg px-4 py-2 text-sm pointer-events-auto max-w-md"
+                style={{ backgroundColor: "#E0463F", color: "#fff", borderColor: "#E0463F" }}
+              >
+                <span className="font-medium">{removeBgError}</span>
+              </div>
+            </div>
+          )}
 
           {/* Ready banner — shown briefly once generation finishes so the user
               knows the deck is done and the slides are now clickable/editable. */}
@@ -4206,6 +4361,19 @@ export default function Editor({ presentation, generationParams }: Props) {
           startIndex={activeIndex}
           themeId={slides[0]?.themeId ?? DEFAULT_THEME_ID}
           onClose={() => setPresenting(false)}
+        />
+      )}
+
+      {editPromptOpen && savedGenParams && (
+        <EditPromptModal
+          initialTopic={typeof savedGenParams.topic === "string" ? savedGenParams.topic : ""}
+          initialInstructions={
+            typeof savedGenParams.additionalInstructions === "string"
+              ? savedGenParams.additionalInstructions
+              : ""
+          }
+          onClose={() => setEditPromptOpen(false)}
+          onSubmit={handleRegeneratePrompt}
         />
       )}
     </div>

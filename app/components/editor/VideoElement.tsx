@@ -31,12 +31,18 @@ export default function VideoElement({ video, selected, zoom, onSelect, onUpdate
   // instead of the iframe. Keeps the editor light and avoids dozens of network
   // requests just to scroll past video slides.
   const [activated, setActivated] = useState(false);
+  // While dragging/resizing, make the YouTube iframe click-through. A cross-origin
+  // iframe otherwise swallows mousemove/mouseup once the cursor passes over it, so
+  // the window-level drag listeners never fire and the element "sticks" to the
+  // cursor after release.
+  const [dragging, setDragging] = useState(false);
   const rotation = video.rotation ?? 0;
 
   const handleBodyMouseDown = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!selected) onSelect(video.id);
     if (video.locked) return;
+    setDragging(true);
     const startX = e.clientX;
     const startY = e.clientY;
     const origX = video.x;
@@ -57,6 +63,7 @@ export default function VideoElement({ video, selected, zoom, onSelect, onUpdate
     const up = () => {
       window.removeEventListener("mousemove", move);
       window.removeEventListener("mouseup", up);
+      setDragging(false);
       onDragEnd?.();
       if (moved) onCommit();
     };
@@ -68,6 +75,7 @@ export default function VideoElement({ video, selected, zoom, onSelect, onUpdate
     if (video.locked) return;
     e.stopPropagation();
     e.preventDefault();
+    setDragging(true);
     const startX = e.clientX;
     const startY = e.clientY;
     const origX = video.x, origY = video.y;
@@ -98,6 +106,7 @@ export default function VideoElement({ video, selected, zoom, onSelect, onUpdate
     const up = () => {
       window.removeEventListener("mousemove", move);
       window.removeEventListener("mouseup", up);
+      setDragging(false);
       onCommit();
     };
     window.addEventListener("mousemove", move);
@@ -171,7 +180,15 @@ export default function VideoElement({ video, selected, zoom, onSelect, onUpdate
               title={video.title ?? "YouTube video"}
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
-              style={{ width: "100%", height: "100%", border: 0, display: "block" }}
+              style={{
+                width: "100%",
+                height: "100%",
+                border: 0,
+                display: "block",
+                // Click-through during a drag so the iframe doesn't swallow the
+                // mouseup and leave the element stuck to the cursor.
+                pointerEvents: dragging ? "none" : "auto",
+              }}
             />
           ) : (
             <div
@@ -223,6 +240,25 @@ export default function VideoElement({ video, selected, zoom, onSelect, onUpdate
           />
         )}
       </div>
+
+      {/* Click-shield: while the video isn't selected, a transparent layer sits
+          over the content so a click selects the element (and starts a drag)
+          instead of being swallowed by the playing YouTube iframe. Once selected
+          it's removed, so the iframe's own controls work. This is what lets you
+          re-select (and Edit) a video after it has started playing. */}
+      {!selected && (
+        <div
+          onMouseDown={handleBodyMouseDown}
+          onContextMenu={(e) => {
+            if (!onContextMenu) return;
+            e.preventDefault();
+            e.stopPropagation();
+            onSelect(video.id);
+            onContextMenu(video.id, e.clientX, e.clientY);
+          }}
+          style={{ position: "absolute", inset: 0, zIndex: 2, cursor: "pointer" }}
+        />
+      )}
 
       {selected && !video.locked && HANDLES.map((pos) => {
         // Pull corner handles inward by R*(1 - 1/√2) so they sit on the

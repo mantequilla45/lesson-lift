@@ -313,9 +313,6 @@ export default function GenerateModal({ onClose }: Props) {
     setBusy(true);
     setError(null);
     try {
-      // Create an empty presentation up-front so we have an editor URL to navigate to.
-      // The editor reads the params back out of sessionStorage and runs the stream there.
-      const created = await createPresentation({ title: "Generating…", slides: [] });
       const params: GenerationParams = {
         topic: topic.trim(),
         year: year || undefined,
@@ -350,6 +347,15 @@ export default function GenerateModal({ onClose }: Props) {
               }
             : undefined,
       };
+      // Create the presentation up-front so we have an editor URL to navigate to.
+      // Persist the params on the row so the editor's Edit button can reopen the
+      // prompt and regenerate later. The editor also reads them from sessionStorage
+      // for the initial run (popped immediately so a refresh doesn't re-generate).
+      const created = await createPresentation({
+        title: "Generating…",
+        slides: [],
+        generationParams: params as unknown as Record<string, unknown>,
+      });
       sessionStorage.setItem(`${GENERATION_STORAGE_KEY}:${created.id}`, JSON.stringify(params));
       router.push(`/editor/${created.id}`);
     } catch (err) {

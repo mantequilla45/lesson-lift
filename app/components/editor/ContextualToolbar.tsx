@@ -7,7 +7,7 @@ import FramePicker from "./FramePicker";
 import { type FrameShape } from "./frames";
 import { isSvgDataUrl, extractSvgColors, swapSvgColor } from "./svg-recolor";
 import ColorPicker from "./ColorPicker";
-import type { TextObject, ShapeObject, ImageObject, SlideJSON, VideoObject } from "@/app/lib/presentations";
+import type { TextObject, ShapeObject, ImageObject, SlideJSON, VideoObject, AudioObject } from "@/app/lib/presentations";
 
 // ────────────────────────────────────────────────────────────────────────────
 // Shared primitives
@@ -638,6 +638,7 @@ export type EditorSelection =
   | { kind: "shape"; shape: ShapeObject }
   | { kind: "image"; image: ImageObject }
   | { kind: "video"; video: VideoObject }
+  | { kind: "audio"; audio: AudioObject }
   | { kind: "slide"; slide: SlideJSON }
   | null;
 
@@ -662,6 +663,9 @@ interface Props {
    *  the user picks a stock/AI/uploaded image to replace with) instead of the
    *  device file picker. Falls back to the file picker when omitted. */
   onSwapImage?: () => void;
+  /** Opens the sidebar Audio panel to generate a replacement for the selected
+   *  audio clip (the inline "Edit audio" button was removed in favour of this). */
+  onReplaceAudio?: () => void;
 }
 
 // One toolbar to rule them all. Tools that don't apply to the current selection
@@ -682,6 +686,7 @@ export default function ContextualToolbar({
   onRemoveBg,
   removingBg,
   onSwapImage,
+  onReplaceAudio,
 }: Props) {
   if (!selection) return null;
 
@@ -689,6 +694,42 @@ export default function ContextualToolbar({
   // route them to a dedicated render to keep the main branch clean.
   if (selection.kind === "slide") {
     return <SlideToolbar slide={selection.slide} onUpdateSlide={onUpdateSlide} />;
+  }
+
+  // Audio has a minimal toolset: replace the whole clip (via the sidebar Audio
+  // panel), lock, delete.
+  if (selection.kind === "audio") {
+    const locked = !!selection.audio.locked;
+    return (
+      <div className="inline-flex items-center gap-1 bg-white rounded-2xl shadow-lg border border-gray-200 px-2 py-1.5">
+        <button
+          type="button"
+          onClick={onReplaceAudio}
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg px-2.5 py-1.5"
+          title="Replace this audio clip"
+        >
+          <RefreshCw className="w-4 h-4" />
+          Replace audio
+        </button>
+        <div className="w-px h-5 bg-gray-200 mx-0.5" />
+        <button
+          type="button"
+          onClick={onToggleLock}
+          className="p-2 rounded-lg text-gray-700 hover:bg-gray-100"
+          title={locked ? "Unlock" : "Lock"}
+        >
+          {locked ? <Lock className="w-4 h-4" /> : <LockOpen className="w-4 h-4" />}
+        </button>
+        <button
+          type="button"
+          onClick={onDelete}
+          className="p-2 rounded-lg text-gray-700 hover:bg-gray-100"
+          title="Delete"
+        >
+          <Trash2 className="w-4 h-4" />
+        </button>
+      </div>
+    );
   }
 
   const t = selection.kind === "text" ? selection.text : null;

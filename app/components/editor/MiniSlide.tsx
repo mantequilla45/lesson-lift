@@ -1,11 +1,11 @@
 "use client";
 
-import { memo } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import type { SlideJSON, ShapeObject, TextObject, ImageObject, AudioObject, VideoObject, CalloutObject, BadgeObject, BlockquoteObject, ActivityObject } from "@/app/lib/presentations";
 import { getTheme, type SlideshowTheme } from "@/app/lib/slideshowThemes";
 import { SLIDE_W, SLIDE_H } from "./constants";
 import { getFrameStyle } from "./frames";
-import { youtubeThumbnail } from "./youtube";
+import { youtubeThumbnail, youtubeEmbedUrl } from "./youtube";
 import { toThumbnailUrl } from "@/app/lib/imageStorage";
 import { parseInlineBold } from "@/app/lib/utils";
 
@@ -30,6 +30,9 @@ interface Props {
    *  and list page can pass the deck's theme even when rendering a non-first
    *  slide (only slides[0] carries themeId in the SlideJSON itself). */
   themeId?: string;
+  /** When true (presentation mode), the audio pill becomes a real, playable
+   *  control wired to a hidden <audio> — instead of the static thumbnail look. */
+  live?: boolean;
 }
 
 // Each inner mini-element is memo'd separately so unchanged elements skip re-render
@@ -380,11 +383,40 @@ const MiniImage = memo(function MiniImage({ image, srcOverride }: { image: Image
 // Tiny audio player representation for thumbnails: a coloured pill with a
 // solid play-button square on the left + a translucent progress track. Skips
 // playback logic — this is purely a static visual.
-const MiniAudio = memo(function MiniAudio({ audio }: { audio: AudioObject }) {
+const MiniAudio = memo(function MiniAudio({ audio, live }: { audio: AudioObject; live?: boolean }) {
   const barBg = audio.panelBg ?? "rgba(255,232,200,0.18)";
   const accent = audio.playBg ?? "#34A853";
   const accentInk = audio.playInk ?? "#ffffff";
   const ink = audio.panelInk ?? "#FFE8C8";
+  // Playback (presentation mode only) — wired to the hidden <audio> below.
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const [playing, setPlaying] = useState(false);
+  const [pct, setPct] = useState(0);
+  useEffect(() => {
+    const el = audioRef.current;
+    if (!el) return;
+    const onPlay = () => setPlaying(true);
+    const onPause = () => setPlaying(false);
+    const onTime = () => { if (el.duration) setPct((el.currentTime / el.duration) * 100); };
+    const onEnd = () => { setPlaying(false); setPct(0); };
+    el.addEventListener("play", onPlay);
+    el.addEventListener("pause", onPause);
+    el.addEventListener("timeupdate", onTime);
+    el.addEventListener("ended", onEnd);
+    return () => {
+      el.removeEventListener("play", onPlay);
+      el.removeEventListener("pause", onPause);
+      el.removeEventListener("timeupdate", onTime);
+      el.removeEventListener("ended", onEnd);
+    };
+  }, [live, audio.src]);
+  const togglePlay = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const el = audioRef.current;
+    if (!el) return;
+    if (el.paused) el.play().catch(() => {});
+    else el.pause();
+  };
   return (
     <div
       style={{
@@ -407,6 +439,7 @@ const MiniAudio = memo(function MiniAudio({ audio }: { audio: AudioObject }) {
     >
       <div style={{ display: "flex", alignItems: "center", gap: 12, flex: 1 }}>
         <div
+          onClick={live ? togglePlay : undefined}
           style={{
             width: 40,
             height: 40,
@@ -416,12 +449,20 @@ const MiniAudio = memo(function MiniAudio({ audio }: { audio: AudioObject }) {
             alignItems: "center",
             justifyContent: "center",
             flexShrink: 0,
+            cursor: live ? "pointer" : "default",
           }}
         >
-          {/* Play triangle */}
-          <svg viewBox="0 0 24 24" width="16" height="16" fill={accentInk}>
-            <path d="M8 5v14l11-7z" />
-          </svg>
+          {playing ? (
+            // Pause bars
+            <svg viewBox="0 0 24 24" width="16" height="16" fill={accentInk}>
+              <path d="M6 5h4v14H6zM14 5h4v14h-4z" />
+            </svg>
+          ) : (
+            // Play triangle
+            <svg viewBox="0 0 24 24" width="16" height="16" fill={accentInk}>
+              <path d="M8 5v14l11-7z" />
+            </svg>
+          )}
         </div>
         <div
           style={{
@@ -444,31 +485,95 @@ const MiniAudio = memo(function MiniAudio({ audio }: { audio: AudioObject }) {
           borderRadius: 999,
           backgroundColor: "rgba(0,0,0,0.15)",
           position: "relative",
+          overflow: "hidden",
         }}
-      />
+      >
+        {live && (
+          <div
+            style={{
+              position: "absolute",
+              left: 0,
+              top: 0,
+              height: "100%",
+              width: `${pct}%`,
+              backgroundColor: accent,
+              borderRadius: 999,
+            }}
+          />
+        )}
+      </div>
+      {live && audio.src && (
+        // eslint-disable-next-line jsx-a11y/media-has-caption
+        <audio ref={audioRef} src={audio.src} preload="metadata" style={{ display: "none" }} />
+      )}
     </div>
   );
 });
 
-const MiniVideo = memo(function MiniVideo({ video }: { video: VideoObject }) {
-  const poster = video.source === "youtube" ? youtubeThumbnail(video.src) : null;
+const MiniVideo = memo(function MiniVideo({ video, live }: { video: VideoObject; live?: boolean }) {
+  const isYoutube = video.source === "youtube";
+  const poster = isYoutube ? youtubeThumbnail(video.src) : null;
   const frameStyle = getFrameStyle(video.frame, video.cornerRadius);
+  // Presentation playback: click the poster to swap in the autoplaying iframe.
+  const [activated, setActivated] = useState(false);
+  const containerStyle: React.CSSProperties = {
+    position: "absolute",
+    left: video.x,
+    top: video.y,
+    width: video.width,
+    height: video.height,
+    transform: `rotate(${video.rotation ?? 0}deg)`,
+    transformOrigin: "center center",
+    zIndex: video.z,
+    overflow: "hidden",
+    backgroundColor: "#000",
+    ...frameStyle,
+  };
+
+  // Live (presentation) mode: render a real, playable video.
+  if (live) {
+    if (!isYoutube) {
+      return (
+        <div style={containerStyle}>
+          {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+          <video src={video.src} controls onClick={(e) => e.stopPropagation()} style={{ width: "100%", height: "100%", display: "block" }} />
+        </div>
+      );
+    }
+    if (activated) {
+      return (
+        <div style={containerStyle} onClick={(e) => e.stopPropagation()}>
+          <iframe
+            src={youtubeEmbedUrl(video.src, { start: video.startSeconds, end: video.endSeconds, autoplay: true }) ?? ""}
+            title={video.title ?? "YouTube video"}
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+            style={{ width: "100%", height: "100%", border: 0, display: "block" }}
+          />
+        </div>
+      );
+    }
+    return (
+      <div
+        style={{ ...containerStyle, cursor: "pointer" }}
+        onClick={(e) => { e.stopPropagation(); setActivated(true); }}
+      >
+        {poster && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={poster} alt="" draggable={false} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+        )}
+        <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: "rgba(0,0,0,0.25)" }}>
+          <div style={{ width: 72, height: 72, borderRadius: 999, backgroundColor: "rgba(255,0,0,0.92)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <svg viewBox="0 0 24 24" width="30" height="30" fill="#fff"><path d="M8 5v14l11-7z" /></svg>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Static (thumbnail) mode.
   return (
-    <div
-      style={{
-        position: "absolute",
-        left: video.x,
-        top: video.y,
-        width: video.width,
-        height: video.height,
-        transform: `rotate(${video.rotation ?? 0}deg)`,
-        transformOrigin: "center center",
-        zIndex: video.z,
-        overflow: "hidden",
-        backgroundColor: "#000",
-        ...frameStyle,
-      }}
-    >
+    <div style={containerStyle}>
       {poster && (
         // eslint-disable-next-line @next/next/no-img-element
         <img
@@ -707,7 +812,7 @@ const MiniActivity = memo(function MiniActivity({ activity, theme }: { activity:
   );
 });
 
-function MiniSlideBase({ slide, width, thumbnailMode, themeId }: Props) {
+function MiniSlideBase({ slide, width, thumbnailMode, themeId, live }: Props) {
   const scale = width / SLIDE_W;
   const height = SLIDE_H * scale;
   // Resolve a theme for the new primitives. Prefer the prop, then the slide's
@@ -785,8 +890,8 @@ function MiniSlideBase({ slide, width, thumbnailMode, themeId }: Props) {
         ))}
         {(slide.shapes ?? []).map((s) => <MiniShape key={s.id} shape={s} />)}
         {(slide.texts ?? []).map((t) => <MiniText key={t.id} text={t} />)}
-        {(slide.audios ?? []).map((a) => <MiniAudio key={a.id} audio={a} />)}
-        {(slide.videos ?? []).map((v) => <MiniVideo key={v.id} video={v} />)}
+        {(slide.audios ?? []).map((a) => <MiniAudio key={a.id} audio={a} live={live} />)}
+        {(slide.videos ?? []).map((v) => <MiniVideo key={v.id} video={v} live={live} />)}
         {(slide.callouts ?? []).map((c) => <MiniCallout key={c.id} callout={c} theme={theme} />)}
         {(slide.badges ?? []).map((b) => <MiniBadge key={b.id} badge={b} theme={theme} />)}
         {(slide.blockquotes ?? []).map((q) => <MiniBlockquote key={q.id} quote={q} theme={theme} />)}
