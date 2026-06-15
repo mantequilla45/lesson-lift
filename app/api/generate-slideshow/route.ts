@@ -468,7 +468,8 @@ function buildPrompt(body: RequestBody): string {
     ? `Reading level: ${body.readingLevel}.`
     : "";
   const extraLine = body.additionalInstructions?.trim()
-    ? `Additional instructions from the teacher: ${body.additionalInstructions.trim()}`
+    ? `★ PRIORITY — TEACHER'S ADDITIONAL INSTRUCTIONS: "${body.additionalInstructions.trim()}"
+Apply these throughout the ENTIRE deck — they shape the tone, content, examples, vocabulary, image choices, and which slides to include. Where they conflict with the default style, the teacher's instructions WIN. Every slide should visibly reflect them, not just the title slide.`
     : "";
   // Curriculum alignment — only emitted when the user toggled it on in the
   // generate modal AND picked subject + strand. Tells the AI to ground the
@@ -1276,6 +1277,8 @@ export async function POST(req: NextRequest) {
                 length: body.youtubeLength ?? "medium",
                 deckTitle: parsed.title,
                 slideTitles: parsed.slides.map((s) => s.title).slice(0, 8),
+                // Let the teacher's deck instructions steer the video search too.
+                extraInstructions: body.additionalInstructions?.trim() || undefined,
                 // Attribute this call's cost to the slideshow's breakdown.
                 parentTool: "generate-slideshow",
               }),

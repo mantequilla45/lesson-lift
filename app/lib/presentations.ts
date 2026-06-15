@@ -284,6 +284,10 @@ export interface Presentation {
   slides: SlideJSON[];
   created_at: string;
   updated_at: string;
+  /** The params used to AI-generate this deck (topic, instructions, toggles,
+   *  theme, etc.). Lets the editor's Edit button reopen the prompt + regenerate.
+   *  Shape mirrors GenerationParams; kept loose here to avoid a client import. */
+  generation_params?: Record<string, unknown> | null;
 }
 
 /** Lightweight row for the Slideshows index page. Drops the heavy `slides`
@@ -336,13 +340,18 @@ export async function getPresentation(id: string): Promise<Presentation | null> 
   return data as Presentation | null;
 }
 
-export async function createPresentation(opts?: { title?: string; slides?: SlideJSON[] }): Promise<Presentation> {
+export async function createPresentation(opts?: {
+  title?: string;
+  slides?: SlideJSON[];
+  generationParams?: Record<string, unknown> | null;
+}): Promise<Presentation> {
   const sb = createClient();
   const { data, error } = await sb
     .from(TABLE)
     .insert({
       title: opts?.title ?? "Untitled Slideshow",
       slides: opts?.slides?.length ? opts.slides : [BLANK_SLIDE],
+      generation_params: opts?.generationParams ?? null,
     })
     .select()
     .single();
@@ -352,7 +361,7 @@ export async function createPresentation(opts?: { title?: string; slides?: Slide
 
 export async function updatePresentation(
   id: string,
-  patch: Partial<Pick<Presentation, "title" | "slides">>,
+  patch: Partial<Pick<Presentation, "title" | "slides" | "generation_params">>,
 ): Promise<void> {
   const sb = createClient();
   const { error } = await sb

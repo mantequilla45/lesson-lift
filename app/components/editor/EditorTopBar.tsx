@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Fragment, useEffect, useRef, useState } from "react";
-import { Undo2, Redo2, Download, ArrowLeft, Palette, Check, Play } from "lucide-react";
+import { Undo2, Redo2, Download, ArrowLeft, Palette, Check, Play, Wand2 } from "lucide-react";
 import { SLIDESHOW_THEMES, THEME_CATEGORIES, getThemesByCategory, ART_STYLES, getThemeArt, type ArtStyleId } from "@/app/lib/slideshowThemes";
 
 interface Props {
@@ -14,6 +14,9 @@ interface Props {
   onPresent: () => void;
   isExporting: boolean;
   saveStatus: "idle" | "saving" | "saved" | "error";
+  /** When set, shows an "Edit prompt" button (re-open the original prompt and
+   *  regenerate). Omitted for decks with no saved generation params. */
+  onEditPrompt?: () => void;
   disableHistory?: boolean;
   themeId?: string;
   onThemeChange?: (id: string) => void;
@@ -32,6 +35,7 @@ export default function EditorTopBar({
   onPresent,
   isExporting,
   saveStatus,
+  onEditPrompt,
   disableHistory,
   themeId,
   onThemeChange,
@@ -86,6 +90,19 @@ export default function EditorTopBar({
           {saveStatus === "saved" && "Saved"}
           {saveStatus === "error" && "Save failed"}
         </span>
+        {onEditPrompt && (
+          <button
+            type="button"
+            onClick={onEditPrompt}
+            disabled={disableHistory}
+            className="ml-1 inline-flex items-center gap-1.5 text-xs font-semibold rounded-lg border px-2.5 py-1.5 text-gray-700 hover:bg-gray-100 transition-colors disabled:opacity-40"
+            style={{ borderColor: "#DAD8D0" }}
+            title="Edit the original prompt and regenerate"
+          >
+            <Wand2 className="w-3.5 h-3.5" />
+            Edit prompt
+          </button>
+        )}
       </div>
 
       <div className="flex items-center gap-1">
