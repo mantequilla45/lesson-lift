@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Play, Pause, RotateCcw, RotateCw, AudioLines, Pencil } from "lucide-react";
+import { Play, Pause, RotateCcw, RotateCw, AudioLines } from "lucide-react";
 import type { AudioObject } from "@/app/lib/presentations";
 
 interface Props {
@@ -32,7 +32,7 @@ function formatTime(secs: number): string {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
-export default function AudioElement({ audio, selected, zoom, onSelect, onUpdate, onCommit, onSnap, onDragEnd, onContextMenu, onEdit }: Props) {
+export default function AudioElement({ audio, selected, zoom, onSelect, onUpdate, onCommit, onSnap, onDragEnd, onContextMenu }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const [playing, setPlaying] = useState(false);
@@ -251,17 +251,6 @@ export default function AudioElement({ audio, selected, zoom, onSelect, onUpdate
           <span className="text-sm font-mono tabular-nums shrink-0" style={{ color: INK }}>
             {formatTime(currentTime)} / {formatTime(duration)}
           </span>
-
-          <button
-            type="button"
-            onClick={(e) => { e.stopPropagation(); onEdit?.(audio.id); }}
-            className="px-3 py-1.5 text-xs font-semibold rounded-full flex items-center gap-1.5 hover:opacity-90 transition-opacity"
-            style={{ backgroundColor: ACCENT, color: ACCENT_INK }}
-            title="Edit audio"
-          >
-            <Pencil className="w-3 h-3" />
-            Edit audio
-          </button>
         </div>
 
         <div className="px-4 pb-3">

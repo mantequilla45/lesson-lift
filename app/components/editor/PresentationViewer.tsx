@@ -92,7 +92,9 @@ export default function PresentationViewer({ slides, startIndex = 0, themeId, on
         style={{ width: scaledW, height: scaledH, position: "relative", flexShrink: 0 }}
         onClick={(e) => e.stopPropagation()}
       >
-        <MiniSlide slide={slide} width={scaledW} themeId={themeId} />
+        {/* `live` makes the themed audio pill an actual playable control, so
+            narration plays in the presentation without a separate native bar. */}
+        <MiniSlide slide={slide} width={scaledW} themeId={themeId} live />
       </div>
 
       {/* Prev arrow */}
