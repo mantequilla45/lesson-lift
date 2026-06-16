@@ -62,6 +62,10 @@ export default function ToolHistoryPanel({
   // Nothing to show yet (and not loading) — keep the sidebar uncluttered.
   if (!loading && runs.length === 0) return null;
 
+  // Keep the panel compact: only the few most recent runs (newest first). Full
+  // history lives elsewhere; this is a quick-restore shortlist.
+  const recent = runs.slice(0, 4);
+
   return (
     <Card className="p-6 mt-6">
       <div className="flex items-center gap-2 mb-4">
@@ -76,7 +80,7 @@ export default function ToolHistoryPanel({
         </div>
       ) : (
         <ul className="space-y-1">
-          {runs.map((run) => (
+          {recent.map((run) => (
             <li key={run.id}>
               <div className="group flex items-center gap-2 rounded-xl px-3 py-2 hover:bg-[#F1EFE3] transition-colors">
                 <button

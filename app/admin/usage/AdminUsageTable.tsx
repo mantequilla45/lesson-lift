@@ -13,10 +13,18 @@ export interface AdminUsageRow {
   generations: number;
   cost_usd: number;
   last_used: string | null;
-  /** Cost breakdown rows. For the slideshow these are per-slide all-in costs;
-   *  for other tools they're the contributing steps. Present only when there are
-   *  2+ rows. */
-  children?: { label: string; cost_usd: number }[];
+  /** Cost breakdown rows. For the slideshow these are the editor sub-tools
+   *  (audio, vocabulary, etc.) plus a leading deck line; for other tools they're
+   *  the contributing steps. Present only when there are 2+ rows. `generations`,
+   *  `last_used` and `tool_slug` are set for sub-tool rows so they can show the
+   *  same columns and link to their own detail page. */
+  children?: {
+    label: string;
+    cost_usd: number;
+    generations?: number;
+    last_used?: string | null;
+    tool_slug?: string;
+  }[];
 }
 
 const perGen = (cost: number, gens: number) => (gens > 0 ? cost / gens : cost);
@@ -227,19 +235,55 @@ export default function AdminUsageTable({ rows }: { rows: AdminUsageRow[] }) {
                   </tr>
                   {hasChildren &&
                     isExpanded &&
-                    r.children!.map((c, i) => (
-                      <tr key={`${r.tool_slug}:${c.label}:${i}`} style={{ backgroundColor: "#F6F4EC" }}>
-                        {selecting && <td />}
-                        <td className="pl-10 pr-4 py-2 text-sm" style={{ color: "#6b6055" }}>
-                          {c.label}
-                        </td>
-                        <td colSpan={2} />
-                        <td className="px-4 py-2 text-right text-sm" style={{ color: "#6b6055" }}>
-                          {usd(c.cost_usd)}
-                        </td>
-                        <td colSpan={3} />
-                      </tr>
-                    ))}
+                    r.children!.map((c, i) => {
+                      const childEach =
+                        c.generations && c.generations > 0 ? c.cost_usd / c.generations : null;
+                      return (
+                        <tr key={`${r.tool_slug}:${c.label}:${i}`} style={{ backgroundColor: "#F6F4EC" }}>
+                          {selecting && <td />}
+                          <td className="pl-10 pr-4 py-2 text-sm" style={{ color: "#6b6055" }}>
+                            {c.tool_slug ? (
+                              <Link
+                                href={`/admin/usage/${c.tool_slug}`}
+                                onClick={(e) => e.stopPropagation()}
+                                className="hover:underline"
+                              >
+                                {c.label}
+                              </Link>
+                            ) : (
+                              c.label
+                            )}
+                          </td>
+                          <td className="px-4 py-2 text-right text-sm" style={{ color: "#8a8078" }}>
+                            {c.generations != null ? nf.format(c.generations) : ""}
+                          </td>
+                          <td
+                            className="px-4 py-2 text-right text-sm whitespace-nowrap"
+                            style={{ color: "#8a8078" }}
+                          >
+                            {c.last_used !== undefined ? fmtDateTime(c.last_used) : ""}
+                          </td>
+                          <td className="px-4 py-2 text-right text-sm" style={{ color: "#6b6055" }}>
+                            {usd(c.cost_usd)}
+                          </td>
+                          {childEach !== null ? (
+                            <>
+                              <td className="px-4 py-2 text-right text-sm" style={{ color: "#6b6055" }}>
+                                {usd(childEach)}
+                              </td>
+                              <td className="px-4 py-2 text-right text-sm" style={{ color: "#6b6055" }}>
+                                {usd(childEach * 10)}
+                              </td>
+                              <td className="px-4 py-2 text-right text-sm" style={{ color: "#6b6055" }}>
+                                {usd(childEach * 100)}
+                              </td>
+                            </>
+                          ) : (
+                            <td colSpan={3} />
+                          )}
+                        </tr>
+                      );
+                    })}
                 </Fragment>
               );
             })}

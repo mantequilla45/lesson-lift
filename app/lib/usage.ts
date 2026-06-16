@@ -103,11 +103,20 @@ export async function recordAssetCost(
   }
 }
 
-/** Persist per-slide all-in cost for a slideshow (one row per slide). Powers the
- *  per-slide breakdown on the admin Usage page; independent of tool-total
- *  accounting. Never throws. */
+/** Cost components of one generated deck — the split shown when an admin expands
+ *  a slideshow on the Usage detail page. `images` is one entry per slide that
+ *  used AI images. `text + audio + Σimages` equals the deck's all-in cost. */
+export interface SlideCostBreakdown {
+  text: number;
+  audio: number;
+  images: { label: string; cost_usd: number; count: number }[];
+}
+
+/** Persist the all-in cost (and optional component breakdown) for a generated
+ *  deck — one row per slideshow. Powers the per-deck breakdown on the admin
+ *  Usage page; independent of tool-total accounting. Never throws. */
 export async function recordSlideCosts(
-  rows: { slideLabel: string; costUsd: number }[],
+  rows: { slideLabel: string; costUsd: number; breakdown?: SlideCostBreakdown }[],
 ): Promise<void> {
   const valid = rows.filter((r) => r.costUsd > 0 && r.slideLabel);
   if (valid.length === 0) return;
@@ -123,6 +132,7 @@ export async function recordSlideCosts(
         tool_slug: "generate-slideshow",
         slide_label: r.slideLabel,
         cost_usd: Number(r.costUsd.toFixed(6)),
+        breakdown: r.breakdown ?? null,
       })),
     );
   } catch {

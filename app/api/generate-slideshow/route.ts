@@ -1432,11 +1432,25 @@ export async function POST(req: NextRequest) {
         }
 
         // Per-slideshow cost lens: one row per generated deck (its title + all-in
-        // cost) so the report can list each slideshow and what it cost.
+        // cost + the component breakdown) so the report can list each slideshow,
+        // what it cost, and where that cost came from (text / images / audio).
         {
           const deckTitle = parsed.title?.trim() || body.topic?.trim() || "Untitled slideshow";
           const deckTotal = textCostUsd + imageCost.usd + audioCostUsd;
-          void recordSlideCosts([{ slideLabel: deckTitle, costUsd: deckTotal }]);
+          const imageRows = Object.entries(imageCostBySlide)
+            .map(([label, v]) => ({ label, cost_usd: Number(v.usd.toFixed(6)), count: v.count }))
+            .sort((a, b) => b.cost_usd - a.cost_usd);
+          void recordSlideCosts([
+            {
+              slideLabel: deckTitle,
+              costUsd: deckTotal,
+              breakdown: {
+                text: Number(textCostUsd.toFixed(6)),
+                audio: Number(audioCostUsd.toFixed(6)),
+                images: imageRows,
+              },
+            },
+          ]);
         }
 
         // ── Full cost summary ─────────────────────────────────────────────

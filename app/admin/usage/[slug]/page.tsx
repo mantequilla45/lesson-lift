@@ -2,7 +2,8 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { requireAdmin } from "@/app/lib/auth/admin";
 import { typeLabel } from "@/app/lib/toolRunDisplay";
-import { nf, usd, fmtDateTime } from "../../format";
+import { nf, usd } from "../../format";
+import SlideshowBreakdown, { type SlideRow } from "./SlideshowBreakdown";
 
 export const dynamic = "force-dynamic";
 
@@ -22,12 +23,6 @@ interface StepRow {
   generations: number;
   cost_usd: number;
 }
-interface SlideRow {
-  slide_label: string;
-  cost_usd: number;
-  created_at: string;
-}
-
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-2xl p-5 border" style={{ backgroundColor: "#FAF9F5", borderColor: "#DAD8D0" }}>
@@ -106,36 +101,28 @@ export default async function AdminToolDetailPage({
             ? "No slideshows generated yet this month."
             : "No usage recorded yet this month."}
         </div>
+      ) : isSlideshow ? (
+        <SlideshowBreakdown slides={slides} />
       ) : (
         <div className="rounded-2xl border overflow-hidden" style={{ backgroundColor: "#FAF9F5", borderColor: "#DAD8D0" }}>
           <table className="w-full text-sm">
             <thead>
               <tr style={{ color: "#8a8078" }} className="text-left">
-                <th className="font-semibold px-4 py-3">{isSlideshow ? "Slideshow" : "Item"}</th>
-                {isSlideshow && <th className="font-semibold px-4 py-3">Generated</th>}
+                <th className="font-semibold px-4 py-3">Item</th>
                 <th className="font-semibold px-4 py-3 text-right">Cost</th>
               </tr>
             </thead>
             <tbody>
-              {isSlideshow
-                ? slides.map((s, i) => (
-                    <tr key={`${s.slide_label}:${i}`} className="border-t" style={{ borderColor: "#EEECE4" }}>
-                      <td className="px-4 py-3 font-medium" style={{ color: "#1a1a1a" }}>{s.slide_label}</td>
-                      <td className="px-4 py-3 whitespace-nowrap" style={{ color: "#8a8078" }}>{fmtDateTime(s.created_at)}</td>
-                      <td className="px-4 py-3 text-right" style={{ color: "#6b6055" }}>{usd(Number(s.cost_usd))}</td>
-                    </tr>
-                  ))
-                : stepBreakdown.map((b, i) => (
-                    <tr key={`${b.label}:${i}`} className="border-t" style={{ borderColor: "#EEECE4" }}>
-                      <td className="px-4 py-3" style={{ color: "#1a1a1a" }}>{b.label}</td>
-                      <td className="px-4 py-3 text-right" style={{ color: "#6b6055" }}>{usd(b.cost_usd)}</td>
-                    </tr>
-                  ))}
+              {stepBreakdown.map((b, i) => (
+                <tr key={`${b.label}:${i}`} className="border-t" style={{ borderColor: "#EEECE4" }}>
+                  <td className="px-4 py-3" style={{ color: "#1a1a1a" }}>{b.label}</td>
+                  <td className="px-4 py-3 text-right" style={{ color: "#6b6055" }}>{usd(b.cost_usd)}</td>
+                </tr>
+              ))}
             </tbody>
             <tfoot>
               <tr className="border-t-2" style={{ borderColor: "#DAD8D0" }}>
                 <td className="px-4 py-3 font-bold" style={{ color: "#1a1a1a" }}>Total</td>
-                {isSlideshow && <td />}
                 <td className="px-4 py-3 text-right font-bold" style={{ color: "#1a1a1a" }}>
                   {usd(breakdownTotal)}
                 </td>
@@ -147,9 +134,9 @@ export default async function AdminToolDetailPage({
 
       {isSlideshow && (
         <p className="text-xs mt-4" style={{ color: "#8a8078" }}>
-          Each row is one generated deck; its cost is the deck text (exact tokens) + AI images
-          (per image, calibrated to the OpenAI console) + audio. The stat cards above are the
-          month&apos;s totals across all slideshows.
+          Each row is one generated deck — click it to break the cost down into deck text (exact
+          tokens) + AI images (per image, calibrated to the OpenAI console) + audio. The stat cards
+          above are the month&apos;s totals across all slideshows.
         </p>
       )}
     </>

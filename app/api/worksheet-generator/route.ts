@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
       : "";
 
   const typesLine = questionTypes.length
-    ? `Use only these question types across the worksheet: ${questionTypes.join(", ")}.`
+    ? `QUESTION FORMAT CONSTRAINT — this overrides any format suggested by the section descriptions below: every question in every section must be written as one of these question types ONLY: ${questionTypes.join(", ")}. Do not use any other question format. Adapt each section's cognitive demand (recall, understanding, application, analysis) to the chosen formats — for example, a Multiple Choice question can still assess analysis through carefully designed options and distractors.`
     : "";
 
   const abilityLine =
@@ -85,25 +85,25 @@ Structure the worksheet using markdown as follows:
 
 ## Section A – Knowledge Recall [1 mark each]
 
-Write approximately ${sectionA} questions testing recall of key facts, definitions, or processes. Questions should have a single correct answer. Show answer blanks as: ___________________________________
+Write approximately ${sectionA} questions testing recall of key facts, definitions, or processes, using only the selected question types. These should be the most accessible questions. Where a selected type requires a written answer, show answer blanks as: ___________________________________
 
 ---
 
 ## Section B – Understanding [2 marks each]
 
-Write approximately ${sectionB} questions requiring students to explain concepts, identify relationships, or interpret information. Include mark allocations in brackets, e.g. [2 marks].
+Write approximately ${sectionB} questions requiring students to demonstrate understanding — explaining concepts, identifying relationships, or interpreting information — using only the selected question types. Include mark allocations in brackets, e.g. [2 marks].
 
 ---
 
 ## Section C – Application [3–4 marks each]
 
-Write approximately ${sectionC} questions where students apply knowledge to a new scenario or context. Include a brief stimulus where appropriate. Include mark allocations.
+Write approximately ${sectionC} questions where students apply knowledge to a new scenario or context, using only the selected question types. Include a brief stimulus where appropriate. Include mark allocations.
 
 ---
 
 ## Section D – Analysis and Evaluation [6–8 marks]
 
-Write approximately ${sectionD} higher-order questions requiring extended responses — analysis, evaluation, justification, or argument. State mark allocation and include a note on what a strong response will include.
+Write approximately ${sectionD} higher-order questions demanding analysis, evaluation, justification, or argument, using only the selected question types. Where the selected types support extended writing (e.g. Essay / Open-Ended, Short Answer), require extended responses; otherwise design the most demanding questions possible within the chosen formats while still assessing analysis and evaluation. State mark allocation and include a note on what a strong response will include.
 
 ---
 
