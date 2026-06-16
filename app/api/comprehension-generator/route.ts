@@ -48,8 +48,28 @@ export async function POST(req: NextRequest) {
 
   const domainList = contentDomains.join(", ");
 
+  const QUESTION_TYPE_GUIDANCE: Record<string, string> = {
+    "Multiple choice":
+      "Multiple choice — pose a question, then list 3–4 plausible options on separate lines labelled A), B), C), D). Exactly one option must be correct; the others must be believable distractors. Do not reveal the correct option within the question itself.",
+    "Short answer":
+      "Short answer — require a one- or two-sentence written response.",
+    "Extended writing":
+      "Extended writing — require a longer, developed paragraph response, typically drawing together several points or evidence from the text.",
+    "True / False":
+      "True / False — give a statement about the text and ask the pupil to decide whether it is True or False (optionally asking them to justify their choice).",
+    "Gap fill":
+      "Gap fill — provide a sentence drawn from or based on the text with one or more words removed, shown as a blank (______), for the pupil to complete.",
+    "Vocabulary in context":
+      "Vocabulary in context — quote a specific word or phrase from the passage and ask the pupil to explain its meaning as it is used in the text.",
+  };
+
+  const selectedGuidance = questionTypes
+    .map((t) => QUESTION_TYPE_GUIDANCE[t] ?? t)
+    .map((g) => `  - ${g}`)
+    .join("\n");
+
   const questionTypeInstruction = questionTypes.length > 0
-    ? `\nAcross questions, use a mix of these question formats: ${questionTypes.join(", ")}.`
+    ? `\n- You MUST write every question using ONLY the following question format(s)${questionTypes.length > 1 ? ", spreading them across the questions so each selected format is used" : ""}. Do not use any other format:\n${selectedGuidance}`
     : "";
 
   const answerKeyInstruction = includeAnswerKey
@@ -82,7 +102,7 @@ Part 2 — Comprehension Questions
 Below the passage, write ${numQuestions} comprehension question(s) for each of the following content domains: ${domainList}.
 
 Formatting and quality rules:
-- Use a bold ## heading for each content domain group (e.g. ## 2b – Retrieval)
+- Start each content domain group with a Markdown heading on its own line, written exactly as "## 2b – Retrieval" (a literal ## followed by a space, then the domain). Do not wrap the heading in ** or any other characters.
 - Number questions sequentially within each group (1., 2., etc.)
 - Questions must be clearly rooted in the passage — do not ask questions that cannot be answered from the text
 - For inference and evaluation questions, phrase them to require evidence from the text (e.g. "Using evidence from the text, explain...")
@@ -97,7 +117,7 @@ The questions should be at ${complexity.toLowerCase()} complexity level.
 Write ${numQuestions} comprehension question(s) for each of the following content domains: ${domainList}.
 
 Formatting and quality rules:
-- Use a bold ## heading for each content domain group (e.g. ## 2b – Retrieval)
+- Start each content domain group with a Markdown heading on its own line, written exactly as "## 2b – Retrieval" (a literal ## followed by a space, then the domain). Do not wrap the heading in ** or any other characters.
 - Number questions sequentially within each group (1., 2., etc.)
 - Questions must be clearly rooted in the passage — every question must be answerable from the text provided
 - For inference and evaluation questions, phrase them to require evidence from the text (e.g. "Using evidence from the text, explain...")
