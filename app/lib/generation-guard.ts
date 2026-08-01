@@ -65,16 +65,19 @@ export interface QuotaResult {
 }
 
 /** Resolve the caller's plan + usage and decide if this generation is allowed.
- *  Returns null when no cap applies (unlimited plan), so callers can skip the
- *  block. `userId` is passed in to avoid a second auth round-trip. */
+ *  Returns null when no cap applies (unlimited plan, or an admin account — admins
+ *  are exempt so they can test tools freely without upgrading), so callers can
+ *  skip the block. `userId` is passed in to avoid a second auth round-trip. */
 export async function checkGenerationQuota(
   supabase: SupabaseClient,
   userId: string,
 ): Promise<QuotaResult | null> {
   const [{ data: profile }, { data: count }] = await Promise.all([
-    supabase.from("profiles").select("plan").eq("id", userId).maybeSingle(),
+    supabase.from("profiles").select("plan, is_admin").eq("id", userId).maybeSingle(),
     supabase.rpc("my_generation_count_this_month"),
   ]);
+
+  if (profile?.is_admin) return null; // admins bypass the generation cap
 
   const plan = asPlanId(profile?.plan);
   const used = typeof count === "number" ? count : 0;
