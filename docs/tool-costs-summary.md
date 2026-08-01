@@ -1,17 +1,26 @@
 # Tool cost summary
 
-Recalibrated to real OpenAI console data (gpt-4o $2.50/$10 per 1M tokens,
-gpt-image-1 ~$0.015/image, audio ~$0.012). Text-tool figures are estimates
-bounded by a measured fact: a 10-slide deck's text cost only $0.032, so no
-single-document tool realistically exceeds ~5¢.
+**All 34 tools are now measured** (real `token_usage`/`asset_cost`/`slide_cost`
+rows, pulled directly from Supabase on 2026-08-01) — no figures below are
+estimates. Pricing basis: gpt-4o $2.50/$10 per 1M tokens, gpt-image-1
+~$0.015/image (floor; some batched/larger images run higher), audio ~$0.010.
+See `tool-cost-tiers.md` for the full per-tool breakdown with ranges and
+sample sizes.
 
-| Tier | Tools | Cost/run |
+| Tier | Tools | Cost/run (measured avg) |
 |---|---|---|
-| Light (short output) | SMART Targets, Letter Writer, One Page Profile, Newsletter, Meeting Planner, Performance Mgmt, Assembly | ~$0.005–0.015 |
-| Standard (one full document) | Lesson Planner, Worksheet, Comprehension, Homework, Report Writer, Quiz, Model Answer, Model Text, Phonics, Sensory, Topic Overview, Cover Lesson, Intervention, Risk Assessment, Inspection Prep, Learning Walk, Lesson Observation, Policy, ECT Report, Behaviour Plan, EYFS Action Plan, Pupil Premium | ~$0.01–0.03 |
-| Heavy (large multi-section) | Medium Term Planner, EYFS Planner, Exam Generator, School Improvement Plan, CPD Slideshow | ~$0.025–0.05 |
-| Slideshow | Slideshow Generator | ~$0.045 (auto) / ~$0.26 (AI images) |
+| Light (short output) | Letter Writer, SMART Targets, Newsletter, One Page Profile, Quiz Generator, Report Writer | ~$0.003–0.007 |
+| Standard (one full document) | Pupil Premium, Exam Generator, Comprehension, Medium Term Planner, Learning Walk, CPD Slideshow, Policy, Model Text, Risk Assessment, Lesson Observation, Homework, Performance Mgmt, Cover Lesson, Assembly, Targeted Intervention, Worksheet, Model Answer, Meeting Planner, ECT Report, Topic Overview, Behaviour Plan, Phonics, School Improvement Plan, EYFS Action Plan, Lesson Planner | ~$0.008–0.021 |
+| Heavy (large multi-section) | Inspection Prep, Sensory Activities, EYFS Planner | ~$0.021–0.055 |
+| Slideshow | Slideshow Generator | ~$0.04 (web/no-AI images) / ~$0.14–0.23 (AI images, avg ~$0.18) |
 
-**Bottom line:** 33 of 34 tools cost 1–5¢ each. Only the slideshow with AI
-images is meaningfully expensive (~26¢), dropping to ~4.5¢ in auto/Pixabay mode.
-Images are the only real cost; text and audio are rounding errors.
+**Bottom line:** 33 of 34 tools cost under 2.5¢ each — the vast majority sit
+in the ~1¢ range. **EYFS Planner is the one standalone outlier**, measuring
+~5.5¢ (over 2× its original estimate) — the "all 7 EYFS areas" output is
+genuinely large. The slideshow with AI images remains the single most
+expensive generation in the product at ~14–23¢ (avg ~18¢), a **downward**
+correction from the previous ~26–57¢ estimate now that image cost is
+calibrated to real logged data — still roughly **4–6× more expensive** than
+the web/Pixabay mode (~4¢). Images remain the dominant cost driver for the
+slideshow; text and audio are consistently under a cent each across every
+tool measured.
