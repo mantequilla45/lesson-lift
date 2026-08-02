@@ -77,7 +77,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
     return streamText(
-      buildSystem("You are an expert UK school health and safety officer with thorough knowledge of the Health and Safety at Work etc. Act 1974, the Management of Health and Safety at Work Regulations 1999, and DfE and HSE guidance for educational settings. Return only the updated risk assessment as a markdown table with no preamble."),
+      buildSystem("You are an expert UK school health and safety officer with thorough knowledge of the Health and Safety at Work etc. Act 1974, the Management of Health and Safety at Work Regulations 1999, and DfE and HSE guidance for educational settings. Return only the updated risk assessment as a markdown table with no preamble, and no code block or triple-backtick fence around it."),
       buildRefinePrompt(body.result, body.instruction),
     );
   }
@@ -87,7 +87,7 @@ export async function POST(req: NextRequest) {
   }
 
   return streamText(
-    buildSystem("You are an expert UK school health and safety officer and site manager with thorough knowledge of the Health and Safety at Work etc. Act 1974, the Management of Health and Safety at Work Regulations 1999, and DfE and HSE guidance for educational settings, including off-site visits and educational trips. You produce specific, realistic, and legally defensible risk assessments for all types of school activities. Output only a markdown table — no title, no preamble, no explanation."),
+    buildSystem("You are an expert UK school health and safety officer and site manager with thorough knowledge of the Health and Safety at Work etc. Act 1974, the Management of Health and Safety at Work Regulations 1999, and DfE and HSE guidance for educational settings, including off-site visits and educational trips. You produce specific, realistic, and legally defensible risk assessments for all types of school activities. Output only a markdown table — no title, no preamble, no explanation, and no code block or triple-backtick fence around it."),
     buildPrompt(body),
   );
 }
