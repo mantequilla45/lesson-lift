@@ -11,9 +11,19 @@ function renderInline(text: string): React.ReactNode[] {
   });
 }
 
+// Some tools' output arrives wrapped in a code fence (```markdown ... ```)
+// even when the prompt asks for the table/content alone. Strip a leading fence
+// line (optionally tagged, e.g. ```markdown) and a trailing bare fence line so
+// they don't render as stray literal-text paragraphs around the content.
+function stripCodeFence(text: string): string {
+  const trimmed = text.trim();
+  const match = trimmed.match(/^```[a-zA-Z]*\n([\s\S]*?)\n?```$/);
+  return match ? match[1] : text;
+}
+
 export default function MarkdownResult({ text }: { text: string }) {
   // AI sometimes outputs © (U+00A9) instead of (c) when labelling sub-questions
-  const sanitized = text.replace(/\u00A9/g, "(c)");
+  const sanitized = stripCodeFence(text).replace(/\u00A9/g, "(c)");
   const lines = sanitized.split("\n");
   const elements: React.ReactNode[] = [];
   let i = 0;
