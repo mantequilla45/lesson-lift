@@ -31,7 +31,7 @@ export default function SIPTimeframeField({ value, onChange }: Props) {
             const v = parseInt(e.target.value);
             if (!isNaN(v)) onChange(Math.max(1, Math.min(5, v)));
           }}
-          className="flex-1 text-center text-sm text-gray-900 py-3 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-gray-300"
+          className="flex-1 min-w-0 text-center text-sm text-gray-900 py-3 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-gray-300"
         />
         <button
           type="button"
