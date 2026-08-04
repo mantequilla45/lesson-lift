@@ -1,0 +1,67 @@
+Tool,Cost per Token (USD),Cost per 1M Tokens (USD),Avg Tokens per Generation,Avg Cost per Generation (USD),Generations Measured
+EYFS Planner,0.0000088430,8.843,6224,0.055035,2
+Targeted Intervention,0.0000076466,7.6466,1551,0.011856,2
+Sensory Activities,0.0000076310,7.6310,2778,0.021199,2
+School Improvement Plan,0.0000072772,7.2772,2357,0.017152,3
+Performance Management,0.0000070372,7.0372,1561,0.010982,2
+Topic Overview,0.0000068701,6.8701,2128,0.014620,2
+Comprehension Generator,0.0000068109,6.8109,1312,0.008937,5
+Meeting Planner,0.0000068092,6.8092,1745,0.011884,4
+ECT Report Writer,0.0000066266,6.6266,2192,0.014526,2
+Policy Generator,0.0000066124,6.6124,1459,0.009648,2
+Assembly Planner,0.0000066039,6.6039,1675,0.011062,2
+Lesson Observation Report,0.0000065643,6.5643,1606,0.010539,2
+Worksheet Generator,0.0000065003,6.5003,1858,0.012074,4
+EYFS Action Plan,0.0000064877,6.4877,2762,0.017919,2
+Homework Generator,0.0000064692,6.4692,1633,0.010561,2
+Inspection Prep,0.0000064656,6.4656,3541,0.022892,2
+Model Text Generator,0.0000064325,6.4325,1519,0.009771,2
+Exam Question Generator,0.0000063763,6.3763,1219,0.007773,3
+Medium Term Planner,0.0000063240,6.3240,1404,0.008881,3
+Lesson Planner,0.0000063051,6.3051,3304,0.020829,10
+Cover Lesson,0.0000062972,6.2972,1747,0.011003,3
+Newsletter Writer,0.0000062718,6.2718,937,0.005874,2
+Risk Assessment,0.0000061674,6.1674,1575,0.009714,6
+Pupil Premium Planner,0.0000060904,6.0904,1222,0.007443,2
+Learning Walk Report,0.0000059318,5.9318,1504,0.008919,2
+Model Answer Generator,0.0000058902,5.8902,2062,0.012146,2
+Phonics Support,0.0000058623,5.8623,3304,0.019371,3
+Quiz Generator,0.0000057950,5.7950,869,0.005033,2
+Behaviour Support Plan,0.0000054825,5.4825,3261,0.017877,3
+SMART Targets,0.0000050658,5.0658,1160,0.005878,3
+One Page Profile,0.0000050320,5.0320,1366,0.006875,3
+CPD Slideshow,0.0000049876,4.9876,1862,0.009285,2
+Letter Writer,0.0000047293,4.7293,576,0.002726,3
+Report Writer,0.0000041095,4.1095,918,0.003773,2
+
+BLENDED AVERAGE (34 tools above, weighted by token volume; text only),0.0000057936,5.7936,,,
+TOTALS (34 tools above, text only),,,299794 tokens,$1.7369 total spend,159 generations
+
+NOTE ON TOOL COUNT: the product has 35 tools total. The table above shows 34 -
+Slideshow Generator (the 35th) is intentionally excluded from this $/token
+comparison, because most of its cost is images (priced per image, not per
+token), which would make it hard to compare directly against token-only
+tools. Its real all-in price is in the dedicated section below instead. The
+raw token_usage data also includes 7 internal sub-steps that fire as part of
+using Slideshow Generator (suggest-subject, suggest-vocabulary, find-youtube,
+generate-lesson-outline, generate-audio, generate-activity, edit-text) -
+these are not separate tools, see the breakdown below.
+
+--- SLIDESHOW GENERATOR: REAL COST PER DECK (the number to use for pricing this tool) ---
+Mode,Price per Deck (USD),Notes,,,
+Web / no AI images (default),0.04,Images sourced free from Pixabay - nearly all text cost,,,
+AI-generated images,0.36,"~9x the web-image mode, driven almost entirely by image cost, verified against real OpenAI billing (~$0.0455/image), avg of 4 real decks",,,
+
+--- HOW THE SLIDESHOW PRICE IS BUILT (reference only - already included in the prices above) ---
+Sub-step (all part of Slideshow Generator),Cost per Token (USD),Avg Tokens per Run,Avg Cost per Run (USD),Runs Measured,
+Generate Lesson Outline,0.0000061043,437,0.002670,5,
+Generate Audio,0.0000052063,693,0.003608,3,
+Generate Activity,0.0000040759,455,0.001853,2,
+Suggest Vocabulary,0.0000038431,173,0.000666,6,
+Find YouTube,0.0000031570,440,0.001388,2,
+Edit Text,0.0000002421,254,0.000062,2,
+Suggest Subject,0.0000001658,316,0.000052,6,
+Deck text + audio + YouTube (generate-slideshow itself),0.0000046689,2639,0.012323,37,Token-billed portion only - excludes image cost
+
+For pricing purposes: budget ~$0.04 per deck when images are sourced from the web (the default), and
+~$0.36 per deck when a customer selects AI-generated images. The gap is driven entirely by image cost.

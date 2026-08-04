@@ -1,0 +1,217 @@
+Slideshow Generator,Title,Running Cost,Cost per output,
+"8 base slides, all AI images (avg ~11 images/deck; image cost verified against real OpenAI billing at ~$0.0455/image)",The Rhythm of Water,0.36,0.36,
+,Mastering the Central Processing Unit,0.74,0.39,
+,The Heart of Computing,1.20,0.46,
+,The Dance of Water (verified vs OpenAI console),1.43,0.23,
+,Average,,0.36,
+,,,,
+"8 base slides, web/no AI images",The Marvels of the Water Cycle,1.47,0.04,
+,Average,,0.04,
+,,,,
+,,,,
+,,,,
+Comprehension Generator,Running Cost,Cost per output,Running Tokens,Token usage
+Photosynthesis,1.48,0.01,"777","1,221"
+Linear Equations,1.49,0.01,"2,070","1,293"
+Microprocessors,1.50,0.01,"3,361","1,291"
+The French Revolution,1.51,0.01,"4,734","1,373"
+C#,1.52,0.01,"6,117","1,383"
+,Average,0.01,,"1,312"
+,,,,
+Lesson Planner,Running Cost,Cost per output,Running Tokens,Token usage
+1,1.54,0.02,"9,415","3,298"
+2,1.56,0.02,"12,532","3,117"
+3,1.58,0.02,"15,829","3,297"
+4,1.61,0.02,"19,073","3,244"
+5,1.63,0.02,"22,376","3,303"
+6,1.65,0.02,"25,756","3,380"
+7,1.67,0.02,"28,949","3,193"
+8,1.69,0.02,"32,327","3,378"
+9,1.72,0.02,"35,757","3,430"
+10,1.74,0.02,"39,152","3,395"
+,Average,0.021,,"3,304"
+,,,,
+Worksheet Generator,Running Cost,Cost per output,Running Tokens,Token usage
+1,1.75,0.01,"40,782","1,630"
+2,1.76,0.01,"42,663","1,881"
+3,1.77,0.01,"44,621","1,958"
+4,1.79,0.01,"46,582","1,961"
+,Average,0.012,,"1,858"
+,,,,
+Cover Lesson Generator,Running Cost,Cost per output,Running Tokens,Token usage
+1,1.80,0.01,"48,293","1,711"
+2,1.81,0.01,"50,095","1,802"
+3,1.82,0.01,"51,824","1,729"
+,Average,0.011,,"1,747"
+,,,,
+SMART Targets,Running Cost,Cost per output,Running Tokens,Token usage
+1,1.83,0.01,"52,979","1,155"
+2,1.83,0.01,"54,116","1,137"
+3,1.84,0.01,"55,305","1,189"
+,Average,0.006,,"1,160"
+,,,,
+Letter Writer,Running Cost,Cost per output,Running Tokens,Token usage
+1,1.84,0,"55,889","584"
+2,1.85,0,"56,457","568"
+3,1.85,0,"57,034","577"
+,Average,<0.01,,"576"
+,,,,
+One Page Support Profile,Running Cost,Cost per output,Running Tokens,Token usage
+James's Support Profile,1.85,0.01,"58,432","1,398"
+Emma's Support Profile,1.86,0.01,"59,812","1,380"
+Noah's Support Profile,1.87,0.01,"61,133","1,321"
+,Average,0.01,,"1,366"
+,,,,
+Medium Term Topic Planner,Running Cost,Cost per output,Running Tokens,Token usage
+Photosynthesis,1.87,0.01,"62,578","1,445"
+Linear Equations,1.88,0.01,"63,943","1,365"
+Microprocessor,1.89,0.01,"65,346","1,403"
+,Average,0.009,,"1,404"
+,,,,
+Exam Question Generator,Running Cost,Cost per output,Running Tokens,Token usage
+History,1.90,0.01,"66,588","1,242"
+Science,1.91,0.01,"67,736","1,148"
+English,1.91,0.01,"69,003","1,267"
+,Average,0.008,,"1,219"
+,,,,
+Assembly Planner,Running Cost,Cost per output,Running Tokens,Token usage
+1,1.92,0.01,"70,686","1,683"
+2,1.93,0.01,"72,353","1,667"
+,Average,0.011,,"1,675"
+,,,,
+Behaviour Support Plan,Running Cost,Cost per output,Running Tokens,Token usage
+1,1.95,0.01,"75,197","2,844"
+2,1.97,0.02,"78,816","3,619"
+3,1.99,0.02,"82,135","3,319"
+,Average,0.018,,"3,261"
+,,,,
+CPD Slideshow,Running Cost,Cost per output,Running Tokens,Token usage
+1,1.99,0.01,"83,619","1,484"
+2,2.01,0.01,"85,858","2,239"
+,Average,0.009,,"1,862"
+,,,,
+ECT Report Writer,Running Cost,Cost per output,Running Tokens,Token usage
+1,2.02,0.01,"87,572","1,714"
+2,2.04,0.02,"90,242","2,670"
+,Average,0.015,,"2,192"
+,,,,
+EYFS Action Plan,Running Cost,Cost per output,Running Tokens,Token usage
+1,2.06,0.02,"93,056","2,814"
+2,2.07,0.02,"95,766","2,710"
+,Average,0.018,,"2,762"
+,,,,
+EYFS Planner,Running Cost,Cost per output,Running Tokens,Token usage
+1,2.13,0.06,"102,042","6,276"
+2,2.18,0.05,"108,213","6,171"
+,Average,0.055,,"6,224"
+,,,,
+Homework Generator,Running Cost,Cost per output,Running Tokens,Token usage
+1,2.19,0.01,"109,772","1,559"
+2,2.20,0.01,"111,478","1,706"
+,Average,0.011,,"1,633"
+,,,,
+Inspection Prep,Running Cost,Cost per output,Running Tokens,Token usage
+1,2.22,0.02,"114,738","3,260"
+2,2.25,0.02,"118,559","3,821"
+,Average,0.023,,"3,541"
+,,,,
+Learning Walk Report,Running Cost,Cost per output,Running Tokens,Token usage
+1,2.25,0.01,"119,670","1,111"
+2,2.27,0.01,"121,566","1,896"
+,Average,0.009,,"1,504"
+,,,,
+Lesson Observation Report,Running Cost,Cost per output,Running Tokens,Token usage
+1,2.28,0.01,"122,738","1,172"
+2,2.29,0.01,"124,777","2,039"
+,Average,0.011,,"1,606"
+,,,,
+Meeting Planner,Running Cost,Cost per output,Running Tokens,Token usage
+1,2.30,0.01,"126,338","1,561"
+2,2.32,0.01,"128,522","2,184"
+3,2.33,0.01,"130,106","1,584"
+4,2.34,0.01,"131,758","1,652"
+,Average,0.012,,"1,745"
+,,,,
+Model Answer Generator,Running Cost,Cost per output,Running Tokens,Token usage
+1,2.35,0.01,"133,721","1,963"
+2,2.36,0.01,"135,882","2,161"
+,Average,0.012,,"2,062"
+,,,,
+Model Text Generator,Running Cost,Cost per output,Running Tokens,Token usage
+1,2.37,0.01,"137,237","1,355"
+2,2.38,0.01,"138,920","1,683"
+,Average,0.01,,"1,519"
+,,,,
+Newsletter Writer,Running Cost,Cost per output,Running Tokens,Token usage
+1,2.39,0,"139,702","782"
+2,2.39,0.01,"140,793","1,091"
+,Average,0.006,,"937"
+,,,,
+Performance Management,Running Cost,Cost per output,Running Tokens,Token usage
+1,2.40,0.01,"142,417","1,624"
+2,2.41,0.01,"143,914","1,497"
+,Average,0.011,,"1,561"
+,,,,
+Phonics Support,Running Cost,Cost per output,Running Tokens,Token usage
+1,2.43,0.02,"147,279","3,365"
+2,2.45,0.02,"150,459","3,180"
+3,2.47,0.02,"153,827","3,368"
+,Average,0.019,,"3,304"
+,,,,
+Policy Generator,Running Cost,Cost per output,Running Tokens,Token usage
+1,2.48,0.01,"155,184","1,357"
+2,2.49,0.01,"156,745","1,561"
+,Average,0.01,,"1,459"
+,,,,
+Pupil Premium Planner,Running Cost,Cost per output,Running Tokens,Token usage
+1,2.49,0,"157,608","863"
+2,2.50,0.01,"159,189","1,581"
+,Average,0.007,,"1,222"
+,,,,
+Quiz Generator,Running Cost,Cost per output,Running Tokens,Token usage
+1,2.51,0,"159,874","685"
+2,2.51,0.01,"160,926","1,052"
+,Average,0.005,,"869"
+,,,,
+Report Writer,Running Cost,Cost per output,Running Tokens,Token usage
+1,2.52,0,"161,704","778"
+2,2.52,0,"162,762","1,058"
+,Average,0.004,,"918"
+,,,,
+Risk Assessment,Running Cost,Cost per output,Running Tokens,Token usage
+1,2.53,0.01,"164,288","1,526"
+2,2.54,0.01,"165,936","1,648"
+3,2.55,0.01,"167,344","1,408"
+4,2.56,0.01,"169,054","1,710"
+5,2.57,0.01,"170,461","1,407"
+6,2.58,0.01,"172,212","1,751"
+,Average,0.01,,"1,575"
+,,,,
+School Improvement Plan,Running Cost,Cost per output,Running Tokens,Token usage
+1,2.59,0.02,"174,603","2,391"
+2,2.61,0.02,"176,716","2,113"
+3,2.63,0.02,"179,283","2,567"
+,Average,0.017,,"2,357"
+,,,,
+Sensory Activities,Running Cost,Cost per output,Running Tokens,Token usage
+1,2.65,0.02,"182,167","2,884"
+2,2.67,0.02,"184,839","2,672"
+,Average,0.021,,"2,778"
+,,,,
+Targeted Intervention,Running Cost,Cost per output,Running Tokens,Token usage
+1,2.69,0.01,"186,320","1,481"
+2,2.70,0.01,"187,940","1,620"
+,Average,0.012,,"1,551"
+,,,,
+Topic Overview,Running Cost,Cost per output,Running Tokens,Token usage
+1,2.71,0.01,"189,636","1,696"
+2,2.73,0.02,"192,196","2,560"
+,Average,0.015,,"2,128"
+,,,,
+--- END OF LOG ---
+Total spend across every run above (text + audio + AI images),$2.73,,,
+Total tokens across every run above (text generation only — images are not token-billed),,,"192,196",
+Total generations logged,,,,"91 text-tool runs + 5 slideshow deck runs"
+Note: slideshow "Cost per output" and running totals above use the real per-image cost (~$0.0455/image)
+verified against an OpenAI billing console export, not the lower estimate ($0.015/image) originally
+logged in the app's own cost tracking. See the main report for the full explanation.

@@ -42,3 +42,5 @@ next-env.d.ts
 
 # Presenton Docker volume
 /app_data
+
+.mcp.json
