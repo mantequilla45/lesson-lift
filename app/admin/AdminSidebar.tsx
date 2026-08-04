@@ -107,7 +107,7 @@ export default function AdminSidebar() {
 
   return (
     <aside
-      className="shrink-0 w-64 h-screen sticky top-0 border-r flex flex-col"
+      className="shrink-0 w-72 h-screen sticky top-0 border-r flex flex-col"
       style={{ backgroundColor: "#FAF9F5", borderColor: "#DAD8D0" }}
     >
       <div className="px-5 py-5">

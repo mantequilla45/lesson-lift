@@ -3,20 +3,21 @@
 import { useState } from "react";
 import { Download, UserPlus, Plus } from "lucide-react";
 import AddTeacherModal from "./AddTeacherModal";
+import InviteTeachersModal from "./InviteTeachersModal";
 
-// Export and Invite still need backend work that doesn't exist yet (CSV
-// export, an invite-email flow via auth.admin.inviteUserByEmail + a mailer),
-// so they stay honest stubs — clicking says so rather than pretending to
-// work. Add teacher opens a real modal with the signup form's fields; see
-// AddTeacherModal for why its submit is still stubbed.
+// Export still needs backend work that doesn't exist yet (a CSV export
+// endpoint), so it stays an honest stub — clicking says so rather than
+// pretending to work. Add teacher and Invite teachers both open real modals;
+// see AddTeacherModal / InviteTeachersModal for why their submits are (or
+// aren't) wired up yet.
 const NOTES: Record<string, string> = {
   export: "CSV export isn't wired up yet.",
-  invite: "Inviting teachers isn't wired up yet.",
 };
 
 export default function AdminTeachersHeaderActions() {
   const [note, setNote] = useState<string | null>(null);
   const [showAdd, setShowAdd] = useState(false);
+  const [showInvite, setShowInvite] = useState(false);
 
   const fire = (key: keyof typeof NOTES) => {
     setNote(NOTES[key]);
@@ -37,7 +38,7 @@ export default function AdminTeachersHeaderActions() {
         </button>
         <button
           type="button"
-          onClick={() => fire("invite")}
+          onClick={() => setShowInvite(true)}
           className="inline-flex items-center gap-1.5 text-sm font-semibold rounded-xl border px-4 py-2 transition-colors hover:bg-black/5"
           style={{ borderColor: "#DAD8D0", color: "#1a1a1a" }}
         >
@@ -61,6 +62,7 @@ export default function AdminTeachersHeaderActions() {
       )}
 
       {showAdd && <AddTeacherModal onClose={() => setShowAdd(false)} />}
+      {showInvite && <InviteTeachersModal onClose={() => setShowInvite(false)} />}
     </div>
   );
 }

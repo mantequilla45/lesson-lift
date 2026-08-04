@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { PLANS, asPlanId } from "@/app/lib/plans";
 import { nf, usd } from "../format";
+import TeacherDrawer from "./TeacherDrawer";
 
 export interface TeacherRow {
   id: string;
@@ -21,6 +22,7 @@ export interface TeacherRow {
 const PLAN_STYLE: Record<string, { bg: string; color: string }> = {
   free: { bg: "#EEECE4", color: "#8a8078" },
   pro: { bg: "#DDF0E2", color: "#1f6b3b" },
+  max: { bg: "#E5DBFA", color: "#6B4FD8" },
   school: { bg: "#E2E8F5", color: "#2a4a8a" },
 };
 
@@ -64,6 +66,7 @@ export default function AdminTeachersTable({ rows }: { rows: TeacherRow[] }) {
   const [margin, setMargin] = useState("");
   const [selecting, setSelecting] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [openId, setOpenId] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase();
@@ -264,9 +267,16 @@ export default function AdminTeachersTable({ rows }: { rows: TeacherRow[] }) {
                   const cost = Number(u.cost_usd);
                   const m = marginPct(p, cost);
                   return (
-                    <tr key={u.id} className="border-t" style={{ borderColor: "#EEECE4" }}>
+                    <tr
+                      key={u.id}
+                      className="border-t hover:bg-black/2"
+                      style={{ borderColor: "#EEECE4", cursor: selecting ? "default" : "pointer" }}
+                      onClick={() => {
+                        if (!selecting) setOpenId(u.id);
+                      }}
+                    >
                       {selecting && (
-                        <td className="px-4 py-3">
+                        <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                           <input type="checkbox" checked={selected.has(u.id)} onChange={() => toggle(u.id)} />
                         </td>
                       )}
@@ -357,6 +367,8 @@ export default function AdminTeachersTable({ rows }: { rows: TeacherRow[] }) {
           Showing {nf.format(filtered.length)} of {nf.format(rows.length)} teachers
         </div>
       </div>
+
+      {openId && <TeacherDrawer userId={openId} onClose={() => setOpenId(null)} />}
     </>
   );
 }
