@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { X } from "lucide-react";
 import { createClient } from "@/app/lib/auth/client";
 import { PLANS, asPlanId } from "@/app/lib/plans";
 import { typeLabel, formatDate } from "@/app/lib/toolRunDisplay";
-import { nf, usd } from "../format";
+import { gbpFromUsd, nf } from "../format";
+import { AiChip, Meter } from "../ui";
+import GrantModal, { type GrantKind } from "./GrantModal";
 
 // Small outline/filled/danger button, matching the style already used in
 // AdminTeachersHeaderActions and AddTeacherModal.
@@ -54,6 +56,13 @@ interface TeacherDetail {
   cost_usd: number;
 }
 
+interface Allowance {
+  resources_used: number;
+  resources_topup: number;
+  ai_used: number;
+  ai_topup: number;
+}
+
 interface RunRow {
   id: string;
   tool_slug: string;
@@ -76,15 +85,11 @@ function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 }
 
-function resourcesLabel(plan: string, usedThisMonth: number): string {
-  const limit = PLANS[asPlanId(plan)].limits.monthlyGenerations;
-  if (limit === null) return `${nf.format(usedThisMonth)} used`;
-  return `${nf.format(usedThisMonth)} / ${nf.format(limit)}`;
-}
-
 export default function TeacherDrawer({ userId, onClose }: { userId: string; onClose: () => void }) {
   const [detail, setDetail] = useState<TeacherDetail | null>(null);
   const [runs, setRuns] = useState<RunRow[] | null>(null);
+  const [allowance, setAllowance] = useState<Allowance | null>(null);
+  const [grantKind, setGrantKind] = useState<GrantKind | null>(null);
   const [error, setError] = useState<string | null>(null);
   // Mounts closed (off-screen, scrim transparent) then flips open on the next
   // frame so the browser actually animates the transition instead of
@@ -112,14 +117,23 @@ export default function TeacherDrawer({ userId, onClose }: { userId: string; onC
     window.setTimeout(() => setNotice((n) => (n === msg ? null : n)), 3000);
   };
 
+  // Pulled out so a successful grant can refresh the allowance without
+  // reopening the drawer.
+  const loadAllowance = useCallback(async () => {
+    const supabase = createClient();
+    const { data } = await supabase.rpc("monthly_allowance", { uid: userId });
+    if (data && data.length > 0) setAllowance(data[0] as Allowance);
+  }, [userId]);
+
   useEffect(() => {
     let cancelled = false;
     const supabase = createClient();
 
     (async () => {
-      const [{ data: d, error: dErr }, { data: r }] = await Promise.all([
+      const [{ data: d, error: dErr }, { data: r }, { data: a }] = await Promise.all([
         supabase.rpc("admin_teacher_detail", { uid: userId }),
         supabase.rpc("admin_teacher_recent_runs", { uid: userId, lim: 10 }),
+        supabase.rpc("monthly_allowance", { uid: userId }),
       ]);
       if (cancelled) return;
       if (dErr || !d || d.length === 0) {
@@ -128,6 +142,7 @@ export default function TeacherDrawer({ userId, onClose }: { userId: string; onC
       }
       setDetail(d[0] as TeacherDetail);
       setRuns((r ?? []) as RunRow[]);
+      if (a && a.length > 0) setAllowance(a[0] as Allowance);
     })();
 
     return () => {
@@ -241,27 +256,34 @@ export default function TeacherDrawer({ userId, onClose }: { userId: string; onC
                 <h3 className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: "#8a8078" }}>
                   This month
                 </h3>
-                <div className="rounded-xl border p-3.5 space-y-2.5" style={{ borderColor: "#DAD8D0", backgroundColor: "#fff" }}>
-                  <div className="flex items-center justify-between text-sm">
-                    <span style={{ color: "#6b6055" }}>Resources</span>
-                    <span className="font-medium" style={{ color: "#1a1a1a" }}>
-                      {resourcesLabel(plan, detail!.generations_this_month)}
-                    </span>
+                <div className="rounded-xl border p-3.5 space-y-3" style={{ borderColor: "#DAD8D0", backgroundColor: "#fff" }}>
+                  <div>
+                    <div className="text-sm mb-1.5" style={{ color: "#6b6055" }}>
+                      Resources
+                    </div>
+                    <Meter
+                      used={allowance?.resources_used ?? detail!.generations_this_month}
+                      allow={p.limits.monthlyGenerations}
+                      topup={allowance?.resources_topup ?? 0}
+                    />
                   </div>
                   <div className="flex items-center justify-between text-sm">
-                    <span style={{ color: "#6b6055" }}>AI images</span>
-                    <span style={{ color: "#8a8078" }}>No cap yet</span>
+                    <span style={{ color: "#6b6055" }}>AI-image slideshows</span>
+                    <AiChip
+                      used={allowance?.ai_used ?? 0}
+                      allow={p.limits.aiImageSlideshows}
+                      topup={allowance?.ai_topup ?? 0}
+                    />
                   </div>
                   <div className="flex items-center justify-between text-sm">
                     <span style={{ color: "#6b6055" }}>Costs us</span>
                     <span className="font-semibold" style={{ color: "#1a1a1a" }}>
-                      {usd(detail!.cost_usd)}
+                      {gbpFromUsd(detail!.cost_usd)}
                     </span>
                   </div>
                   <div className="flex flex-wrap gap-2 pt-1">
-                    <DrawerBtn onClick={() => fire("Granting resources isn't wired up yet.")}>Grant resources</DrawerBtn>
-                    <DrawerBtn onClick={() => fire("Granting AI images isn't wired up yet.")}>Grant AI images</DrawerBtn>
-                    <DrawerBtn onClick={() => fire("Allowance reset isn't wired up yet.")}>Reset allowance</DrawerBtn>
+                    <DrawerBtn onClick={() => setGrantKind("resource")}>Grant resources</DrawerBtn>
+                    <DrawerBtn onClick={() => setGrantKind("ai_image")}>Grant AI images</DrawerBtn>
                   </div>
                 </div>
               </section>
@@ -354,7 +376,8 @@ export default function TeacherDrawer({ userId, onClose }: { userId: string; onC
                           {r.title || typeLabel(r.tool_slug)}
                         </p>
                         <p className="text-xs font-mono" style={{ color: "#8a8078" }}>
-                          {typeLabel(r.tool_slug)} · {r.approx_cost_usd > 0 ? usd(r.approx_cost_usd) : "—"} ·{" "}
+                          {typeLabel(r.tool_slug)} ·{" "}
+                          {r.approx_cost_usd > 0 ? gbpFromUsd(r.approx_cost_usd) : "—"} ·{" "}
                           {formatDate(r.created_at)}
                         </p>
                       </li>
@@ -430,6 +453,21 @@ export default function TeacherDrawer({ userId, onClose }: { userId: string; onC
           </>
         )}
       </aside>
+
+      {grantKind && detail && (
+        <GrantModal
+          userId={detail.id}
+          name={name || detail.email}
+          kind={grantKind}
+          onClose={() => setGrantKind(null)}
+          onGranted={(msg) => {
+            fire(msg);
+            // Reflect the new top-up in the meter straight away rather than
+            // making the admin close and reopen the drawer to see it.
+            void loadAllowance();
+          }}
+        />
+      )}
     </div>
   );
 }

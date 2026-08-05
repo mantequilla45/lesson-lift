@@ -2,7 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { PLANS, asPlanId } from "@/app/lib/plans";
-import { nf, usd } from "../format";
+import { FX_USD_TO_GBP, gbpFromUsd, nf } from "../format";
+import { AiChip, Meter } from "../ui";
 import TeacherDrawer from "./TeacherDrawer";
 
 export interface TeacherRow {
@@ -17,6 +18,14 @@ export interface TeacherRow {
   generations: number;
   generations_this_month: number;
   cost_usd: number;
+  /** AI-image slideshows this month, from asset_cost. */
+  ai_images_this_month: number;
+  /** Extra resources granted this month by an admin. */
+  resources_topup: number;
+  /** Extra AI images granted this month by an admin. */
+  ai_topup: number;
+  school_id: string | null;
+  school_name: string | null;
 }
 
 const PLAN_STYLE: Record<string, { bg: string; color: string }> = {
@@ -35,35 +44,39 @@ const STATUS_STYLE: Record<string, { bg: string; color: string }> = {
 
 const STATUS_OPTIONS = ["active", "trialing", "past_due", "canceled"];
 
-/** Resources this month, as a "used / cap" string. Free is capped by
- *  plans.ts (currently 5/month); Pro and School are unlimited today, so
- *  there's nothing to show against — just the raw count used. */
-function resourcesLabel(plan: string, usedThisMonth: number): string {
-  const limit = PLANS[asPlanId(plan)].limits.monthlyGenerations;
-  if (limit === null) return `${nf.format(usedThisMonth)} used`;
-  return `${nf.format(usedThisMonth)} / ${nf.format(limit)}`;
-}
-
-/** Monthly revenue for this teacher — list price of their plan. There's no
- *  billing-interval column yet to distinguish monthly vs. annual seats, so
+/** Monthly revenue for this teacher, in GBP — list price of their plan. There's
+ *  no billing-interval column yet to distinguish monthly vs. annual seats, so
  *  this uses the plan's flat monthly price, same as Free contributing £0. */
 function monthlyRevenue(plan: string): number {
   return PLANS[asPlanId(plan)].priceMonthly ?? 0;
 }
 
-/** Margin = (revenue - AI cost this month) / revenue. Free teachers have no
- *  revenue to divide by, so they show cost only, same as the spec. */
+/** Margin = (revenue - AI cost this month) / revenue, both in GBP. Free
+ *  teachers have no revenue to divide by, so they show cost only.
+ *  Note this is contribution before card fees and overheads — the drawer shows
+ *  the fuller breakdown. */
 function marginPct(plan: string, costUsd: number): number | null {
   const revenue = monthlyRevenue(plan);
   if (revenue <= 0) return null;
-  return (revenue - costUsd) / revenue;
+  return (revenue - costUsd * FX_USD_TO_GBP) / revenue;
 }
 
 export default function AdminTeachersTable({ rows }: { rows: TeacherRow[] }) {
   const [q, setQ] = useState("");
   const [plan, setPlan] = useState("");
   const [status, setStatus] = useState("");
+  const [school, setSchool] = useState("");
   const [margin, setMargin] = useState("");
+
+  // Distinct schools present in the current rows — no extra query needed, and
+  // it can't offer a school that has no teachers to filter to.
+  const schools = useMemo(() => {
+    const seen = new Map<string, string>();
+    for (const u of rows) {
+      if (u.school_id && u.school_name) seen.set(u.school_id, u.school_name);
+    }
+    return [...seen.entries()].sort((a, b) => a[1].localeCompare(b[1]));
+  }, [rows]);
   const [selecting, setSelecting] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [openId, setOpenId] = useState<string | null>(null);
@@ -78,6 +91,8 @@ export default function AdminTeachersTable({ rows }: { rows: TeacherRow[] }) {
       }
       if (plan && (u.plan ?? "free") !== plan) return false;
       if (status && (u.subscription_status ?? "") !== status) return false;
+      if (school === "none" && u.school_id) return false;
+      if (school && school !== "none" && u.school_id !== school) return false;
       if (margin) {
         const m = marginPct(u.plan ?? "free", Number(u.cost_usd));
         if (margin === "low" && !(m !== null && m < 0.35)) return false;
@@ -85,7 +100,7 @@ export default function AdminTeachersTable({ rows }: { rows: TeacherRow[] }) {
       }
       return true;
     });
-  }, [rows, q, plan, status, margin]);
+  }, [rows, q, plan, status, school, margin]);
 
   const toggle = (id: string) =>
     setSelected((prev) => {
@@ -107,10 +122,11 @@ export default function AdminTeachersTable({ rows }: { rows: TeacherRow[] }) {
     setQ("");
     setPlan("");
     setStatus("");
+    setSchool("");
     setMargin("");
   };
 
-  const hasFilters = q || plan || status || margin;
+  const hasFilters = q || plan || status || school || margin;
 
   const selectStyle: React.CSSProperties = {
     borderColor: "#DAD8D0",
@@ -160,12 +176,18 @@ export default function AdminTeachersTable({ rows }: { rows: TeacherRow[] }) {
             ))}
           </select>
           <select
-            disabled
-            title="No school data yet"
-            className="text-sm rounded-lg border px-3 py-1.5 opacity-50 cursor-not-allowed"
+            value={school}
+            onChange={(e) => setSchool(e.target.value)}
+            className="text-sm rounded-lg border px-3 py-1.5"
             style={selectStyle}
           >
-            <option>Any school</option>
+            <option value="">Any school</option>
+            <option value="none">No school (individual)</option>
+            {schools.map(([id, name]) => (
+              <option key={id} value={id}>
+                {name}
+              </option>
+            ))}
           </select>
           <select
             value={margin}
@@ -308,14 +330,24 @@ export default function AdminTeachersTable({ rows }: { rows: TeacherRow[] }) {
                           {p}
                         </span>
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap" style={{ color: "#8a8078" }}>
-                        Individual
-                      </td>
                       <td className="px-4 py-3 whitespace-nowrap" style={{ color: "#6b6055" }}>
-                        {resourcesLabel(p, Number(u.generations_this_month))}
+                        {u.school_name ?? (
+                          <span style={{ color: "#8a8078" }}>Individual</span>
+                        )}
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap" style={{ color: "#8a8078" }}>
-                        No cap yet
+                      <td className="px-4 py-3">
+                        <Meter
+                          used={Number(u.generations_this_month)}
+                          allow={PLANS[asPlanId(p)].limits.monthlyGenerations}
+                          topup={Number(u.resources_topup)}
+                        />
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <AiChip
+                          used={Number(u.ai_images_this_month)}
+                          allow={PLANS[asPlanId(p)].limits.aiImageSlideshows}
+                          topup={Number(u.ai_topup)}
+                        />
                       </td>
                       <td className="px-4 py-3">
                         {st ? (
@@ -330,7 +362,7 @@ export default function AdminTeachersTable({ rows }: { rows: TeacherRow[] }) {
                         )}
                       </td>
                       <td className="px-4 py-3 text-right font-semibold whitespace-nowrap" style={{ color: "#1a1a1a" }}>
-                        {usd(cost)}
+                        {gbpFromUsd(cost)}
                       </td>
                       <td className="px-4 py-3 text-right whitespace-nowrap">
                         {m === null ? (
@@ -338,7 +370,7 @@ export default function AdminTeachersTable({ rows }: { rows: TeacherRow[] }) {
                             className="text-xs font-semibold px-2 py-1 rounded-full"
                             style={{ backgroundColor: "#EEECE4", color: "#8a8078" }}
                           >
-                            costs {usd(cost)}
+                            costs {gbpFromUsd(cost)}
                           </span>
                         ) : (
                           <span

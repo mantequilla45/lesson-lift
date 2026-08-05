@@ -1,9 +1,20 @@
 import { requireAdmin } from "@/app/lib/auth/admin";
-import ComingSoon from "../ComingSoon";
+import SchoolsTable, { type SchoolRow, type TrustRow } from "./SchoolsTable";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminSchoolsPage() {
-  await requireAdmin();
-  return <ComingSoon title="Schools" blurb="Seat pools, invoices and onboarding progress for every institution." />;
+  const { supabase } = await requireAdmin();
+
+  const [{ data: schools }, { data: trusts }] = await Promise.all([
+    supabase.rpc("admin_schools"),
+    supabase.rpc("admin_trusts"),
+  ]);
+
+  return (
+    <SchoolsTable
+      rows={(schools ?? []) as SchoolRow[]}
+      trusts={(trusts ?? []) as TrustRow[]}
+    />
+  );
 }

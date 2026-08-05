@@ -10,6 +10,12 @@ export type ExportFormat = "pdf" | "docx" | "pptx";
 export interface PlanLimits {
   /** Max AI generations per calendar month. `null` = unlimited. */
   monthlyGenerations: number | null;
+  /**
+   * AI-image slideshows included per month. Each costs ~33x a text resource,
+   * so this is the single number that decides whether a plan makes money.
+   * `0` = not available on this plan.
+   */
+  aiImageSlideshows: number;
   /** Exported files carry a "Made with Jooma" watermark. */
   watermark: boolean;
   /** Export formats this plan may use. */
@@ -34,10 +40,18 @@ export interface PlanLimits {
 export interface Plan {
   id: PlanId;
   name: string;
-  /** Monthly price in USD. `null` = custom/contact sales. */
+  /** Monthly price in GBP. `null` = custom/contact sales. */
   priceMonthly: number | null;
-  /** Yearly price per month in USD (the discounted rate). */
+  /** Yearly price per month in GBP (the discounted rate). */
   priceYearlyPerMonth: number | null;
+  /** Full yearly price in GBP, as billed. `null` = custom/contact sales. */
+  priceYearly: number | null;
+  /** Who buys this plan — drives which column it appears in on the admin page. */
+  audience: "teacher" | "school";
+  /** One-line description shown on the pricing page. */
+  description: string;
+  /** For per-seat plans, the unit the price is quoted in. */
+  interval: "month" | "seat/month";
   limits: PlanLimits;
 }
 
@@ -47,8 +61,13 @@ export const PLANS: Record<PlanId, Plan> = {
     name: "Free Plan",
     priceMonthly: 0,
     priceYearlyPerMonth: 0,
+    priceYearly: 0,
+    audience: "teacher",
+    description: "10 resources a month, watermarked",
+    interval: "month",
     limits: {
       monthlyGenerations: 5,
+      aiImageSlideshows: 0,
       watermark: true,
       exportFormats: ["pdf"],
       curriculumAlignment: "limited",
@@ -70,8 +89,13 @@ export const PLANS: Record<PlanId, Plan> = {
     // STRIPE_PRICE_PRO_MONTHLY / STRIPE_PRICE_PRO_YEARLY.
     priceMonthly: 7.99,
     priceYearlyPerMonth: 6.58,
+    priceYearly: 79.0,
+    audience: "teacher",
+    description: "Everything, fair use. For one teacher.",
+    interval: "month",
     limits: {
       monthlyGenerations: null,
+      aiImageSlideshows: 12,
       watermark: false,
       exportFormats: ["pdf", "docx", "pptx"],
       curriculumAlignment: "full",
@@ -95,8 +119,13 @@ export const PLANS: Record<PlanId, Plan> = {
     // yet.
     priceMonthly: 14.99,
     priceYearlyPerMonth: 12.42,
+    priceYearly: 149.0,
+    audience: "teacher",
+    description: "Adds leadership, inspection and CPD tools",
+    interval: "month",
     limits: {
       monthlyGenerations: null,
+      aiImageSlideshows: 25,
       watermark: false,
       exportFormats: ["pdf", "docx", "pptx"],
       curriculumAlignment: "full",
@@ -122,8 +151,17 @@ export const PLANS: Record<PlanId, Plan> = {
     // school's actual seat count.
     priceMonthly: null,
     priceYearlyPerMonth: null,
+    priceYearly: null,
+    audience: "school",
+    description: "Per seat, banded, invoiced annually",
+    interval: "seat/month",
     limits: {
+      // Per seat. Both pools are shared across the school — a 30-seat school
+      // has 9,000 resources and 90 AI slideshows a month to distribute as it
+      // likes. `monthlyGenerations` stays null because the cap is enforced at
+      // the school pool level, not per teacher.
       monthlyGenerations: null,
+      aiImageSlideshows: 3,
       watermark: false,
       exportFormats: ["pdf", "docx", "pptx"],
       curriculumAlignment: "full",
@@ -141,6 +179,21 @@ export const PLANS: Record<PlanId, Plan> = {
 };
 
 export const DEFAULT_PLAN: PlanId = "free";
+
+/**
+ * The monthly resource allowance to display for a plan. Distinct from
+ * `monthlyGenerations`, which is the *enforced* cap — unlimited plans have no
+ * cap to enforce but the admin console still needs a denominator for the
+ * resource meter. `null` means genuinely uncapped with nothing to meter against.
+ *
+ * NOTE: the admin console spec quotes Free as 10 resources/month; the enforced
+ * gate here is 5. The gate is the source of truth — changing it would change
+ * live behaviour for every free teacher, so it stays until that's a deliberate
+ * product decision.
+ */
+export function displayResourceAllowance(plan: PlanId): number | null {
+  return PLANS[plan].limits.monthlyGenerations;
+}
 
 /** Coerce an arbitrary string (e.g. a DB value) into a valid PlanId. */
 export function asPlanId(value: string | null | undefined): PlanId {
