@@ -2,7 +2,12 @@ import { requireAdmin } from "@/app/lib/auth/admin";
 import { TOOLS } from "@/app/lib/tools";
 import { typeLabel } from "@/app/lib/toolRunDisplay";
 import AdminUsageTable, { type AdminUsageRow } from "./AdminUsageTable";
-import ThinnestMargins, { type MarginRow } from "./ThinnestMargins";
+import UsageView, {
+  type FairUseRule,
+  type MarginRow,
+  type ModelRow,
+  type UsageSummary,
+} from "./UsageView";
 
 // Slugs recorded by the Slideshow Generator editor when its actions are used
 // standalone (no parentTool). They're grouped under the generate-slideshow
@@ -15,6 +20,16 @@ const SLIDESHOW_SUBTOOLS = [
   "find-youtube",
   "edit-text",
   "generate-activity",
+];
+
+// The fair-use settings live in app_settings; this page shows the subset that
+// governs generation limits and abuse.
+const FAIR_USE_KEYS = [
+  "rate_limit_per_hour",
+  "alert_negative_margin",
+  "flag_concurrent_sessions",
+  "block_disposable_email",
+  "log_generation_cost",
 ];
 
 export const dynamic = "force-dynamic";
@@ -39,14 +54,25 @@ interface StepRow {
 
 export default async function AdminUsagePage() {
   const { supabase } = await requireAdmin();
-  const [{ data }, { data: stepData }, { data: marginData }] = await Promise.all([
+
+  const [
+    { data },
+    { data: stepData },
+    { data: summaryData },
+    { data: marginData },
+    { data: modelData },
+    { data: settingsData },
+  ] = await Promise.all([
     supabase.rpc("admin_tool_usage_report"),
     supabase.rpc("admin_tool_step_breakdown"),
+    supabase.rpc("admin_usage_summary"),
     supabase.rpc("admin_thinnest_margins", { lim: 8 }),
+    supabase.rpc("admin_model_routing"),
+    supabase.rpc("admin_settings"),
   ]);
+
   const report = (data ?? []) as ReportRow[];
   const steps = (stepData ?? []) as StepRow[];
-  const margins = (marginData ?? []) as MarginRow[];
 
   // Step-breakdown children for non-slideshow multi-step tools (deck text /
   // audio script / etc.). The slideshow gets its own sub-tool breakdown below.
@@ -95,8 +121,6 @@ export default async function AdminUsagePage() {
     .filter((slug) => slug !== "generate-slideshow" && !subtools.has(slug))
     .map(toRow);
 
-  // Slideshow umbrella: its own deck cost plus every sub-tool, with the deck
-  // line and sub-tools as the expandable breakdown.
   if (bySlug.has("generate-slideshow") || subtoolChildren.length > 0) {
     const own = toRow("generate-slideshow");
     const childCost = subtoolChildren.reduce((sum, c) => sum + c.cost_usd, 0);
@@ -119,24 +143,28 @@ export default async function AdminUsagePage() {
 
   rows.sort((a, b) => b.cost_usd - a.cost_usd || a.tool_slug.localeCompare(b.tool_slug));
 
-  const month = new Date().toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+  // "Where the money goes" — the top ten by spend, with a share bar.
+  const topTools = rows
+    .filter((r) => r.cost_usd > 0)
+    .slice(0, 10)
+    .map((r) => ({
+      tool_slug: r.tool_slug,
+      label: typeLabel(r.tool_slug),
+      generations: r.generations,
+      cost_usd: r.cost_usd,
+      cost_per_run: r.generations > 0 ? r.cost_usd / r.generations : 0,
+    }));
+
+  const settings = (settingsData ?? []) as FairUseRule[];
 
   return (
-    <>
-      <h1 className="text-2xl font-bold tracking-tight mb-1" style={{ color: "#1a1a1a" }}>
-        Usage
-      </h1>
-      <p className="text-sm mb-6" style={{ color: "#8a8078" }}>
-        Cost per tool across all users for {month}, with per-generation cost and 10x / 100x
-        projections. Every tool is listed; unused tools show zero. Use Select to reset a tool&apos;s
-        recorded usage.
-      </p>
-
-      <AdminUsageTable rows={rows} />
-
-      <div className="mt-6">
-        <ThinnestMargins rows={margins} />
-      </div>
-    </>
+    <UsageView
+      summary={((summaryData ?? [])[0] ?? null) as UsageSummary | null}
+      topTools={topTools}
+      margins={(marginData ?? []) as MarginRow[]}
+      models={(modelData ?? []) as ModelRow[]}
+      fairUse={settings.filter((s) => FAIR_USE_KEYS.includes(s.key))}
+      toolTable={<AdminUsageTable rows={rows} />}
+    />
   );
 }
