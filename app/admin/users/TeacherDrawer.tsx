@@ -5,8 +5,9 @@ import { X } from "lucide-react";
 import { createClient } from "@/app/lib/auth/client";
 import { PLANS, asPlanId } from "@/app/lib/plans";
 import { typeLabel, formatDate } from "@/app/lib/toolRunDisplay";
-import { gbpFromUsd, nf } from "../format";
-import { AiChip, Meter } from "../ui";
+import Link from "next/link";
+import { fmtRelative, gbpFromUsd, nf } from "../format";
+import { AiChip, Meter, StatusTag } from "../ui";
 import GrantModal, { type GrantKind } from "./GrantModal";
 
 // Small outline/filled/danger button, matching the style already used in
@@ -63,6 +64,16 @@ interface Allowance {
   ai_topup: number;
 }
 
+interface ThreadRow {
+  id: string;
+  reference: string;
+  subject: string;
+  status: string;
+  priority: string;
+  message_count: number;
+  updated_at: string;
+}
+
 interface RunRow {
   id: string;
   tool_slug: string;
@@ -89,6 +100,7 @@ export default function TeacherDrawer({ userId, onClose }: { userId: string; onC
   const [detail, setDetail] = useState<TeacherDetail | null>(null);
   const [runs, setRuns] = useState<RunRow[] | null>(null);
   const [allowance, setAllowance] = useState<Allowance | null>(null);
+  const [threads, setThreads] = useState<ThreadRow[] | null>(null);
   const [grantKind, setGrantKind] = useState<GrantKind | null>(null);
   const [error, setError] = useState<string | null>(null);
   // Mounts closed (off-screen, scrim transparent) then flips open on the next
@@ -130,11 +142,13 @@ export default function TeacherDrawer({ userId, onClose }: { userId: string; onC
     const supabase = createClient();
 
     (async () => {
-      const [{ data: d, error: dErr }, { data: r }, { data: a }] = await Promise.all([
-        supabase.rpc("admin_teacher_detail", { uid: userId }),
-        supabase.rpc("admin_teacher_recent_runs", { uid: userId, lim: 10 }),
-        supabase.rpc("monthly_allowance", { uid: userId }),
-      ]);
+      const [{ data: d, error: dErr }, { data: r }, { data: a }, { data: th }] =
+        await Promise.all([
+          supabase.rpc("admin_teacher_detail", { uid: userId }),
+          supabase.rpc("admin_teacher_recent_runs", { uid: userId, lim: 10 }),
+          supabase.rpc("monthly_allowance", { uid: userId }),
+          supabase.rpc("admin_teacher_threads", { uid: userId }),
+        ]);
       if (cancelled) return;
       if (dErr || !d || d.length === 0) {
         setError("Could not load this teacher.");
@@ -143,6 +157,7 @@ export default function TeacherDrawer({ userId, onClose }: { userId: string; onC
       setDetail(d[0] as TeacherDetail);
       setRuns((r ?? []) as RunRow[]);
       if (a && a.length > 0) setAllowance(a[0] as Allowance);
+      setThreads((th ?? []) as ThreadRow[]);
     })();
 
     return () => {
@@ -416,18 +431,43 @@ export default function TeacherDrawer({ userId, onClose }: { userId: string; onC
                 <h3 className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: "#8a8078" }}>
                   Support history
                 </h3>
-                <div
-                  className="rounded-xl border border-dashed p-4 text-center"
-                  style={{ borderColor: "#DAD8D0", backgroundColor: "#fff" }}
-                >
-                  <p className="text-sm font-medium" style={{ color: "#8a8078" }}>
-                    Coming soon
+                {threads === null ? (
+                  <p className="text-sm" style={{ color: "#8a8078" }}>
+                    Loading…
                   </p>
-                  <p className="text-xs mt-1" style={{ color: "#8a8078" }}>
-                    Support tickets will appear here once Inbox is built.
+                ) : threads.length === 0 ? (
+                  <p className="text-sm" style={{ color: "#8a8078" }}>
+                    No tickets yet.
                   </p>
-                </div>
-                <DrawerBtn onClick={() => fire("Inbox isn't wired up yet.")}>Message this teacher</DrawerBtn>
+                ) : (
+                  <div className="space-y-1 mb-2">
+                    {threads.map((t) => (
+                      <div
+                        key={t.id}
+                        className="flex items-center gap-2 py-1.5 border-b last:border-b-0"
+                        style={{ borderColor: "#EEECE4" }}
+                      >
+                        <div className="flex-1 min-w-0">
+                          <div
+                            className="text-sm font-medium truncate"
+                            style={{ color: "#1a1a1a" }}
+                          >
+                            {t.subject}
+                          </div>
+                          <div className="text-xs font-mono" style={{ color: "#8a8078" }}>
+                            {t.reference} · {nf.format(Number(t.message_count))} message
+                            {Number(t.message_count) === 1 ? "" : "s"} ·{" "}
+                            {fmtRelative(t.updated_at)}
+                          </div>
+                        </div>
+                        <StatusTag status={t.status} />
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <Link href="/admin/inbox">
+                  <DrawerBtn onClick={() => {}}>Open inbox</DrawerBtn>
+                </Link>
               </section>
 
               <section>

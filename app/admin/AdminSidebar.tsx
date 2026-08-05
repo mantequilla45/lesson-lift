@@ -102,7 +102,12 @@ function isActive(pathname: string, href: string) {
   return href === "/admin" ? pathname === "/admin" : pathname.startsWith(href);
 }
 
-export default function AdminSidebar() {
+export default function AdminSidebar({
+  badges,
+}: {
+  /** Live counts keyed by href, e.g. { "/admin/inbox": 3 }. */
+  badges?: Record<string, number>;
+}) {
   const pathname = usePathname();
 
   return (
@@ -126,8 +131,11 @@ export default function AdminSidebar() {
               {group.label}
             </p>
             <div className="space-y-1">
-              {group.items.map(({ href, label, icon: Icon, badge }) => {
+              {group.items.map(({ href, label, icon: Icon, badge: staticBadge }) => {
                 const active = isActive(pathname, href);
+                // Live counts win over the static definition, which is only a
+                // placeholder for items with no query behind them yet.
+                const badge = badges?.[href] ?? staticBadge;
                 return (
                   <Link
                     key={href}
