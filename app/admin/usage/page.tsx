@@ -2,6 +2,7 @@ import { requireAdmin } from "@/app/lib/auth/admin";
 import { TOOLS } from "@/app/lib/tools";
 import { typeLabel } from "@/app/lib/toolRunDisplay";
 import AdminUsageTable, { type AdminUsageRow } from "./AdminUsageTable";
+import ThinnestMargins, { type MarginRow } from "./ThinnestMargins";
 
 // Slugs recorded by the Slideshow Generator editor when its actions are used
 // standalone (no parentTool). They're grouped under the generate-slideshow
@@ -38,12 +39,14 @@ interface StepRow {
 
 export default async function AdminUsagePage() {
   const { supabase } = await requireAdmin();
-  const [{ data }, { data: stepData }] = await Promise.all([
+  const [{ data }, { data: stepData }, { data: marginData }] = await Promise.all([
     supabase.rpc("admin_tool_usage_report"),
     supabase.rpc("admin_tool_step_breakdown"),
+    supabase.rpc("admin_thinnest_margins", { lim: 8 }),
   ]);
   const report = (data ?? []) as ReportRow[];
   const steps = (stepData ?? []) as StepRow[];
+  const margins = (marginData ?? []) as MarginRow[];
 
   // Step-breakdown children for non-slideshow multi-step tools (deck text /
   // audio script / etc.). The slideshow gets its own sub-tool breakdown below.
@@ -130,6 +133,10 @@ export default async function AdminUsagePage() {
       </p>
 
       <AdminUsageTable rows={rows} />
+
+      <div className="mt-6">
+        <ThinnestMargins rows={margins} />
+      </div>
     </>
   );
 }
