@@ -1,9 +1,11 @@
 import { requireAdmin } from "@/app/lib/auth/admin";
-import ComingSoon from "../ComingSoon";
+import SettingsView, { type SettingRow } from "./SettingsView";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminSettingsPage() {
-  await requireAdmin();
-  return <ComingSoon title="Settings" blurb="System-wide switches." />;
+  const { supabase } = await requireAdmin();
+  const { data } = await supabase.rpc("admin_settings");
+
+  return <SettingsView rows={(data ?? []) as SettingRow[]} />;
 }
