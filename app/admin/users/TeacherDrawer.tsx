@@ -257,15 +257,33 @@ export default function TeacherDrawer({ userId, onClose }: { userId: string; onC
                   This month
                 </h3>
                 <div className="rounded-xl border p-3.5 space-y-3" style={{ borderColor: "#DAD8D0", backgroundColor: "#fff" }}>
+                  {detail!.is_admin && (
+                    <div
+                      className="rounded-lg px-3 py-2 text-xs"
+                      style={{ backgroundColor: "#F1EDFD", color: "#6B4FD8" }}
+                    >
+                      <b>Admin account — bypasses the generation cap.</b> This usage is
+                      internal, isn&apos;t billable, and doesn&apos;t count against any plan
+                      limit.
+                    </div>
+                  )}
                   <div>
                     <div className="text-sm mb-1.5" style={{ color: "#6b6055" }}>
                       Resources
                     </div>
-                    <Meter
-                      used={allowance?.resources_used ?? detail!.generations_this_month}
-                      allow={p.limits.monthlyGenerations}
-                      topup={allowance?.resources_topup ?? 0}
-                    />
+                    {detail!.is_admin ? (
+                      <span className="text-sm tabular-nums" style={{ color: "#1a1a1a" }}>
+                        {nf.format(allowance?.resources_used ?? detail!.generations_this_month)}{" "}
+                        used
+                        <span style={{ color: "#8a8078" }}> · no cap</span>
+                      </span>
+                    ) : (
+                      <Meter
+                        used={allowance?.resources_used ?? detail!.generations_this_month}
+                        allow={p.limits.monthlyGenerations}
+                        topup={allowance?.resources_topup ?? 0}
+                      />
+                    )}
                   </div>
                   <div className="flex items-center justify-between text-sm">
                     <span style={{ color: "#6b6055" }}>AI-image slideshows</span>

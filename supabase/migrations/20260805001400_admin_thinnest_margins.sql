@@ -12,6 +12,7 @@ returns table (
   teacher          text,
   email            text,
   plan             text,
+  is_admin         boolean,
   revenue_gbp      numeric,
   cost_usd         numeric,
   ai_images        bigint,
@@ -33,6 +34,10 @@ begin
                  u.email::text) as name,
         u.email::text as email,
         coalesce(p.plan, 'free') as plan,
+        -- Admins bypass the generation cap entirely (generation-guard.ts
+        -- returns null before any limit check), so their usage is not
+        -- comparable to a teacher's and must be labelled as such.
+        coalesce(p.is_admin, false) as is_admin,
         coalesce(pc.price_monthly, 0) as revenue,
         (select coalesce(sum(t.cost_usd), 0) from token_usage t
           where t.user_id = u.id and t.created_at >= date_trunc('month', now()))
@@ -48,7 +53,7 @@ begin
       left join plan_config pc on pc.plan_id = coalesce(p.plan, 'free')
     )
     select
-      us.id, us.name, us.email, us.plan,
+      us.id, us.name, us.email, us.plan, us.is_admin,
       us.revenue,
       us.cost,
       us.images,

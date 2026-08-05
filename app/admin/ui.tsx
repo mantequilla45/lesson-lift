@@ -260,6 +260,24 @@ export const STATUS_TONE: Record<string, { tone: Tone; label: string }> = {
   cleared: { tone: "ok", label: "Cleared" },
 };
 
+/**
+ * Marks an account that bypasses the monthly generation cap. Admins skip the
+ * gate entirely (generation-guard.ts returns null before any limit check), so
+ * their usage and margin figures are not comparable to a teacher's — without
+ * this, an admin's 58 uncapped generations reads as a free teacher blowing
+ * through a 5-generation limit.
+ */
+export function BypassTag({ compact = false }: { compact?: boolean }) {
+  return (
+    <Tag
+      tone="ai"
+      title="Admin account — bypasses the monthly generation cap, so this usage is not billable and not comparable to a teacher's"
+    >
+      {compact ? "bypass" : "Admin · no cap"}
+    </Tag>
+  );
+}
+
 export function StatusTag({ status }: { status: string | null }) {
   if (!status) return <span style={{ color: C.muted }}>—</span>;
   const s = STATUS_TONE[status] ?? { tone: "plain" as Tone, label: status.replace(/_/g, " ") };

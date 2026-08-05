@@ -3,6 +3,7 @@
 import { marginTone } from "@/app/lib/costs";
 import { gbp, gbpFromUsd, nf } from "../format";
 import {
+  BypassTag,
   C,
   Card,
   CardFooter,
@@ -21,6 +22,7 @@ export interface MarginRow {
   teacher: string;
   email: string | null;
   plan: string;
+  is_admin: boolean;
   revenue_gbp: number;
   cost_usd: number;
   ai_images: number;
@@ -38,9 +40,12 @@ export interface MarginRow {
  * a marketing expense, not a margin problem.
  */
 export default function ThinnestMargins({ rows }: { rows: MarginRow[] }) {
+  // Admins are excluded: they bypass the cap by design, so their cost is
+  // internal usage rather than a margin problem to act on.
   const underwater = rows.filter(
-    (r) => r.margin_pct !== null && Number(r.contribution_gbp) < 0,
+    (r) => !r.is_admin && r.margin_pct !== null && Number(r.contribution_gbp) < 0,
   ).length;
+  const admins = rows.filter((r) => r.is_admin).length;
 
   return (
     <Card>
@@ -78,8 +83,11 @@ export default function ThinnestMargins({ rows }: { rows: MarginRow[] }) {
               return (
                 <Tr key={r.user_id}>
                   <Td>
-                    <div className="font-medium" style={{ color: C.ink }}>
-                      {r.teacher}
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium" style={{ color: C.ink }}>
+                        {r.teacher}
+                      </span>
+                      {r.is_admin && <BypassTag compact />}
                     </div>
                     <div className="text-xs" style={{ color: C.muted }}>
                       {nf.format(Number(r.generations))} generation
@@ -105,13 +113,17 @@ export default function ThinnestMargins({ rows }: { rows: MarginRow[] }) {
                   <Td align="right">
                     <span
                       className="tabular-nums font-semibold"
-                      style={{ color: contribution < 0 ? C.danger : C.ink }}
+                      style={{
+                        color: r.is_admin ? C.muted : contribution < 0 ? C.danger : C.ink,
+                      }}
                     >
                       {gbp(contribution)}
                     </span>
                   </Td>
                   <Td align="right">
-                    {margin === null ? (
+                    {r.is_admin ? (
+                      <Tag title="Internal usage — not a paying account">internal</Tag>
+                    ) : margin === null ? (
                       <Tag>free plan</Tag>
                     ) : (
                       <Tag tone={tone}>{Math.round(margin * 100)}%</Tag>
@@ -125,9 +137,19 @@ export default function ThinnestMargins({ rows }: { rows: MarginRow[] }) {
       )}
 
       <CardFooter>
-        Contribution is what they pay less measured AI cost, before card fees and overheads.
-        Anyone red should be offered a higher plan or an AI top-up, not left alone. Free
-        teachers show cost only — they are acquisition spend, not a margin problem.
+        <span>
+          Contribution is what they pay less measured AI cost, before card fees and overheads.
+          Anyone red should be offered a higher plan or an AI top-up, not left alone. Free
+          teachers show cost only — they are acquisition spend, not a margin problem.
+          {admins > 0 && (
+            <>
+              {" "}
+              {nf.format(admins)} admin account{admins === 1 ? "" : "s"} shown as{" "}
+              <b>internal</b>: admins bypass the generation cap, so their cost is internal
+              usage and is excluded from the losing-money count.
+            </>
+          )}
+        </span>
       </CardFooter>
     </Card>
   );

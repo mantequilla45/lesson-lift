@@ -311,6 +311,7 @@ export default function AdminTeachersTable({ rows }: { rows: TeacherRow[] }) {
                             <span
                               className="text-[10px] font-semibold px-1.5 py-0.5 rounded"
                               style={{ backgroundColor: "#1a1a1a", color: "#fff" }}
+                              title="Admin account — bypasses the monthly generation cap"
                             >
                               ADMIN
                             </span>
@@ -336,11 +337,21 @@ export default function AdminTeachersTable({ rows }: { rows: TeacherRow[] }) {
                         )}
                       </td>
                       <td className="px-4 py-3">
-                        <Meter
-                          used={Number(u.generations_this_month)}
-                          allow={PLANS[asPlanId(p)].limits.monthlyGenerations}
-                          topup={Number(u.resources_topup)}
-                        />
+                        {u.is_admin ? (
+                          // Admins skip the cap entirely, so metering them
+                          // against one would read as "0 left of 5" while they
+                          // generate freely. Show the raw count instead.
+                          <span className="text-xs tabular-nums" style={{ color: "#6b6055" }}>
+                            {nf.format(Number(u.generations_this_month))} used
+                            <span style={{ color: "#8a8078" }}> · no cap</span>
+                          </span>
+                        ) : (
+                          <Meter
+                            used={Number(u.generations_this_month)}
+                            allow={PLANS[asPlanId(p)].limits.monthlyGenerations}
+                            topup={Number(u.resources_topup)}
+                          />
+                        )}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
                         <AiChip
