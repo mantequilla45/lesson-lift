@@ -1,9 +1,11 @@
 import { requireAdmin } from "@/app/lib/auth/admin";
-import ComingSoon from "../ComingSoon";
+import PromosView, { type PromoRow } from "./PromosView";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminPromosPage() {
-  await requireAdmin();
-  return <ComingSoon title="Promo codes" blurb="For campaigns, conferences and win-backs." />;
+  const { supabase } = await requireAdmin();
+  const { data } = await supabase.rpc("admin_promo_codes");
+
+  return <PromosView rows={(data ?? []) as PromoRow[]} />;
 }

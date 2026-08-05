@@ -1,9 +1,15 @@
 import { requireAdmin } from "@/app/lib/auth/admin";
-import ComingSoon from "../ComingSoon";
+import PlansView, { type PlanRow, type PricingRule } from "./PlansView";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminPlansPage() {
-  await requireAdmin();
-  return <ComingSoon title="Plans & pricing" blurb="What each plan costs, what it includes, and what it leaves you." />;
+  const { supabase } = await requireAdmin();
+
+  const [{ data: plans }, { data: rules }] = await Promise.all([
+    supabase.rpc("admin_plans"),
+    supabase.rpc("admin_pricing_rules"),
+  ]);
+
+  return <PlansView plans={(plans ?? []) as PlanRow[]} rules={(rules ?? []) as PricingRule[]} />;
 }
