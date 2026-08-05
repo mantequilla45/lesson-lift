@@ -1,27 +1,22 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { createClient } from "@/app/lib/auth/client";
-import { fmtDate, gbp, nf } from "../format";
+import { useMemo, useState } from "react";
+import { fmtDate, nf } from "../format";
 import {
-  Btn,
   C,
   Card,
   CardFooter,
   EmptyState,
-  Field,
-  Modal,
+  FilterBar,
   Note,
   PageHead,
-  StatusTag,
   Table,
+  Tag,
   Td,
   Th,
   Tr,
-  fieldClass,
-  fieldStyle,
-  useToast,
+  inputClass,
+  inputStyle,
 } from "../ui";
 
 export interface PromoRow {
@@ -30,228 +25,189 @@ export interface PromoRow {
   offer: string;
   channel: string | null;
   redeemed: number;
-  revenue_gbp: number;
+  max_redemptions: number | null;
   expires_at: string | null;
-  status: string;
+  active: boolean;
+  duration: string | null;
+  applies_to_products: number;
+  created_at: string;
 }
 
-export default function PromosView({ rows }: { rows: PromoRow[] }) {
-  const router = useRouter();
-  const [editing, setEditing] = useState<PromoRow | null>(null);
-  const [creating, setCreating] = useState(false);
-  const [toastNode, fire] = useToast();
+/**
+ * Read-only by design. Stripe validates codes at checkout, so Stripe is the
+ * only place a code can meaningfully be created or changed — a code that
+ * existed only here would be rejected the moment a teacher typed it. This page
+ * reports what is actually live rather than keeping a second copy that drifts.
+ */
+export default function PromosView({
+  rows,
+  error,
+}: {
+  rows: PromoRow[];
+  error: string | null;
+}) {
+  const [q, setQ] = useState("");
+  const [state, setState] = useState("");
+
+  const filtered = useMemo(() => {
+    const needle = q.trim().toLowerCase();
+    return rows.filter((p) => {
+      if (needle && !`${p.code} ${p.offer} ${p.channel ?? ""}`.toLowerCase().includes(needle)) {
+        return false;
+      }
+      const expired = p.expires_at ? new Date(p.expires_at) < new Date() : false;
+      if (state === "active" && (!p.active || expired)) return false;
+      if (state === "inactive" && p.active && !expired) return false;
+      return true;
+    });
+  }, [rows, q, state]);
+
+  const totalRedeemed = rows.reduce((a, p) => a + Number(p.redeemed), 0);
 
   return (
     <>
       <PageHead
         title="Promo codes"
-        sub="For campaigns, conferences and win-backs. Each code reports its own signups and revenue."
-      >
-        <Btn variant="primary" onClick={() => setCreating(true)}>
-          + New code
-        </Btn>
-      </PageHead>
+        sub="Every promotion code live in Stripe, with how many times each has been redeemed."
+      />
 
-      <Card>
-        {rows.length === 0 ? (
-          <EmptyState
-            title="No promo codes yet"
-            body="Create one here, then mirror it as a promotion code in Stripe so checkout actually accepts it."
-            action={
-              <Btn variant="primary" onClick={() => setCreating(true)}>
-                New code
-              </Btn>
-            }
-          />
-        ) : (
-          <Table>
-            <thead>
-              <tr className="text-left">
-                <Th>Code</Th>
-                <Th>Offer</Th>
-                <Th>Where it&apos;s used</Th>
-                <Th align="right">Redeemed</Th>
-                <Th align="right">Revenue</Th>
-                <Th>Expires</Th>
-                <Th>Status</Th>
-                <Th />
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((p) => (
-                <Tr key={p.id}>
-                  <Td>
-                    <span className="font-mono font-semibold text-xs" style={{ color: C.ink }}>
-                      {p.code}
-                    </span>
-                  </Td>
-                  <Td>{p.offer}</Td>
-                  <Td>
-                    <span className="text-xs" style={{ color: C.ink2 }}>
-                      {p.channel ?? "—"}
-                    </span>
-                  </Td>
-                  <Td align="right" mono>
-                    {nf.format(Number(p.redeemed))}
-                  </Td>
-                  <Td align="right" mono>
-                    {gbp(Number(p.revenue_gbp))}
-                  </Td>
-                  <Td>
-                    <span className="text-xs">{p.expires_at ? fmtDate(p.expires_at) : "—"}</span>
-                  </Td>
-                  <Td>
-                    <StatusTag status={p.status} />
-                  </Td>
-                  <Td align="right">
-                    <Btn size="sm" onClick={() => setEditing(p)}>
-                      Edit
-                    </Btn>
-                  </Td>
-                </Tr>
-              ))}
-            </tbody>
-          </Table>
-        )}
-        <CardFooter>
-          Redemption and revenue are recorded against the matching Stripe promotion code.
-          Creating a code here does not create it in Stripe.
-        </CardFooter>
-      </Card>
-
-      {(creating || editing) && (
-        <PromoModal
-          promo={editing}
-          onClose={() => {
-            setCreating(false);
-            setEditing(null);
-          }}
-          onSaved={(msg) => {
-            fire(msg);
-            router.refresh();
-          }}
-        />
+      {error ? (
+        <Note tone="danger">
+          <b>Could not reach Stripe.</b> {error}
+        </Note>
+      ) : (
+        <Note>
+          Codes are created and edited <b>in Stripe</b>, which is what validates them at
+          checkout. This page reads them live — there is no separate copy here to fall out of
+          step. Set a <code>channel</code> key in a code&apos;s Stripe metadata to label where
+          it&apos;s being used.
+        </Note>
       )}
-      {toastNode}
-    </>
-  );
-}
 
-function PromoModal({
-  promo,
-  onClose,
-  onSaved,
-}: {
-  promo: PromoRow | null;
-  onClose: () => void;
-  onSaved: (msg: string) => void;
-}) {
-  const [code, setCode] = useState(promo?.code ?? "");
-  const [offer, setOffer] = useState(promo?.offer ?? "");
-  const [channel, setChannel] = useState(promo?.channel ?? "");
-  const [expiresAt, setExpiresAt] = useState(promo?.expires_at ?? "");
-  const [status, setStatus] = useState(promo?.status === "expired" ? "draft" : (promo?.status ?? "draft"));
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+      <div className="mt-4">
+        <Card>
+          <FilterBar>
+            <input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Code, offer or channel"
+              className={inputClass}
+              style={{ ...inputStyle, minWidth: 230 }}
+            />
+            <select
+              value={state}
+              onChange={(e) => setState(e.target.value)}
+              className={inputClass}
+              style={inputStyle}
+            >
+              <option value="">Any state</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive or expired</option>
+            </select>
+            <div className="flex-1" />
+            <Tag>{nf.format(filtered.length)} shown</Tag>
+          </FilterBar>
 
-  const submit = async () => {
-    setSaving(true);
-    setError(null);
-    const supabase = createClient();
-    const { error: e } = await supabase.rpc("admin_upsert_promo", {
-      payload: {
-        id: promo?.id ?? null,
-        code,
-        offer,
-        channel,
-        expires_at: expiresAt || null,
-        status,
-      },
-    });
-    setSaving(false);
-    if (e) {
-      setError(e.message);
-      return;
-    }
-    onSaved(`${code.toUpperCase()} saved.`);
-    onClose();
-  };
+          {filtered.length === 0 ? (
+            <EmptyState
+              title={rows.length === 0 ? "No promotion codes in Stripe" : "Nothing matches that"}
+              body={
+                rows.length === 0
+                  ? "Create a coupon and a promotion code in the Stripe dashboard and it will appear here. Checkout already accepts them — allow_promotion_codes is on."
+                  : "Try clearing a filter."
+              }
+            />
+          ) : (
+            <Table>
+              <thead>
+                <tr className="text-left">
+                  <Th>Code</Th>
+                  <Th>Offer</Th>
+                  <Th>Where it&apos;s used</Th>
+                  <Th align="right">Redeemed</Th>
+                  <Th>Expires</Th>
+                  <Th>State</Th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((p) => {
+                  const expired = p.expires_at ? new Date(p.expires_at) < new Date() : false;
+                  const capped =
+                    p.max_redemptions != null && p.redeemed >= p.max_redemptions;
+                  return (
+                    <Tr key={p.id}>
+                      <Td>
+                        <span
+                          className="font-mono font-semibold text-xs"
+                          style={{ color: C.ink }}
+                        >
+                          {p.code}
+                        </span>
+                      </Td>
+                      <Td>
+                        <span style={{ color: C.ink }}>{p.offer}</span>
+                        {p.applies_to_products > 0 && (
+                          <div className="text-xs" style={{ color: C.muted }}>
+                            Limited to {p.applies_to_products} product
+                            {p.applies_to_products === 1 ? "" : "s"}
+                          </div>
+                        )}
+                      </Td>
+                      <Td>
+                        <span className="text-xs" style={{ color: C.ink2 }}>
+                          {p.channel ?? (
+                            <span style={{ color: C.muted }}>Not tagged</span>
+                          )}
+                        </span>
+                      </Td>
+                      <Td align="right" mono>
+                        {nf.format(Number(p.redeemed))}
+                        {p.max_redemptions != null && (
+                          <span style={{ color: C.muted }}> / {nf.format(p.max_redemptions)}</span>
+                        )}
+                      </Td>
+                      <Td>
+                        <span className="text-xs">
+                          {p.expires_at ? fmtDate(p.expires_at) : "—"}
+                        </span>
+                      </Td>
+                      <Td>
+                        {expired ? (
+                          <Tag tone="plain" dot>
+                            Expired
+                          </Tag>
+                        ) : capped ? (
+                          <Tag tone="warn" dot>
+                            Fully redeemed
+                          </Tag>
+                        ) : p.active ? (
+                          <Tag tone="ok" dot>
+                            Active
+                          </Tag>
+                        ) : (
+                          <Tag tone="plain" dot>
+                            Inactive
+                          </Tag>
+                        )}
+                      </Td>
+                    </Tr>
+                  );
+                })}
+              </tbody>
+            </Table>
+          )}
 
-  return (
-    <Modal
-      title={promo ? `Edit ${promo.code}` : "New promo code"}
-      onClose={onClose}
-      footer={
-        <>
-          <Btn onClick={onClose}>Cancel</Btn>
-          <Btn variant="primary" onClick={submit} disabled={saving || !code.trim()}>
-            {saving ? "Saving…" : "Save code"}
-          </Btn>
-        </>
-      }
-    >
-      <Field label="Code" help="Upper-cased automatically. Must match the Stripe promotion code.">
-        <input
-          value={code}
-          onChange={(e) => setCode(e.target.value.toUpperCase())}
-          placeholder="BACKTOSCHOOL"
-          disabled={!!promo}
-          className={fieldClass}
-          style={fieldStyle}
-        />
-      </Field>
-      <Field label="Offer">
-        <input
-          value={offer}
-          onChange={(e) => setOffer(e.target.value)}
-          placeholder="50% off 3 months"
-          className={fieldClass}
-          style={fieldStyle}
-        />
-      </Field>
-      <Field label="Where it's used">
-        <input
-          value={channel}
-          onChange={(e) => setChannel(e.target.value)}
-          placeholder="Meta + TikTok, August"
-          className={fieldClass}
-          style={fieldStyle}
-        />
-      </Field>
-      <div className="grid gap-x-4 sm:grid-cols-2">
-        <Field label="Expires">
-          <input
-            type="date"
-            value={expiresAt}
-            onChange={(e) => setExpiresAt(e.target.value)}
-            className={fieldClass}
-            style={fieldStyle}
-          />
-        </Field>
-        <Field label="Status">
-          <select
-            value={status}
-            onChange={(e) => setStatus(e.target.value)}
-            className={fieldClass}
-            style={fieldStyle}
-          >
-            <option value="draft">Draft</option>
-            <option value="live">Live</option>
-          </select>
-        </Field>
+          <CardFooter>
+            {rows.length > 0 && (
+              <>
+                {nf.format(rows.length)} code{rows.length === 1 ? "" : "s"} ·{" "}
+                {nf.format(totalRedeemed)} total redemption
+                {totalRedeemed === 1 ? "" : "s"} · read live from Stripe
+              </>
+            )}
+          </CardFooter>
+        </Card>
       </div>
-
-      <Note tone="warn">
-        This records the campaign for reporting. The code still has to exist as a promotion
-        code in Stripe — checkout already passes <code>allow_promotion_codes</code>, so once
-        it&apos;s created there it will be accepted.
-      </Note>
-
-      {error && (
-        <p className="text-sm mt-2" style={{ color: C.danger }}>
-          {error}
-        </p>
-      )}
-    </Modal>
+    </>
   );
 }
