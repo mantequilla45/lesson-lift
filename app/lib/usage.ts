@@ -117,7 +117,13 @@ export async function recordUsage(
   step?: string | null,
   userId?: string | null,
 ): Promise<void> {
-  if (!usage) return;
+  if (!usage) {
+    // Not silent: without a usage payload there is no row, so a generation
+    // goes unmetered. Most often means OpenAI's include_usage chunk never
+    // arrived (aborted stream, or a caller that forgot stream_options).
+    console.warn(`[usage] no usage payload for ${toolSlug} — token_usage row dropped`);
+    return;
+  }
   try {
     const uid = userId ?? (await currentUserId());
     if (!uid) {
@@ -264,8 +270,17 @@ export async function streamChat({ toolSlug, ...params }: StreamParams): Promise
       } catch (err) {
         controller.error(err);
       } finally {
-        controller.close();
+        // ORDER MATTERS: record BEFORE closing the stream.
+        //
+        // controller.close() tells the platform the response is complete, and
+        // Vercel may freeze or reclaim the instance from that moment. Anything
+        // awaited afterwards can simply never run — the write is suspended
+        // mid-flight and the request logs clean, with no row and no error.
+        //
+        // The user has already received every token by this point, so the extra
+        // few ms before close costs them nothing.
         await recordUsage(toolSlug, params.model, usage, null, userId);
+        controller.close();
       }
     },
     cancel() {
