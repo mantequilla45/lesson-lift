@@ -1264,7 +1264,10 @@ export async function POST(req: NextRequest) {
         // Persist the exact text-call usage to the report table (images/audio are
         // priced per-unit, not per-token, so they're excluded here). Fire-and-
         // forget — recordUsage never throws and lots of work still follows.
-        void recordUsage("generate-slideshow", "gpt-4o-2024-08-06", chatUsage, "Deck text");
+        // user.id is passed explicitly: these writes happen inside the SSE
+        // stream, after the response was handed off, where the request's cookie
+        // context is gone and the user can no longer be resolved.
+        void recordUsage("generate-slideshow", "gpt-4o-2024-08-06", chatUsage, "Deck text", user.id);
 
         // Local aliases to keep the audio/video code below readable.
         const parsed = { title: parser.title ?? body.topic, slides: allAi };
@@ -1451,7 +1454,7 @@ export async function POST(req: NextRequest) {
         // can break the deck down per slide. (Audio is recorded by the
         // generate-audio route itself, so it's not double-counted here.)
         for (const [slideTitle, v] of Object.entries(imageCostBySlide)) {
-          void recordAssetCost("generate-slideshow", "image", v.count, v.usd, "Images", slideTitle);
+          void recordAssetCost("generate-slideshow", "image", v.count, v.usd, "Images", slideTitle, user.id);
         }
 
         // Per-slideshow cost lens: one row per generated deck (its title + all-in
@@ -1465,18 +1468,21 @@ export async function POST(req: NextRequest) {
           const imageRows = Object.entries(imageCostBySlide)
             .map(([label, v]) => ({ label, cost_usd: Number(v.usd.toFixed(6)), count: v.count }))
             .sort((a, b) => b.cost_usd - a.cost_usd);
-          void recordSlideCosts([
-            {
-              slideLabel: deckTitle,
-              costUsd: deckTotal,
-              breakdown: {
-                text: Number(textCostUsd.toFixed(6)),
-                audio: Number(audioCostUsd.toFixed(6)),
-                youtube: Number(youtubeCostUsd.toFixed(6)),
-                images: imageRows,
+          void recordSlideCosts(
+            [
+              {
+                slideLabel: deckTitle,
+                costUsd: deckTotal,
+                breakdown: {
+                  text: Number(textCostUsd.toFixed(6)),
+                  audio: Number(audioCostUsd.toFixed(6)),
+                  youtube: Number(youtubeCostUsd.toFixed(6)),
+                  images: imageRows,
+                },
               },
-            },
-          ]);
+            ],
+            user.id,
+          );
         }
 
         // ── Full cost summary ─────────────────────────────────────────────
