@@ -7,63 +7,38 @@ import { ArrowLeft } from "lucide-react";
 import { PLANS } from "@/app/lib/plans";
 
 const MONTHLY_PRO = PLANS.pro.priceMonthly ?? 7.99;
-const YEARLY_PRO = PLANS.pro.priceYearlyPerMonth ?? 6.58;
-const MONTHLY_MAX = PLANS.max.priceMonthly ?? 14.99;
-const YEARLY_MAX = PLANS.max.priceYearlyPerMonth ?? 12.42;
 
 const FREE_FEATURES = [
-  "5 AI generations per month",
+  "1 generation a day, 5 a month",
   "Basic lesson format",
   "Limited curriculum alignment",
   "Watermarked export",
 ];
 
+// NB: "unlimited" would be a promise we don't keep — Pro carries a monthly
+// fair-use allowance and blocks (with a top-up offer) when it runs out.
 const PRO_FEATURES = [
-  "Unlimited AI generations",
-  "Full curriculum alignment",
-  "Limited curriculum alignment",
-  "Editable outputs",
-  "PDF & DOC export",
-  "Save library",
-  "Priority support",
-];
-
-const MAX_FEATURES = [
-  "Everything in Pro",
-  "Unlimited AI generations",
+  "Generate as you need, fair use",
+  "Top up any time if you run out",
   "Full curriculum alignment",
   "Editable outputs",
   "PDF & DOC export",
   "Save library",
   "Priority support",
-];
-
-const SCHOOL_FEATURES = [
-  "Multi-user accounts",
-  "Shared resource library",
-  "Admin dashboard",
-  "Usage analytics",
-  "School branding",
-  "Central billing",
 ];
 
 export default function PricingPage() {
   const router = useRouter();
-  const [yearly, setYearly] = useState(true);
-  const [upgradingPlan, setUpgradingPlan] = useState<"pro" | "max" | null>(null);
+  const [upgrading, setUpgrading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const proPrice = yearly ? YEARLY_PRO : MONTHLY_PRO;
-  const maxPrice = yearly ? YEARLY_MAX : MONTHLY_MAX;
 
-  async function handleUpgrade(plan: "pro" | "max") {
-    setUpgradingPlan(plan);
+  async function handleUpgrade() {
+    setUpgrading(true);
     setError(null);
     try {
-      const res = await fetch("/api/stripe/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan, interval: yearly ? "yearly" : "monthly" }),
-      });
+      // Billing is monthly-only, and the route sells exactly one thing, so the
+      // request needs no body.
+      const res = await fetch("/api/stripe/checkout", { method: "POST" });
       if (res.status === 401) {
         router.push("/login?next=/pricing");
         return;
@@ -77,7 +52,7 @@ export default function PricingPage() {
     } catch {
       setError("Network error. Please try again.");
     } finally {
-      setUpgradingPlan(null);
+      setUpgrading(false);
     }
   }
 
@@ -101,37 +76,8 @@ export default function PricingPage() {
           </p>
         </div>
 
-        {/* Toggle */}
-        <div className="flex justify-center mb-6">
-          <div
-            className="flex items-center gap-1 p-1 rounded-full"
-            style={{ backgroundColor: "#E8E5D8" }}
-          >
-            <button
-              onClick={() => setYearly(false)}
-              className="px-5 py-1.5 rounded-full text-sm font-medium transition-all"
-              style={{
-                backgroundColor: !yearly ? "#1a1a1a" : "transparent",
-                color: !yearly ? "#fff" : "#6b6055",
-              }}
-            >
-              Monthly
-            </button>
-            <button
-              onClick={() => setYearly(true)}
-              className="px-5 py-1.5 rounded-full text-sm font-medium transition-all"
-              style={{
-                backgroundColor: yearly ? "#1a1a1a" : "transparent",
-                color: yearly ? "#fff" : "#6b6055",
-              }}
-            >
-              Yearly -17%
-            </button>
-          </div>
-        </div>
-
         {/* Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-3xl mx-auto">
 
           {/* Free */}
           <PlanCard
@@ -157,13 +103,13 @@ export default function PricingPage() {
             badge="Pro Teacher"
             badgeBg="#FAD4C8"
             badgeInk="#c25034"
-            price={`£${proPrice}`}
+            price={`£${MONTHLY_PRO}`}
             priceSuffix="/month"
             cardBg="#FDE8E1"
             cardBorder="#F7D3C7"
-            cta={upgradingPlan === "pro" ? "Starting checkout…" : "Unlock Unlimited"}
-            onCtaClick={() => handleUpgrade("pro")}
-            ctaDisabled={upgradingPlan !== null}
+            cta={upgrading ? "Starting checkout…" : "Go Pro"}
+            onCtaClick={handleUpgrade}
+            ctaDisabled={upgrading}
             ctaBg="#E0463F"
             ctaInk="#fff"
             features={PRO_FEATURES}
@@ -172,50 +118,25 @@ export default function PricingPage() {
             bulletInk="#3a1a10"
           />
 
-          {/* Max Teacher */}
-          <PlanCard
-            badge="Max Teacher"
-            badgeBg="#E5DBFA"
-            badgeInk="#6B4FD8"
-            price={`£${maxPrice}`}
-            priceSuffix="/month"
-            cardBg="#F1EDFD"
-            cardBorder="#DDD1F7"
-            cta={upgradingPlan === "max" ? "Starting checkout…" : "Go Max"}
-            onCtaClick={() => handleUpgrade("max")}
-            ctaDisabled={upgradingPlan !== null}
-            ctaBg="#6B4FD8"
-            ctaInk="#fff"
-            features={MAX_FEATURES}
-            featureInk="#2f2050"
-            includesInk="#1a1a1a"
-            bulletInk="#2f2050"
-          />
-
-          {/* School */}
-          <PlanCard
-            badge="School Plan"
-            badgeBg="#D2D9F7"
-            badgeInk="#3a50b8"
-            price="Custom pricing"
-            cardBg="#E5E9FB"
-            cardBorder="#C8D0F5"
-            cta="Contact Sales"
-            ctaHref="mailto:sales@jooma.ai"
-            ctaBg="#3B6FF5"
-            ctaInk="#fff"
-            features={SCHOOL_FEATURES}
-            featureInk="#1a2050"
-            includesInk="#1a1a1a"
-            bulletInk="#1a2050"
-          />
-
         </div>
 
         {/* Checkout error */}
         {error && (
           <p className="text-center text-sm mt-4" style={{ color: "#c2342b" }}>{error}</p>
         )}
+
+        {/* Schools are sold hands-on, not self-serve. */}
+        <p className="text-center text-sm mt-6" style={{ color: "#8a8078" }}>
+          Running a whole school?{" "}
+          <a
+            href="mailto:sales@jooma.ai"
+            className="font-semibold underline transition-opacity hover:opacity-70"
+            style={{ color: "#1a1a1a" }}
+          >
+            Talk to us
+          </a>{" "}
+          about school pricing.
+        </p>
 
         {/* Back */}
         <div className="flex justify-center mt-6">

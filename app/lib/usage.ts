@@ -105,10 +105,15 @@ export async function recordAssetCost(
 
 /** Cost components of one generated deck — the split shown when an admin expands
  *  a slideshow on the Usage detail page. `images` is one entry per slide that
- *  used AI images. `text + audio + Σimages` equals the deck's all-in cost. */
+ *  used AI images. `text + audio + youtube + Σimages` equals the deck's all-in
+ *  cost.
+ *
+ *  `youtube` is optional because decks recorded before it was tracked have no
+ *  such key; read it as `youtube ?? 0`. */
 export interface SlideCostBreakdown {
   text: number;
   audio: number;
+  youtube?: number;
   images: { label: string; cost_usd: number; count: number }[];
 }
 

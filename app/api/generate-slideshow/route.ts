@@ -4,7 +4,12 @@ import { getOpenAI } from "@/app/lib/openai";
 import { renderSlide, type SlideSpec, type SlideLayout } from "@/app/lib/slideshow-layouts";
 import { getTheme, DEFAULT_ART_STYLE, type ArtStyleId } from "@/app/lib/slideshowThemes";
 import { generateAIImage, type ImageStyle, type AIImageOrientation } from "@/app/lib/ai-image";
-import { recordUsage, recordAssetCost, recordSlideCosts } from "@/app/lib/usage";
+import { recordUsage, recordAssetCost, recordSlideCosts, costUsd } from "@/app/lib/usage";
+import {
+  checkAllGates,
+  quotaBlockBody,
+  QUOTA_BLOCK_HEADERS,
+} from "@/app/lib/generation-guard";
 import type { SlideJSON } from "@/app/lib/presentations";
 
 export const maxDuration = 120; // AI image gen can push past the default
@@ -745,6 +750,19 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  // Same reason: the proxy can't gate this route, so the quota check happens
+  // here. It MUST stay before the SSE stream opens — once we start streaming we
+  // can no longer return a status code the client can act on. A deck is the
+  // most expensive thing the product makes, so leaving it ungated would let a
+  // capped account spend freely.
+  const quota = await checkAllGates(supabase, { countsAsGeneration: true });
+  if (quota) {
+    return NextResponse.json(quotaBlockBody(quota), {
+      status: 402,
+      headers: QUOTA_BLOCK_HEADERS,
+    });
+  }
+
   let body: RequestBody;
   try {
     body = await req.json();
@@ -1238,14 +1256,11 @@ export async function POST(req: NextRequest) {
             slideTitles: [...allAi.map((s) => s.title), ...extraTitles],
           });
         }
-        // gpt-4o-2024-08-06 pricing (USD per 1M tokens). UPDATE if OpenAI
-        // changes pricing: https://openai.com/api/pricing/
-        const GPT4O_INPUT_PER_1M = 2.5;   // $/1M prompt tokens
-        const GPT4O_OUTPUT_PER_1M = 10.0; // $/1M completion tokens
-        const textCostUsd = chatUsage
-          ? (chatUsage.prompt_tokens / 1_000_000) * GPT4O_INPUT_PER_1M +
-            (chatUsage.completion_tokens / 1_000_000) * GPT4O_OUTPUT_PER_1M
-          : 0;
+        // Priced through the shared table in lib/usage.ts rather than local
+        // constants, so this figure can't drift from what recordUsage() writes
+        // to token_usage — and so cached prompt tokens get their discount
+        // instead of being billed at the full input rate.
+        const textCostUsd = chatUsage ? costUsd("gpt-4o-2024-08-06", chatUsage) : 0;
         // Persist the exact text-call usage to the report table (images/audio are
         // priced per-unit, not per-token, so they're excluded here). Fire-and-
         // forget — recordUsage never throws and lots of work still follows.
@@ -1260,6 +1275,13 @@ export async function POST(req: NextRequest) {
         // settles. It used to run dead last, so a stream cut during the long
         // image wait left the video stuck on its pending placeholder. Starting
         // it here makes it persist early. Awaited again before "complete".
+        // Folded into the deck total below. The YouTube query-refinement call
+        // records its own token_usage row (attributed to this tool with
+        // step='YouTube'), but the per-deck slide_cost rollup is assembled from
+        // these local variables — so without capturing it here, every deck with
+        // a video under-reported its own cost.
+        let youtubeCostUsd = 0;
+
         const videoTask: Promise<void> = (async () => {
           if (!(body.includeYouTube && videoIndex !== undefined)) return;
           try {
@@ -1286,8 +1308,9 @@ export async function POST(req: NextRequest) {
             if (ytRes.ok) {
               const yt: {
                 videoId: string; title: string; channel: string; description: string;
-                slideHeading?: string; slideSubtitle?: string;
+                slideHeading?: string; slideSubtitle?: string; costUsd?: number;
               } = await ytRes.json();
+              youtubeCostUsd = yt.costUsd ?? 0;
               send("video", {
                 index: videoIndex,
                 headingColor: theme.palette.headingColor ?? theme.palette.accent,
@@ -1436,7 +1459,9 @@ export async function POST(req: NextRequest) {
         // what it cost, and where that cost came from (text / images / audio).
         {
           const deckTitle = parsed.title?.trim() || body.topic?.trim() || "Untitled slideshow";
-          const deckTotal = textCostUsd + imageCost.usd + audioCostUsd;
+          // text + audio + youtube + Σimages — every component of the deck, so
+          // the stored total reconciles exactly with its own breakdown.
+          const deckTotal = textCostUsd + imageCost.usd + audioCostUsd + youtubeCostUsd;
           const imageRows = Object.entries(imageCostBySlide)
             .map(([label, v]) => ({ label, cost_usd: Number(v.usd.toFixed(6)), count: v.count }))
             .sort((a, b) => b.cost_usd - a.cost_usd);
@@ -1447,6 +1472,7 @@ export async function POST(req: NextRequest) {
               breakdown: {
                 text: Number(textCostUsd.toFixed(6)),
                 audio: Number(audioCostUsd.toFixed(6)),
+                youtube: Number(youtubeCostUsd.toFixed(6)),
                 images: imageRows,
               },
             },
@@ -1461,7 +1487,7 @@ export async function POST(req: NextRequest) {
           const modelBreakdown = Object.entries(imageCost.byModel)
             .map(([k, n]) => `${n}×${k}`)
             .join(", ");
-          const total = textCostUsd + imageCost.usd + audioCostUsd;
+          const total = textCostUsd + imageCost.usd + audioCostUsd + youtubeCostUsd;
           console.log(
             `[generate-slideshow] COST topic="${body.topic}" | ` +
             (chatUsage
@@ -1469,6 +1495,7 @@ export async function POST(req: NextRequest) {
               : `gpt-4o usage n/a | `) +
             `images ${imageCost.count} (~$${imageCost.usd.toFixed(4)} est${modelBreakdown ? `: ${modelBreakdown}` : ""}) | ` +
             `audio $${audioCostUsd.toFixed(4)} | ` +
+            `youtube $${youtubeCostUsd.toFixed(4)} | ` +
             `TOTAL ~$${total.toFixed(4)}`,
           );
         }

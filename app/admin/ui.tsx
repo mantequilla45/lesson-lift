@@ -255,6 +255,7 @@ export const STATUS_TONE: Record<string, { tone: Tone; label: string }> = {
   failed: { tone: "danger", label: "Failed" },
   refunded: { tone: "plain", label: "Refunded" },
   draft: { tone: "plain", label: "Draft" },
+  retired: { tone: "plain", label: "Retired" },
   review: { tone: "warn", label: "Needs review" },
   confirmed: { tone: "danger", label: "Confirmed" },
   cleared: { tone: "ok", label: "Cleared" },

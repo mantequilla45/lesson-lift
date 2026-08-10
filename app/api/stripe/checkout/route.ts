@@ -1,19 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/app/lib/auth/server";
-import { stripe, priceIdFor, type BillingInterval, type PaidPlanId } from "@/app/lib/stripe";
+import { stripe, priceIdFor } from "@/app/lib/stripe";
 
-// Creates a Stripe Checkout Session for a self-serve paid plan (Pro or Max)
-// and returns its URL. The browser redirects to it; payment success is
-// confirmed asynchronously by the webhook (route below), not here — never
-// grant access from this route.
+// Creates a Stripe Checkout Session for Pro and returns its URL. The browser
+// redirects to it; payment success is confirmed asynchronously by the webhook,
+// not here — never grant access from this route.
+//
+// There is exactly one thing to buy: Pro, monthly. No plan or interval is read
+// from the request body, so a crafted request can't select anything else.
 export async function POST(req: NextRequest) {
-  const body = (await req.json().catch(() => ({}))) as {
-    interval?: BillingInterval;
-    plan?: string;
-  };
-  const interval: BillingInterval = body.interval === "monthly" ? "monthly" : "yearly";
-  const plan: PaidPlanId = body.plan === "max" ? "max" : "pro";
-
   const supabase = await createClient();
   const {
     data: { user },
@@ -37,7 +32,7 @@ export async function POST(req: NextRequest) {
   try {
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
-      line_items: [{ price: priceIdFor(plan, interval), quantity: 1 }],
+      line_items: [{ price: priceIdFor("pro"), quantity: 1 }],
       // Lets the webhook tie the resulting subscription back to our user.
       client_reference_id: user.id,
       subscription_data: { metadata: { userId: user.id } },

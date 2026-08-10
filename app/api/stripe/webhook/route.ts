@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import type Stripe from "stripe";
 import { stripe, planForPriceId } from "@/app/lib/stripe";
 import { supabaseAdmin } from "@/app/lib/supabase-admin";
-import { DEFAULT_PLAN } from "@/app/lib/plans";
+import { DEFAULT_PLAN, TOPUP_PENCE } from "@/app/lib/plans";
 
 // Stripe → app sync. This is the ONLY place a user's plan is upgraded/downgraded
 // from payment state. It runs with the service-role key (no user session) and
@@ -64,6 +64,95 @@ async function syncSubscription(sub: Stripe.Subscription) {
     .eq("id", userId);
 
   if (error) console.error("[stripe/webhook] profile update failed", error);
+}
+
+// ── AI credit top-ups ────────────────────────────────────────────────────────
+
+/** End of the current month, UTC — when purchased credit expires. Matches the
+ *  convention in admin_grant_allowance(): credit tops up the month it was
+ *  bought in and never rolls over. */
+function endOfMonthIso(): string {
+  const now = new Date();
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1)).toISOString();
+}
+
+/**
+ * Grant £1.50 of AI credit for a completed one-off Checkout session.
+ *
+ * IDEMPOTENCY: Stripe retries on any non-2xx, and this handler deliberately
+ * returns 500 on failure to invite those retries — so this must not grant twice
+ * for one payment. The `topup_purchases` insert is the gate: its
+ * `stripe_payment_intent_id` column is UNIQUE, so a retry loses the race and
+ * hits 23505, and we return before touching the grant.
+ *
+ * The write ORDER is therefore load-bearing: purchase row first, then the
+ * grant, then the invoice mirror. Do not reorder these — `invoices` has no
+ * unique key that would stop a duplicate on its own.
+ */
+async function grantTopUpCredit(session: Stripe.Checkout.Session) {
+  const paymentIntentId =
+    typeof session.payment_intent === "string"
+      ? session.payment_intent
+      : session.payment_intent?.id;
+
+  // Without a PaymentIntent there is no idempotency key, so granting could
+  // double up on a retry. Skip rather than risk it.
+  if (!paymentIntentId) {
+    console.warn("[stripe/webhook] top-up session has no payment_intent", session.id);
+    return;
+  }
+
+  const userId = session.metadata?.userId ?? session.client_reference_id;
+  if (!userId) {
+    console.warn("[stripe/webhook] top-up session has no userId", session.id);
+    return;
+  }
+
+  const amountPence = session.amount_total ?? TOPUP_PENCE;
+
+  // 1. Idempotency gate.
+  const { error: purchaseErr } = await supabaseAdmin.from("topup_purchases").insert({
+    user_id: userId,
+    // Not a topup_packs purchase — packs are unit-denominated (N resources,
+    // N images) and a GBP credit doesn't fit that shape. pack_id is nullable.
+    pack_id: null,
+    kind: "credit_gbp",
+    units: amountPence, // pence, matching allowance_grants.amount for this kind
+    price_gbp: toMajor(amountPence),
+    stripe_payment_intent_id: paymentIntentId,
+  });
+  if (purchaseErr) {
+    if (purchaseErr.code === "23505") return; // already processed — not an error
+    throw purchaseErr; // 500 → Stripe retries
+  }
+
+  // 2. The credit itself. `amount` is PENCE for kind='credit_gbp'.
+  const { error: grantErr } = await supabaseAdmin.from("allowance_grants").insert({
+    user_id: userId,
+    kind: "credit_gbp",
+    amount: amountPence,
+    reason: "Purchased AI credit top-up",
+    granted_by: null, // bought, not granted by an admin
+    expires_at: endOfMonthIso(),
+  });
+  if (grantErr) throw grantErr;
+
+  // 3. Local mirror so the charge shows in billing views without a Stripe trip.
+  const { error: invoiceErr } = await supabaseAdmin.from("invoices").insert({
+    reference: session.id,
+    user_id: userId,
+    type: "topup",
+    amount_gbp: toMajor(amountPence),
+    status: "paid",
+    paid_at: new Date().toISOString(),
+    method: "Card · AI credit top-up",
+  });
+  if (invoiceErr) {
+    // The credit is already granted, which is what the customer paid for.
+    // Don't throw: a retry would hit the purchase gate and skip the grant,
+    // leaving this row missing anyway. Log it for manual reconciliation.
+    console.error("[stripe/webhook] top-up invoice mirror failed", invoiceErr);
+  }
 }
 
 // ── Invoice mirroring ────────────────────────────────────────────────────────
@@ -203,6 +292,10 @@ export async function POST(req: NextRequest) {
             sub.metadata = { ...sub.metadata, userId: session.client_reference_id };
           }
           await syncSubscription(sub);
+        } else if (session.mode === "payment" && session.metadata?.kind === "credit_topup") {
+          // One-off £1.50 AI credit. No subscription is involved, so this grants
+          // an allowance row rather than changing the plan.
+          await grantTopUpCredit(session);
         }
         break;
       }

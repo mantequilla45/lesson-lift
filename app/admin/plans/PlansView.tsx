@@ -101,7 +101,30 @@ export default function PlansView({
             <Card key={p.plan_id}>
               <CardHeader>
                 <div className="flex-1">
-                  <CardTitle>{p.name}</CardTitle>
+                  <CardTitle>
+                    {p.name}
+                    {/* Not sellable yet — seats, pooled allowances and central
+                        billing are unimplemented, so nothing here is enforced
+                        at runtime. Editable so the numbers can be modelled. */}
+                    {p.plan_id === "school" && (
+                      <span
+                        className="ml-2 text-xs font-semibold px-2 py-0.5 rounded-full align-middle"
+                        style={{ backgroundColor: "#FDE8C8", color: "#b07a1e" }}
+                      >
+                        WIP
+                      </span>
+                    )}
+                    {/* Withdrawn from sale. Kept so existing accounts resolve
+                        limits and admin MRR still counts them. */}
+                    {p.plan_id === "max" && (
+                      <span
+                        className="ml-2 text-xs font-semibold px-2 py-0.5 rounded-full align-middle"
+                        style={{ backgroundColor: "#EEECE4", color: "#8a8078" }}
+                      >
+                        Withdrawn
+                      </span>
+                    )}
+                  </CardTitle>
                   <p className="text-xs" style={{ color: C.muted }}>
                     {p.audience === "school" ? "Schools" : "Teachers"}
                   </p>
