@@ -70,13 +70,26 @@ export default async function BillingPage({
           Manage your Jooma subscription.
         </p>
 
-        {checkout === "success" && (
+        {/* The plan is granted by the Stripe webhook, which lands a moment after
+            this redirect — so `plan` here is usually still the OLD one. Naming
+            it would congratulate the user on the plan they just paid to leave.
+            Report only what we know: the payment went through. */}
+        {checkout === "success" && plan === "free" && (
+          <div
+            className="rounded-xl px-4 py-3 mb-5 text-sm font-medium"
+            style={{ backgroundColor: "#FDF0D5", color: "#8a6d1f" }}
+          >
+            Payment received — activating your plan. This usually takes a few
+            seconds; refresh the page to check.
+          </div>
+        )}
+
+        {checkout === "success" && plan !== "free" && (
           <div
             className="rounded-xl px-4 py-3 mb-5 text-sm font-medium"
             style={{ backgroundColor: "#DDF0E2", color: "#1f6b3b" }}
           >
-            Payment received — welcome to {planName}! Your plan may take a
-            few seconds to activate.
+            Payment received — welcome to {planName}!
           </div>
         )}
 
