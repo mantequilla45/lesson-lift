@@ -97,8 +97,23 @@ export default function PlansView({
             chargeOverheads: p.plan_id !== "free",
           });
 
+          // School is not a shippable plan yet: seats, pooled allowances and
+          // central billing are unimplemented, there is no Stripe price, and
+          // nothing reads plan_config.school at runtime. Greyed out and
+          // non-editable so it can't be mistaken for part of the live product
+          // or edited into a false sense of being configured.
+          const notShipped = p.plan_id === "school";
+
           return (
             <Card key={p.plan_id}>
+              <div
+                style={{
+                  opacity: notShipped ? 0.55 : 1,
+                  filter: notShipped ? "grayscale(1)" : undefined,
+                  pointerEvents: notShipped ? "none" : undefined,
+                }}
+                aria-disabled={notShipped || undefined}
+              >
               <CardHeader>
                 <div className="flex-1">
                   <CardTitle>
@@ -106,12 +121,14 @@ export default function PlansView({
                     {/* Not sellable yet — seats, pooled allowances and central
                         billing are unimplemented, so nothing here is enforced
                         at runtime. Editable so the numbers can be modelled. */}
-                    {p.plan_id === "school" && (
+                    {notShipped && (
                       <span
                         className="ml-2 text-xs font-semibold px-2 py-0.5 rounded-full align-middle"
-                        style={{ backgroundColor: "#FDE8C8", color: "#b07a1e" }}
+                        // Deliberately high-contrast: the card around it is
+                        // greyscaled, so a pale badge would disappear.
+                        style={{ backgroundColor: "#3a3a3a", color: "#fff" }}
                       >
-                        WIP
+                        NOT BUILT YET
                       </span>
                     )}
                     {/* Withdrawn from sale. Kept so existing accounts resolve
@@ -202,10 +219,17 @@ export default function PlansView({
                   </b>
                 </div>
               </CardBody>
+              </div>
               <CardFooter>
-                <Btn size="sm" onClick={() => setEditing(p)}>
-                  Edit
-                </Btn>
+                {notShipped ? (
+                  <span className="text-xs" style={{ color: C.muted }}>
+                    Not available — no pricing set
+                  </span>
+                ) : (
+                  <Btn size="sm" onClick={() => setEditing(p)}>
+                    Edit
+                  </Btn>
+                )}
               </CardFooter>
             </Card>
           );

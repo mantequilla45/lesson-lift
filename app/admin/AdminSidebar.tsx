@@ -32,6 +32,9 @@ interface NavItem {
   label: string;
   icon: LucideIcon;
   badge?: number;
+  /** Feature isn't shippable yet — rendered greyed out and unclickable so it
+   *  can't be mistaken for part of the working product during a demo. */
+  disabled?: boolean;
 }
 
 interface NavGroup {
@@ -51,8 +54,11 @@ const NAV: NavGroup[] = [
     label: "People",
     items: [
       { href: "/admin/users", label: "Teachers", icon: Users },
-      { href: "/admin/schools", label: "Schools", icon: School },
-      { href: "/admin/onboard", label: "Onboard a school", icon: UserPlus },
+      // The School plan isn't part of the product yet — there is no pricing for
+      // it, no seat model on profiles, and nothing reads plan_config.school at
+      // runtime. Disabled rather than hidden so it's visibly planned-but-unbuilt.
+      { href: "/admin/schools", label: "Schools", icon: School, disabled: true },
+      { href: "/admin/onboard", label: "Onboard a school", icon: UserPlus, disabled: true },
     ],
   },
   {
@@ -131,11 +137,35 @@ export default function AdminSidebar({
               {group.label}
             </p>
             <div className="space-y-1">
-              {group.items.map(({ href, label, icon: Icon, badge: staticBadge }) => {
+              {group.items.map(({ href, label, icon: Icon, badge: staticBadge, disabled }) => {
                 const active = isActive(pathname, href);
                 // Live counts win over the static definition, which is only a
                 // placeholder for items with no query behind them yet.
                 const badge = badges?.[href] ?? staticBadge;
+
+                // Rendered as a plain div, not a Link — nothing to click, and
+                // no route to land on by tabbing into it.
+                if (disabled) {
+                  return (
+                    <div
+                      key={href}
+                      aria-disabled="true"
+                      title="Not built yet — the School plan has no pricing set"
+                      className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium cursor-not-allowed select-none"
+                      style={{ color: "#b8b2aa" }}
+                    >
+                      <Icon className="w-4 h-4 shrink-0" />
+                      <span className="truncate">{label}</span>
+                      <span
+                        className="ml-auto text-[10px] font-semibold rounded-full px-1.5 py-0.5"
+                        style={{ backgroundColor: "#EEECE4", color: "#8a8078" }}
+                      >
+                        Soon
+                      </span>
+                    </div>
+                  );
+                }
+
                 return (
                   <Link
                     key={href}

@@ -1,4 +1,5 @@
 import { requireAdmin } from "@/app/lib/auth/admin";
+import NotBuiltBanner from "../NotBuiltBanner";
 import SchoolsTable, { type SchoolRow, type TrustRow } from "./SchoolsTable";
 
 export const dynamic = "force-dynamic";
@@ -12,9 +13,16 @@ export default async function AdminSchoolsPage() {
   ]);
 
   return (
-    <SchoolsTable
-      rows={(schools ?? []) as SchoolRow[]}
-      trusts={(trusts ?? []) as TrustRow[]}
-    />
+    <>
+      <NotBuiltBanner>
+        The School plan isn&apos;t part of the product yet — there&apos;s no
+        pricing for it, no seat model on accounts, and nothing here is enforced
+        at runtime. Anything you create on this page is modelling only.
+      </NotBuiltBanner>
+      <SchoolsTable
+        rows={(schools ?? []) as SchoolRow[]}
+        trusts={(trusts ?? []) as TrustRow[]}
+      />
+    </>
   );
 }
