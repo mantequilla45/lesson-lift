@@ -61,7 +61,7 @@ export default async function BillingPage({
             className="rounded-xl px-4 py-3 mb-5 text-sm font-medium"
             style={{ backgroundColor: "#DDF0E2", color: "#1f6b3b" }}
           >
-            Payment received — welcome to {PLANS.pro.name}! Your plan may take a
+            Payment received — welcome to {planName}! Your plan may take a
             few seconds to activate.
           </div>
         )}

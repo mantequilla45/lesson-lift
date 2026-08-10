@@ -18,9 +18,10 @@ export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 export type BillingInterval = "monthly" | "yearly";
 
-/** The only plan that is self-serve via Stripe Checkout. `free` needs no
- *  payment; `school` is custom/contact-sales. */
-export type PaidPlanId = Extract<PlanId, "pro">;
+/** Plans that are self-serve via Stripe Checkout. `free` needs no payment;
+ *  `school` is custom/contact-sales (per-seat, invoiced, not a self-serve
+ *  Checkout price). */
+export type PaidPlanId = Extract<PlanId, "pro" | "max">;
 
 /** Resolve the configured Stripe Price ID for a plan + interval. */
 export function priceIdFor(plan: PaidPlanId, interval: BillingInterval): string {
@@ -28,6 +29,10 @@ export function priceIdFor(plan: PaidPlanId, interval: BillingInterval): string 
     pro: {
       monthly: process.env.STRIPE_PRICE_PRO_MONTHLY,
       yearly: process.env.STRIPE_PRICE_PRO_YEARLY,
+    },
+    max: {
+      monthly: process.env.STRIPE_PRICE_MAX_MONTHLY,
+      yearly: process.env.STRIPE_PRICE_MAX_YEARLY,
     },
   };
   const priceId = map[plan][interval];
@@ -46,6 +51,12 @@ export function planForPriceId(priceId: string | undefined | null): PlanId | nul
     priceId === process.env.STRIPE_PRICE_PRO_YEARLY
   ) {
     return "pro";
+  }
+  if (
+    priceId === process.env.STRIPE_PRICE_MAX_MONTHLY ||
+    priceId === process.env.STRIPE_PRICE_MAX_YEARLY
+  ) {
+    return "max";
   }
   return null;
 }

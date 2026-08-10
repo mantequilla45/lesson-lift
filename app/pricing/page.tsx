@@ -6,8 +6,10 @@ import { useState } from "react";
 import { ArrowLeft } from "lucide-react";
 import { PLANS } from "@/app/lib/plans";
 
-const MONTHLY_PRO = PLANS.pro.priceMonthly ?? 149;
-const YEARLY_PRO = PLANS.pro.priceYearlyPerMonth ?? 119;
+const MONTHLY_PRO = PLANS.pro.priceMonthly ?? 7.99;
+const YEARLY_PRO = PLANS.pro.priceYearlyPerMonth ?? 6.58;
+const MONTHLY_MAX = PLANS.max.priceMonthly ?? 14.99;
+const YEARLY_MAX = PLANS.max.priceYearlyPerMonth ?? 12.42;
 
 const FREE_FEATURES = [
   "5 AI generations per month",
@@ -26,6 +28,16 @@ const PRO_FEATURES = [
   "Priority support",
 ];
 
+const MAX_FEATURES = [
+  "Everything in Pro",
+  "Unlimited AI generations",
+  "Full curriculum alignment",
+  "Editable outputs",
+  "PDF & DOC export",
+  "Save library",
+  "Priority support",
+];
+
 const SCHOOL_FEATURES = [
   "Multi-user accounts",
   "Shared resource library",
@@ -38,18 +50,19 @@ const SCHOOL_FEATURES = [
 export default function PricingPage() {
   const router = useRouter();
   const [yearly, setYearly] = useState(true);
-  const [upgrading, setUpgrading] = useState(false);
+  const [upgradingPlan, setUpgradingPlan] = useState<"pro" | "max" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const proPrice = yearly ? YEARLY_PRO : MONTHLY_PRO;
+  const maxPrice = yearly ? YEARLY_MAX : MONTHLY_MAX;
 
-  async function handleUpgrade() {
-    setUpgrading(true);
+  async function handleUpgrade(plan: "pro" | "max") {
+    setUpgradingPlan(plan);
     setError(null);
     try {
       const res = await fetch("/api/stripe/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ interval: yearly ? "yearly" : "monthly" }),
+        body: JSON.stringify({ plan, interval: yearly ? "yearly" : "monthly" }),
       });
       if (res.status === 401) {
         router.push("/login?next=/pricing");
@@ -64,13 +77,13 @@ export default function PricingPage() {
     } catch {
       setError("Network error. Please try again.");
     } finally {
-      setUpgrading(false);
+      setUpgradingPlan(null);
     }
   }
 
   return (
     <div className="min-h-screen flex flex-col justify-center py-8 px-4" style={{ backgroundColor: "#F1EFE3" }}>
-      <div className="max-w-5xl mx-auto w-full">
+      <div className="max-w-6xl mx-auto w-full">
 
         {/* Brand wordmark */}
         <p className="text-center text-xl font-semibold mb-4" style={{ color: "#a8a39a" }}>
@@ -112,13 +125,13 @@ export default function PricingPage() {
                 color: yearly ? "#fff" : "#6b6055",
               }}
             >
-              Yearly -20%
+              Yearly -17%
             </button>
           </div>
         </div>
 
         {/* Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
 
           {/* Free */}
           <PlanCard
@@ -148,15 +161,35 @@ export default function PricingPage() {
             priceSuffix="/month"
             cardBg="#FDE8E1"
             cardBorder="#F7D3C7"
-            cta={upgrading ? "Starting checkout…" : "Unlock Unlimited"}
-            onCtaClick={handleUpgrade}
-            ctaDisabled={upgrading}
+            cta={upgradingPlan === "pro" ? "Starting checkout…" : "Unlock Unlimited"}
+            onCtaClick={() => handleUpgrade("pro")}
+            ctaDisabled={upgradingPlan !== null}
             ctaBg="#E0463F"
             ctaInk="#fff"
             features={PRO_FEATURES}
             featureInk="#3a1a10"
             includesInk="#1a1a1a"
             bulletInk="#3a1a10"
+          />
+
+          {/* Max Teacher */}
+          <PlanCard
+            badge="Max Teacher"
+            badgeBg="#E5DBFA"
+            badgeInk="#6B4FD8"
+            price={`£${maxPrice}`}
+            priceSuffix="/month"
+            cardBg="#F1EDFD"
+            cardBorder="#DDD1F7"
+            cta={upgradingPlan === "max" ? "Starting checkout…" : "Go Max"}
+            onCtaClick={() => handleUpgrade("max")}
+            ctaDisabled={upgradingPlan !== null}
+            ctaBg="#6B4FD8"
+            ctaInk="#fff"
+            features={MAX_FEATURES}
+            featureInk="#2f2050"
+            includesInk="#1a1a1a"
+            bulletInk="#2f2050"
           />
 
           {/* School */}

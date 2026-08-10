@@ -66,6 +66,108 @@ async function syncSubscription(sub: Stripe.Subscription) {
   if (error) console.error("[stripe/webhook] profile update failed", error);
 }
 
+// ── Invoice mirroring ────────────────────────────────────────────────────────
+// Stripe remains the system of record for card payments; these rows are a local
+// mirror so the admin console can list card charges and school BACS invoices in
+// one place, and so a failed payment is visible without opening the Stripe
+// dashboard. Nothing here grants or revokes access — only syncSubscription does
+// that.
+
+/** Stripe works in minor units (pence). Everything we store is major (pounds). */
+function toMajor(minor: number | null | undefined): number {
+  return (minor ?? 0) / 100;
+}
+
+/** Resolve the local profile id for a Stripe customer. */
+async function userIdForCustomer(customer: string | null): Promise<string | null> {
+  if (!customer) return null;
+  const { data } = await supabaseAdmin
+    .from("profiles")
+    .select("id")
+    .eq("stripe_customer_id", customer)
+    .maybeSingle();
+  return data?.id ?? null;
+}
+
+/** Human-readable payment method, e.g. "Visa ••4242 · Pro monthly". */
+function describeInvoice(inv: Stripe.Invoice): string {
+  const line = inv.lines?.data?.[0];
+  const desc = line?.description ?? null;
+  const brandLast4 = (
+    inv as unknown as {
+      payment_method_details?: { card?: { brand?: string; last4?: string } };
+    }
+  ).payment_method_details?.card;
+
+  const parts: string[] = [];
+  if (brandLast4?.brand && brandLast4?.last4) {
+    parts.push(`${brandLast4.brand} ••${brandLast4.last4}`);
+  }
+  if (desc) parts.push(desc);
+  return parts.join(" · ") || "Card · Stripe";
+}
+
+/**
+ * Upsert one Stripe invoice into our table, keyed on stripe_invoice_id so
+ * webhook retries and out-of-order delivery converge rather than duplicate.
+ */
+async function syncInvoice(inv: Stripe.Invoice, status: string) {
+  const customerId = typeof inv.customer === "string" ? inv.customer : (inv.customer?.id ?? null);
+  const userId = await userIdForCustomer(customerId);
+
+  // A charge with no local profile is almost certainly test noise or a customer
+  // created outside the app. Log rather than inventing an orphan row.
+  if (!userId) {
+    console.warn("[stripe/webhook] no profile for invoice customer", customerId);
+    return;
+  }
+
+  const chargeId =
+    typeof (inv as unknown as { charge?: string | { id: string } }).charge === "string"
+      ? ((inv as unknown as { charge: string }).charge)
+      : ((inv as unknown as { charge?: { id: string } }).charge?.id ?? null);
+
+  const { error } = await supabaseAdmin.from("invoices").upsert(
+    {
+      stripe_invoice_id: inv.id,
+      reference: inv.number ?? inv.id ?? "—",
+      user_id: userId,
+      type: "card",
+      amount_gbp: toMajor(inv.amount_due || inv.total),
+      status,
+      due_at: inv.due_date ? new Date(inv.due_date * 1000).toISOString().slice(0, 10) : null,
+      paid_at: status === "paid" ? new Date().toISOString() : null,
+      method: describeInvoice(inv),
+      stripe_charge_id: chargeId,
+      attempt_count: inv.attempt_count ?? 0,
+      failure_reason:
+        status === "failed"
+          ? ((inv as unknown as { last_finalization_error?: { message?: string } })
+              .last_finalization_error?.message ?? "Payment failed")
+          : null,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "stripe_invoice_id" },
+  );
+
+  if (error) console.error("[stripe/webhook] invoice upsert failed", error);
+}
+
+/** Mark the originating invoice refunded when a charge is refunded. */
+async function syncRefund(charge: Stripe.Charge) {
+  if (!charge.refunded && (charge.amount_refunded ?? 0) === 0) return;
+
+  const { error } = await supabaseAdmin
+    .from("invoices")
+    .update({
+      status: "refunded",
+      updated_at: new Date().toISOString(),
+    })
+    .eq("stripe_charge_id", charge.id);
+
+  if (error) console.error("[stripe/webhook] refund sync failed", error);
+}
+
 export async function POST(req: NextRequest) {
   const signature = req.headers.get("stripe-signature");
   if (!signature || !process.env.STRIPE_WEBHOOK_SECRET) {
@@ -110,6 +212,34 @@ export async function POST(req: NextRequest) {
         await syncSubscription(event.data.object as Stripe.Subscription);
         break;
       }
+
+      // ── Invoice mirroring ──────────────────────────────────────────────
+      // Access is never granted or revoked here — that stays with
+      // syncSubscription above. These only keep the local invoice list and the
+      // "failed payments" queue in step with Stripe.
+      case "invoice.created":
+      case "invoice.finalized": {
+        await syncInvoice(event.data.object as Stripe.Invoice, "sent");
+        break;
+      }
+      case "invoice.paid":
+      case "invoice.payment_succeeded": {
+        await syncInvoice(event.data.object as Stripe.Invoice, "paid");
+        break;
+      }
+      case "invoice.payment_failed": {
+        await syncInvoice(event.data.object as Stripe.Invoice, "failed");
+        break;
+      }
+      case "invoice.voided": {
+        await syncInvoice(event.data.object as Stripe.Invoice, "void");
+        break;
+      }
+      case "charge.refunded": {
+        await syncRefund(event.data.object as Stripe.Charge);
+        break;
+      }
+
       default:
         // Ignore the many event types we don't act on.
         break;
