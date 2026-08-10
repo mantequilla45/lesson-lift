@@ -213,7 +213,7 @@ async function ocrPdfWithOpenAI(buf: Buffer): Promise<string> {
         },
       ],
     });
-    void recordUsage("extract-resource", "gpt-4o-2024-08-06", completion.usage);
+    await recordUsage("extract-resource", "gpt-4o-2024-08-06", completion.usage);
     return completion.choices[0]?.message?.content ?? "";
   } catch (err) {
     console.warn("[extract-resource] OpenAI OCR failed:", err);

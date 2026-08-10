@@ -1267,7 +1267,13 @@ export async function POST(req: NextRequest) {
         // user.id is passed explicitly: these writes happen inside the SSE
         // stream, after the response was handed off, where the request's cookie
         // context is gone and the user can no longer be resolved.
-        void recordUsage("generate-slideshow", "gpt-4o-2024-08-06", chatUsage, "Deck text", user.id);
+        //
+        // Started here so it overlaps the image/audio work, but awaited before
+        // the stream closes (below) — this is the row the free-plan gate counts,
+        // so losing it means an uncounted generation.
+        const deckTextUsageTask = recordUsage(
+          "generate-slideshow", "gpt-4o-2024-08-06", chatUsage, "Deck text", user.id,
+        );
 
         // Local aliases to keep the audio/video code below readable.
         const parsed = { title: parser.title ?? body.topic, slides: allAi };
@@ -1449,13 +1455,22 @@ export async function POST(req: NextRequest) {
         // summary + "complete": the image jobs and the early-started video task.
         await Promise.allSettled(imageJobs);
         await videoTask;
+        // The deck-text usage row started back when the text call finished; make
+        // sure it has actually landed before we let the stream close.
+        await deckTextUsageTask;
 
         // Persist AI-image cost to the report, one row per slide so the report
         // can break the deck down per slide. (Audio is recorded by the
         // generate-audio route itself, so it's not double-counted here.)
-        for (const [slideTitle, v] of Object.entries(imageCostBySlide)) {
-          void recordAssetCost("generate-slideshow", "image", v.count, v.usd, "Images", slideTitle, user.id);
-        }
+        // Awaited (in parallel): all the deck's work has settled by this point,
+        // so the only thing left is closing the stream. If these stayed
+        // fire-and-forget the instance could be frozen the moment it closes,
+        // suspending the writes until their sockets died.
+        await Promise.allSettled(
+          Object.entries(imageCostBySlide).map(([slideTitle, v]) =>
+            recordAssetCost("generate-slideshow", "image", v.count, v.usd, "Images", slideTitle, user.id),
+          ),
+        );
 
         // Per-slideshow cost lens: one row per generated deck (its title + all-in
         // cost + the component breakdown) so the report can list each slideshow,
@@ -1468,7 +1483,7 @@ export async function POST(req: NextRequest) {
           const imageRows = Object.entries(imageCostBySlide)
             .map(([label, v]) => ({ label, cost_usd: Number(v.usd.toFixed(6)), count: v.count }))
             .sort((a, b) => b.cost_usd - a.cost_usd);
-          void recordSlideCosts(
+          await recordSlideCosts(
             [
               {
                 slideLabel: deckTitle,

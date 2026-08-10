@@ -41,6 +41,42 @@ export function costUsd(model: string, usage: Usage): number {
 }
 
 /**
+ * Insert with one retry on a transient network failure.
+ *
+ * On Fluid Compute a warm instance can be frozen the moment its response is
+ * sent. A telemetry write still in flight is suspended with it, and when the
+ * instance is thawed for a later request the socket it was holding is long
+ * dead — surfacing as `ECONNRESET` during the TLS handshake, often logged
+ * against a completely unrelated request. Retrying establishes a fresh
+ * connection on the now-live instance.
+ *
+ * This is a backstop. The real fix is for callers to await the write before
+ * their handler returns, so the instance can't be frozen mid-flight.
+ */
+async function insertWithRetry(
+  table: string,
+  rows: Record<string, unknown> | Record<string, unknown>[],
+  label: string,
+): Promise<void> {
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    const { error } = await supabaseAdmin.from(table).insert(rows as never);
+    if (!error) return;
+
+    // Only network-level failures are worth retrying. A constraint violation or
+    // a bad column will fail identically the second time.
+    const transient =
+      error.message?.includes("fetch failed") ||
+      error.message?.includes("ECONNRESET") ||
+      error.message?.includes("socket");
+
+    if (!transient || attempt === 2) {
+      console.error(`[usage] ${table} insert failed for ${label}:`, error);
+      return;
+    }
+  }
+}
+
+/**
  * Resolve the signed-in user id, if the request context still has one.
  *
  * IMPORTANT: this must be called while the request is still being handled.
@@ -89,17 +125,20 @@ export async function recordUsage(
       return;
     }
     const cached = usage.prompt_tokens_details?.cached_tokens ?? 0;
-    const { error } = await supabaseAdmin.from("token_usage").insert({
-      user_id: uid,
-      tool_slug: toolSlug,
-      model,
-      prompt_tokens: usage.prompt_tokens,
-      cached_tokens: cached,
-      completion_tokens: usage.completion_tokens,
-      cost_usd: Number(costUsd(model, usage).toFixed(6)),
-      step: step ?? null,
-    });
-    if (error) console.error(`[usage] token_usage insert failed for ${toolSlug}:`, error);
+    await insertWithRetry(
+      "token_usage",
+      {
+        user_id: uid,
+        tool_slug: toolSlug,
+        model,
+        prompt_tokens: usage.prompt_tokens,
+        cached_tokens: cached,
+        completion_tokens: usage.completion_tokens,
+        cost_usd: Number(costUsd(model, usage).toFixed(6)),
+        step: step ?? null,
+      },
+      toolSlug,
+    );
   } catch (err) {
     console.error(`[usage] recordUsage threw for ${toolSlug}:`, err);
   }
@@ -124,16 +163,19 @@ export async function recordAssetCost(
       console.warn(`[usage] no user for ${toolSlug} — asset_cost row dropped`);
       return;
     }
-    const { error } = await supabaseAdmin.from("asset_cost").insert({
-      user_id: uid,
-      tool_slug: toolSlug,
-      kind,
-      units: Math.round(units),
-      cost_usd: Number(costUsd.toFixed(6)),
-      step: step ?? null,
-      slide_label: slideLabel ?? null,
-    });
-    if (error) console.error(`[usage] asset_cost insert failed for ${toolSlug}:`, error);
+    await insertWithRetry(
+      "asset_cost",
+      {
+        user_id: uid,
+        tool_slug: toolSlug,
+        kind,
+        units: Math.round(units),
+        cost_usd: Number(costUsd.toFixed(6)),
+        step: step ?? null,
+        slide_label: slideLabel ?? null,
+      },
+      toolSlug,
+    );
   } catch (err) {
     console.error(`[usage] recordAssetCost threw for ${toolSlug}:`, err);
   }
@@ -168,7 +210,8 @@ export async function recordSlideCosts(
       console.warn("[usage] no user for generate-slideshow — slide_cost rows dropped");
       return;
     }
-    const { error } = await supabaseAdmin.from("slide_cost").insert(
+    await insertWithRetry(
+      "slide_cost",
       valid.map((r) => ({
         user_id: uid,
         tool_slug: "generate-slideshow",
@@ -176,8 +219,8 @@ export async function recordSlideCosts(
         cost_usd: Number(r.costUsd.toFixed(6)),
         breakdown: r.breakdown ?? null,
       })),
+      "generate-slideshow",
     );
-    if (error) console.error("[usage] slide_cost insert failed:", error);
   } catch (err) {
     console.error("[usage] recordSlideCosts threw:", err);
   }

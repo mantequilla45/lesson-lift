@@ -155,7 +155,7 @@ Use British English. Body should be tight and concrete — the kind of writing a
       ],
       response_format: { type: "json_schema", json_schema: activitySchema },
     });
-    void recordUsage("generate-activity", "gpt-4o-2024-08-06", completion.usage);
+    await recordUsage("generate-activity", "gpt-4o-2024-08-06", completion.usage);
     const content = completion.choices[0]?.message?.content;
     if (!content) return NextResponse.json({ error: "Empty AI response" }, { status: 500 });
     const parsed = JSON.parse(content) as {

@@ -259,7 +259,9 @@ The "script" must be plain spoken text only — no stage directions, sound effec
   // the mp3 is already uploaded by this point.
   const parentTool = (body as { parentTool?: string }).parentTool;
   const audioSlug = parentTool ?? "generate-audio";
-  void Promise.allSettled([
+  // Awaited: see the note in find-youtube. A frozen instance suspends an
+  // in-flight write until its socket is dead, and these feed the spend ceiling.
+  await Promise.allSettled([
     recordUsage(audioSlug, "gpt-4o-2024-08-06", scriptUsage, parentTool ? "Audio script" : null),
     recordAssetCost(audioSlug, "audio", script.length, ttsCost, parentTool ? "Audio speech" : null),
   ]);

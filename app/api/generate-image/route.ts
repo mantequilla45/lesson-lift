@@ -39,6 +39,6 @@ export async function POST(req: NextRequest) {
   if (!img) {
     return NextResponse.json({ error: "Generation failed" }, { status: 500 });
   }
-  void recordAssetCost("generate-image", "image", 1, img.costUsd ?? 0);
+  await recordAssetCost("generate-image", "image", 1, img.costUsd ?? 0);
   return NextResponse.json(img);
 }
