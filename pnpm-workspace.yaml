@@ -1,3 +1,10 @@
-ignoredBuiltDependencies:
-  - sharp
-  - unrs-resolver
+overrides:
+  '@tiptap/core': 3.22.1
+  '@tiptap/pm': 3.22.1
+
+allowBuilds:
+  supabase: true
+  core-js: false
+  protobufjs: false
+  sharp: false
+  unrs-resolver: false
