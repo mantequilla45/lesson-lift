@@ -22,17 +22,38 @@ export default function LoginPage() {
   const canSubmit = email.trim().length > 0 && password.length > 0 && !loading;
 
   // Google sign-in leaves the page entirely, so a suspended account can only be
-  // detected in /auth/callback — which redirects back here with ?error=. Without
-  // this the user lands on a blank login form with no idea why they bounced.
+  // reported by whatever lands back here.
   //
-  // Read from window rather than useSearchParams(): this page is otherwise
-  // fully static, and that hook forces a client-side bailout that needs a
-  // Suspense boundary around the whole form. One value on mount doesn't warrant
-  // it.
+  // Supabase rejects a banned user in the URL FRAGMENT, not the query string:
+  //
+  //   /login?error=auth#error=access_denied&error_code=user_banned&...
+  //
+  // A fragment is never sent to the server, so /auth/callback cannot see it and
+  // falls through to its generic ?error=auth — which is why a banned Google user
+  // used to get "Could not sign you in" with no explanation. The fragment is
+  // readable only here, on the client, so this is the only place the real reason
+  // can be recovered. Check it FIRST and let it win over the query string.
+  //
+  // Read from window rather than useSearchParams(): that hook sees only the
+  // query string anyway, and forces a client-side bailout needing a Suspense
+  // boundary around the whole form.
   useEffect(() => {
-    const code = new URLSearchParams(window.location.search).get("error");
-    if (code === "suspended") setError(SUSPENDED_MESSAGE);
-    else if (code === "auth") setError("Could not sign you in. Please try again.");
+    const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+    const query = new URLSearchParams(window.location.search);
+    const reason = hash.get("error_code") ?? query.get("error");
+
+    if (reason === "user_banned" || reason === "suspended") {
+      setError(SUSPENDED_MESSAGE);
+    } else if (reason) {
+      setError("Could not sign you in. Please try again.");
+    }
+
+    // Strip the error off the URL once it's been shown. Otherwise a refresh —
+    // or a successful sign-in that re-renders this page — keeps re-displaying a
+    // stale failure, and the fragment lingers in the address bar.
+    if (hash.has("error_code") || query.has("error")) {
+      window.history.replaceState(null, "", window.location.pathname);
+    }
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
