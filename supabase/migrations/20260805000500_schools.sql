@@ -87,6 +87,14 @@ drop policy if exists "admins manage schools" on schools;
 create policy "admins manage schools" on schools
   for all using (is_admin()) with check (is_admin());
 
+-- ── Link teachers to schools ─────────────────────────────────────────────────
+-- Must come BEFORE the "members read own school" policy below, which reads
+-- profiles.school_id — a policy body is validated at creation time, so the
+-- column has to exist first. (This only bites a database replaying the history
+-- from scratch; where the column already existed the original order worked.)
+alter table profiles add column if not exists school_id uuid references schools(id) on delete set null;
+create index if not exists profiles_school_idx on profiles (school_id);
+
 -- A teacher on a school plan may read their own school (name, and nothing
 -- sensitive is exposed by the app), so the dashboard can say who they're with.
 drop policy if exists "members read own school" on schools;
@@ -94,10 +102,6 @@ create policy "members read own school" on schools
   for select using (
     exists (select 1 from profiles p where p.id = auth.uid() and p.school_id = schools.id)
   );
-
--- ── Link teachers to schools ─────────────────────────────────────────────────
-alter table profiles add column if not exists school_id uuid references schools(id) on delete set null;
-create index if not exists profiles_school_idx on profiles (school_id);
 
 -- ── Seats ────────────────────────────────────────────────────────────────────
 -- One row per seat. `free` seats are bought-but-unallocated; `invited` has an
