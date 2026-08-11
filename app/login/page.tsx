@@ -40,7 +40,15 @@ export default function LoginPage() {
   useEffect(() => {
     const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
     const query = new URLSearchParams(window.location.search);
-    const reason = hash.get("error_code") ?? query.get("error");
+    // Four shapes reach this page, depending on whether Supabase redirected to
+    // /auth/callback or fell back to the Site URL, and whether the reason
+    // survived in the query string or only in the fragment:
+    //   #error_code=user_banned      (fragment — the server never sees it)
+    //   ?error_code=user_banned      (Site-URL fallback, forwarded by app/page.tsx)
+    //   ?error=user_banned           (as above, normalised)
+    //   ?error=suspended             (our own /auth/callback redirect)
+    const reason =
+      hash.get("error_code") ?? query.get("error_code") ?? query.get("error");
 
     if (reason === "user_banned" || reason === "suspended") {
       setError(SUSPENDED_MESSAGE);
@@ -51,7 +59,7 @@ export default function LoginPage() {
     // Strip the error off the URL once it's been shown. Otherwise a refresh —
     // or a successful sign-in that re-renders this page — keeps re-displaying a
     // stale failure, and the fragment lingers in the address bar.
-    if (hash.has("error_code") || query.has("error")) {
+    if (hash.has("error_code") || query.has("error") || query.has("error_code")) {
       window.history.replaceState(null, "", window.location.pathname);
     }
   }, []);

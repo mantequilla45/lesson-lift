@@ -25,17 +25,34 @@ const FEATURED = [
 export default async function LandingPage({
   searchParams,
 }: {
-  searchParams: Promise<{ code?: string; next?: string }>;
+  searchParams: Promise<{
+    code?: string;
+    next?: string;
+    error?: string;
+    error_code?: string;
+  }>;
 }) {
   // OAuth fallback: if Supabase falls back to the Site URL (e.g. the exact
   // `/auth/callback` redirect wasn't allowlisted, or a www/apex mismatch), the
   // `?code=` can land here on the root. Forward it to the real callback so the
   // PKCE code still gets exchanged for a session instead of being dropped.
-  const { code, next } = await searchParams;
+  const { code, next, error, error_code } = await searchParams;
   if (code) {
     const params = new URLSearchParams({ code });
     if (next) params.set("next", next);
     redirect(`/auth/callback?${params.toString()}`);
+  }
+
+  // Same fallback, failure path. A rejected sign-in lands here as
+  // `?error=access_denied&error_code=user_banned`, and without this the hero
+  // page renders as if nothing happened — a suspended teacher is bounced to
+  // the marketing page with no explanation at all.
+  //
+  // Forwarded to /login, which owns the messaging. Note Supabase repeats these
+  // values in the URL fragment too; the fragment never reaches the server, so
+  // the login page reads that itself for the cases that arrive fragment-only.
+  if (error || error_code) {
+    redirect(`/login?error=${encodeURIComponent(error_code ?? error ?? "auth")}`);
   }
 
   const supabase = await createClient();
