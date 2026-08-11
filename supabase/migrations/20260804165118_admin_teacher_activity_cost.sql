@@ -6,6 +6,10 @@
 -- end to end. Good enough to show next to an activity line; NOT an
 -- authoritative accounting join — use admin_teacher_detail's cost_usd (a
 -- real sum) for anything that needs to add up exactly.
+--
+-- Adding the approx_cost_usd OUT column changes the return type, which
+-- `create or replace` rejects (42P13) — drop the previous signature first.
+drop function if exists admin_teacher_recent_runs(uuid, integer);
 create or replace function admin_teacher_recent_runs(uid uuid, lim integer default 10)
 returns table (
   id uuid,

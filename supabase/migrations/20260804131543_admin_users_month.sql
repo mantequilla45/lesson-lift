@@ -3,6 +3,12 @@
 -- same monthly window the free-plan generation cap uses (see plans.ts /
 -- generation-guard.ts). Add generations_this_month alongside the existing
 -- lifetime count rather than replacing it.
+--
+-- Adding an OUT column changes the return type, which `create or replace`
+-- rejects (42P13) — so the old signature has to be dropped first. This only
+-- surfaces on a database replaying the history from scratch; on staging the
+-- function already had the wider shape, so the replace was a no-op.
+drop function if exists admin_users();
 create or replace function admin_users()
 returns table (
   id uuid,
