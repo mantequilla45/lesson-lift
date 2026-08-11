@@ -2849,12 +2849,19 @@ export default function Editor({ presentation, generationParams }: Props) {
       }
     }
 
+    // One id for this generation, minted before the request so the same value
+    // can be stamped on every cost row the server writes AND on the tool_runs
+    // row written below when the stream completes. That shared key is what lets
+    // the admin console total a deck exactly rather than inferring it from
+    // timestamps — which cannot separate two decks generated back to back.
+    const runId = crypto.randomUUID();
+
     (async () => {
       try {
         const r = await fetch("/api/generate-slideshow", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(generationParams),
+          body: JSON.stringify({ ...generationParams, runId }),
           signal: controller.signal,
         });
         if (!r.ok || !r.body) throw new Error("Generation failed");
@@ -3473,6 +3480,8 @@ export default function Editor({ presentation, generationParams }: Props) {
                   ...generationParams,
                 },
                 output: `Generated a ${slidesRef.current.length}-slide deck.`,
+                // Same id the server stamped on this deck's cost rows.
+                runId,
               }).catch((err) => {
                 // Non-fatal: the deck is saved and the spend is already
                 // recorded server-side. Log loudly rather than silently, since

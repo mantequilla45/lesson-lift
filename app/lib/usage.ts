@@ -116,6 +116,11 @@ export async function recordUsage(
   usage: Usage | null | undefined,
   step?: string | null,
   userId?: string | null,
+  /** Ties this spend to one generation. Without it, the admin console has to
+   *  guess which run a cost row belongs to from its timestamp — which cannot
+   *  tell one long deck from two quick ones. Optional so existing callers are
+   *  unaffected; they fall back to the time window. */
+  runId?: string | null,
 ): Promise<void> {
   if (!usage) {
     // Not silent: without a usage payload there is no row, so a generation
@@ -142,6 +147,7 @@ export async function recordUsage(
         completion_tokens: usage.completion_tokens,
         cost_usd: Number(costUsd(model, usage).toFixed(6)),
         step: step ?? null,
+        run_id: runId ?? null,
       },
       toolSlug,
     );
@@ -161,6 +167,8 @@ export async function recordAssetCost(
   step?: string | null,
   slideLabel?: string | null,
   userId?: string | null,
+  /** See recordUsage — ties this spend to one generation. */
+  runId?: string | null,
 ): Promise<void> {
   if (!(costUsd > 0)) return;
   try {
@@ -179,6 +187,7 @@ export async function recordAssetCost(
         cost_usd: Number(costUsd.toFixed(6)),
         step: step ?? null,
         slide_label: slideLabel ?? null,
+        run_id: runId ?? null,
       },
       toolSlug,
     );

@@ -166,10 +166,12 @@ Return three things:
     // Record the query-refinement cost. When the slideshow calls this
     // (parentTool set), attribute it to the slideshow's breakdown.
     const parentTool = (body as { parentTool?: string }).parentTool;
+    // Passed down by the slideshow so this joins to the deck's run exactly.
+    const runId = (body as { runId?: string }).runId ?? null;
     // Awaited, not fire-and-forget: on Fluid Compute the instance can be frozen
     // as soon as the response is sent, suspending an in-flight write until the
     // socket behind it is dead. Awaiting costs a few ms and keeps the row.
-    await recordUsage(parentTool ?? "find-youtube", "gpt-4o-2024-08-06", completion.usage, parentTool ? "YouTube" : null);
+    await recordUsage(parentTool ?? "find-youtube", "gpt-4o-2024-08-06", completion.usage, parentTool ? "YouTube" : null, null, runId);
     if (completion.usage) {
       queryCostUsd = costUsd("gpt-4o-2024-08-06", completion.usage);
     }

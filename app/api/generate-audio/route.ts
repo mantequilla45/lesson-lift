@@ -258,12 +258,16 @@ The "script" must be plain spoken text only — no stage directions, sound effec
   // Fire-and-forget (parallel) so telemetry never delays the audio response —
   // the mp3 is already uploaded by this point.
   const parentTool = (body as { parentTool?: string }).parentTool;
+  // Passed down by the slideshow so this spend joins to the deck's run rather
+  // than being matched to it by timestamp. Audio lands seconds-to-minutes after
+  // the deck text, which is exactly the gap a time window gets wrong.
+  const runId = (body as { runId?: string }).runId ?? null;
   const audioSlug = parentTool ?? "generate-audio";
   // Awaited: see the note in find-youtube. A frozen instance suspends an
   // in-flight write until its socket is dead, and these feed the spend ceiling.
   await Promise.allSettled([
-    recordUsage(audioSlug, "gpt-4o-2024-08-06", scriptUsage, parentTool ? "Audio script" : null),
-    recordAssetCost(audioSlug, "audio", script.length, ttsCost, parentTool ? "Audio speech" : null),
+    recordUsage(audioSlug, "gpt-4o-2024-08-06", scriptUsage, parentTool ? "Audio script" : null, null, runId),
+    recordAssetCost(audioSlug, "audio", script.length, ttsCost, parentTool ? "Audio speech" : null, null, null, runId),
   ]);
 
   return NextResponse.json({

@@ -107,10 +107,11 @@ interface RunRow {
   tool_slug: string;
   title: string | null;
   created_at: string;
-  // Best-effort match to the tool_runs row's token_usage/asset_cost within a
-  // 2-minute window (see the admin_teacher_activity_cost migration) — close
-  // enough for a timeline, not an authoritative accounting figure.
   approx_cost_usd: number;
+  /** True when the cost was joined by run_id — an exact total for this
+   *  generation. False for runs recorded before run_id existed, where cost is
+   *  still inferred from a time window and may be under-stated. */
+  cost_is_exact: boolean;
 }
 
 const STATUS_STYLE: Record<string, { bg: string; color: string }> = {
@@ -608,8 +609,18 @@ export default function TeacherDrawer({ userId, onClose }: { userId: string; onC
                         </p>
                         <p className="text-xs font-mono" style={{ color: "#8a8078" }}>
                           {typeLabel(r.tool_slug)} ·{" "}
-                          {r.approx_cost_usd > 0 ? gbpFromUsd(r.approx_cost_usd) : "—"} ·{" "}
-                          {formatDate(r.created_at)}
+                          <span
+                            title={
+                              r.cost_is_exact
+                                ? "Exact — every cost row for this generation"
+                                : "Approximate — recorded before per-run cost tracking, matched by time"
+                            }
+                          >
+                            {r.approx_cost_usd > 0
+                              ? `${r.cost_is_exact ? "" : "~"}${gbpFromUsd(r.approx_cost_usd)}`
+                              : "—"}
+                          </span>{" "}
+                          · {formatDate(r.created_at)}
                         </p>
                       </li>
                     ))}

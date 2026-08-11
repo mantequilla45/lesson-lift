@@ -18,6 +18,9 @@ interface ActivityRow {
   title: string | null;
   created_at: string;
   approx_cost_usd: number;
+  /** True when cost was joined by run_id rather than inferred from a time
+   *  window — see the cost_run_id migration. */
+  cost_is_exact: boolean;
   total_count: number;
 }
 
@@ -138,8 +141,18 @@ export default function ActivityLogModal({
                     <td className="px-5 py-2.5" style={{ color: "#6b6055" }}>
                       {typeLabel(r.tool_slug)}
                     </td>
-                    <td className="px-5 py-2.5 text-right font-mono text-xs" style={{ color: "#6b6055" }}>
-                      {Number(r.approx_cost_usd) > 0 ? gbpFromUsd(Number(r.approx_cost_usd)) : "—"}
+                    <td
+                      className="px-5 py-2.5 text-right font-mono text-xs"
+                      style={{ color: "#6b6055" }}
+                      title={
+                        r.cost_is_exact
+                          ? "Exact — every cost row for this generation"
+                          : "Approximate — recorded before per-run cost tracking, matched by time"
+                      }
+                    >
+                      {Number(r.approx_cost_usd) > 0
+                        ? `${r.cost_is_exact ? "" : "~"}${gbpFromUsd(Number(r.approx_cost_usd))}`
+                        : "—"}
                     </td>
                     <td className="px-5 py-2.5 text-right whitespace-nowrap" style={{ color: "#8a8078" }}>
                       {formatDate(r.created_at)}

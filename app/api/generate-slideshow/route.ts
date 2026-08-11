@@ -18,6 +18,9 @@ type ImageSource = "auto" | "ai" | "web";
 
 interface RequestBody {
   topic: string;
+  /** Client-generated id tying every cost row this deck produces to the
+   *  tool_runs row the browser writes when the stream finishes. */
+  runId?: string;
   year?: string;
   readingLevel?: string;
   slideCount?: number;
@@ -773,6 +776,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Missing topic" }, { status: 400 });
   }
 
+  // One id for everything this deck spends — its own text call, the images,
+  // and the audio/YouTube sub-routes it calls. Stamped on every cost row so the
+  // admin console can total a deck exactly instead of inferring it from
+  // timestamps, which cannot tell one slow deck from two quick ones.
+  //
+  // The client sends it and stores the same value on its tool_runs row. The
+  // fallback only matters if an older client omits it: the rows then group
+  // together correctly but have no run to join to, which is no worse than
+  // before.
+  const runId = body.runId ?? crypto.randomUUID();
+
   const imageSource: ImageSource = body.imageSource ?? "auto";
   const imageStyle: ImageStyle = body.imageStyle ?? "photographic";
   // Auto-mode web/AI split: `webParts` of every 10 images come from web search.
@@ -1272,7 +1286,7 @@ export async function POST(req: NextRequest) {
         // the stream closes (below) — this is the row the free-plan gate counts,
         // so losing it means an uncounted generation.
         const deckTextUsageTask = recordUsage(
-          "generate-slideshow", "gpt-4o-2024-08-06", chatUsage, "Deck text", user.id,
+          "generate-slideshow", "gpt-4o-2024-08-06", chatUsage, "Deck text", user.id, runId,
         );
 
         // Local aliases to keep the audio/video code below readable.
@@ -1312,6 +1326,7 @@ export async function POST(req: NextRequest) {
                 extraInstructions: body.additionalInstructions?.trim() || undefined,
                 // Attribute this call's cost to the slideshow's breakdown.
                 parentTool: "generate-slideshow",
+                runId,
               }),
             });
             if (ytRes.ok) {
@@ -1383,6 +1398,7 @@ export async function POST(req: NextRequest) {
                   .join("\n"),
                 // Attribute this call's cost to the slideshow's breakdown.
                 parentTool: "generate-slideshow",
+                runId,
               }),
             });
             if (audioRes.ok) {
@@ -1468,7 +1484,7 @@ export async function POST(req: NextRequest) {
         // suspending the writes until their sockets died.
         await Promise.allSettled(
           Object.entries(imageCostBySlide).map(([slideTitle, v]) =>
-            recordAssetCost("generate-slideshow", "image", v.count, v.usd, "Images", slideTitle, user.id),
+            recordAssetCost("generate-slideshow", "image", v.count, v.usd, "Images", slideTitle, user.id, runId),
           ),
         );
 
