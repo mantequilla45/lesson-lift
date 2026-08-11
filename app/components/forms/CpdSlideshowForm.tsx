@@ -914,7 +914,9 @@ export default function CpdSlideshowForm({ sidebar }: { sidebar: React.ReactNode
       output: JSON.stringify(s),
     })
       .then(() => setHistoryKey((k) => k + 1))
-      .catch(() => {});
+      // Non-fatal, but logged: a silently dropped run is indistinguishable
+      // from a saved one, which hides exactly this class of bug.
+      .catch((err) => console.warn("[cpd-slideshow] could not save run:", err));
   };
 
   const restore = (run: ToolRun) => {

@@ -25,6 +25,7 @@ import RegenerateImageDialog from "./RegenerateImageDialog";
 import EditAudioPanel, { type ActivityType } from "./EditAudioPanel";
 import SlideshowLoadingAnimation from "./SlideshowLoadingAnimation";
 import PresentationViewer from "./PresentationViewer";
+import { saveToolRun } from "@/app/lib/toolRuns";
 import type { FrameShape } from "./frames";
 import { SLIDE_W, SLIDE_H } from "./constants";
 import {
@@ -3447,6 +3448,37 @@ export default function Editor({ presentation, generationParams }: Props) {
                 return next;
               });
               scheduleSave();
+
+              // Record the deck as a tool run.
+              //
+              // Decks are the most expensive thing the product does — more AI
+              // spend than every text tool combined — but they used to write
+              // only to `presentations`, never to `tool_runs`. That made them
+              // invisible in the teacher's activity log and, worse, left their
+              // token_usage/asset_cost rows with no run to attribute to: the
+              // admin console showed the money but could not say which deck
+              // spent it.
+              //
+              // Fired on `complete` rather than at request time so a stream
+              // that fails half-way doesn't log a deck the teacher never got.
+              // The output is deliberately a summary, not the slide JSON: a
+              // full deck with inline media is megabytes, and nothing reads
+              // this back — the deck itself lives in `presentations`.
+              void saveToolRun({
+                toolSlug: "generate-slideshow",
+                title: titleRef.current || "Untitled deck",
+                input: {
+                  presentationId: presentation.id,
+                  slideCount: slidesRef.current.length,
+                  ...generationParams,
+                },
+                output: `Generated a ${slidesRef.current.length}-slide deck.`,
+              }).catch((err) => {
+                // Non-fatal: the deck is saved and the spend is already
+                // recorded server-side. Log loudly rather than silently, since
+                // a run that never lands is exactly the bug this fixes.
+                console.warn("[editor] could not record deck as a tool run:", err);
+              });
             } else if (eventName === "error") {
               const p = payload as { message?: string };
               console.error("Stream error:", p.message);
