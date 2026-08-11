@@ -4,10 +4,10 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { X } from "lucide-react";
 import { createClient } from "@/app/lib/auth/client";
-import { PLANS, asPlanId } from "@/app/lib/plans";
+import { AI_SPEND_CEILING_PENCE, PLANS, asPlanId } from "@/app/lib/plans";
 import { typeLabel, formatDate } from "@/app/lib/toolRunDisplay";
 import Link from "next/link";
-import { fmtRelative, gbpFromUsd, nf } from "../format";
+import { fmtRelative, gbp, gbpFromUsd, nf } from "../format";
 import { AiChip, Meter, StatusTag } from "../ui";
 import GrantModal, { type GrantKind } from "./GrantModal";
 import ActivityLogModal from "./ActivityLogModal";
@@ -85,6 +85,13 @@ interface Allowance {
   ai_topup: number;
 }
 
+/** Measured AI spend against the plan's monthly ceiling, both in pence.
+ *  This is what actually blocks a paid teacher — not the unit meters above. */
+interface AiSpend {
+  spend_pence: number;
+  credit_pence: number;
+}
+
 interface ThreadRow {
   id: string;
   reference: string;
@@ -122,6 +129,7 @@ export default function TeacherDrawer({ userId, onClose }: { userId: string; onC
   const [detail, setDetail] = useState<TeacherDetail | null>(null);
   const [runs, setRuns] = useState<RunRow[] | null>(null);
   const [allowance, setAllowance] = useState<Allowance | null>(null);
+  const [aiSpend, setAiSpend] = useState<AiSpend | null>(null);
   const [threads, setThreads] = useState<ThreadRow[] | null>(null);
   const [grantKind, setGrantKind] = useState<GrantKind | null>(null);
   const [notes, setNotes] = useState<NoteRow[] | null>(null);
@@ -164,8 +172,12 @@ export default function TeacherDrawer({ userId, onClose }: { userId: string; onC
   // reopening the drawer.
   const loadAllowance = useCallback(async () => {
     const supabase = createClient();
-    const { data } = await supabase.rpc("monthly_allowance", { uid: userId });
+    const [{ data }, { data: spend }] = await Promise.all([
+      supabase.rpc("monthly_allowance", { uid: userId }),
+      supabase.rpc("monthly_ai_spend", { uid: userId }),
+    ]);
     if (data && data.length > 0) setAllowance(data[0] as Allowance);
+    if (spend && spend.length > 0) setAiSpend(spend[0] as AiSpend);
   }, [userId]);
 
   const reloadDetail = useCallback(async () => {
@@ -245,13 +257,14 @@ export default function TeacherDrawer({ userId, onClose }: { userId: string; onC
     const supabase = createClient();
 
     (async () => {
-      const [{ data: d, error: dErr }, { data: r }, { data: a }, { data: th }, { data: n }] =
+      const [{ data: d, error: dErr }, { data: r }, { data: a }, { data: th }, { data: n }, { data: sp }] =
         await Promise.all([
           supabase.rpc("admin_teacher_detail", { uid: userId }),
           supabase.rpc("admin_teacher_recent_runs", { uid: userId, lim: 10 }),
           supabase.rpc("monthly_allowance", { uid: userId }),
           supabase.rpc("admin_teacher_threads", { uid: userId }),
           supabase.rpc("admin_teacher_notes", { uid: userId, lim: 20 }),
+          supabase.rpc("monthly_ai_spend", { uid: userId }),
         ]);
       if (cancelled) return;
       if (dErr || !d || d.length === 0) {
@@ -263,6 +276,7 @@ export default function TeacherDrawer({ userId, onClose }: { userId: string; onC
       if (a && a.length > 0) setAllowance(a[0] as Allowance);
       setThreads((th ?? []) as ThreadRow[]);
       setNotes((n ?? []) as NoteRow[]);
+      if (sp && sp.length > 0) setAiSpend(sp[0] as AiSpend);
     })();
 
     return () => {
@@ -285,6 +299,13 @@ export default function TeacherDrawer({ userId, onClose }: { userId: string; onC
   const status = detail?.subscription_status ?? "";
   const ss = STATUS_STYLE[status];
   const suspended = Boolean(detail?.suspended_at);
+  // Free and School have no spend ceiling (they're gated by counts / pooled
+  // seats instead), so there is nothing to meter for them.
+  const ceilingPence = AI_SPEND_CEILING_PENCE[asPlanId(plan)];
+  const spendBlocked =
+    ceilingPence !== null &&
+    aiSpend !== null &&
+    Number(aiSpend.spend_pence) >= ceilingPence + Number(aiSpend.credit_pence);
   const dial = detail?.dial_code ? `+${detail.dial_code.replace(/^\+/, "")}` : null;
 
   return (
@@ -417,21 +438,65 @@ export default function TeacherDrawer({ userId, onClose }: { userId: string; onC
                   </div>
                   <div className="flex items-center justify-between text-sm">
                     <span style={{ color: "#6b6055" }}>AI-image slideshows</span>
+                    {/* Note aiImageSlideshows is not enforced anywhere — it
+                        appears in meters and the cost model, never in a gate.
+                        It's shown as the plan's stated allowance, and a grant
+                        raises it, but what actually stops a paid teacher is the
+                        AI spend ceiling on the row below. */}
                     <AiChip
                       used={allowance?.ai_used ?? 0}
                       allow={p.limits.aiImageSlideshows}
                       topup={allowance?.ai_topup ?? 0}
                     />
                   </div>
+                  {/* The gate that actually stops a paid teacher generating.
+                      Free accounts are capped on counts instead, so showing
+                      them a spend ceiling they don't have would mislead. */}
+                  {ceilingPence !== null && aiSpend && (
+                    <div className="flex items-center justify-between text-sm">
+                      <span style={{ color: "#6b6055" }}>AI spend this month</span>
+                      <span
+                        className="font-semibold"
+                        style={{ color: spendBlocked ? "#B3261E" : "#1a1a1a" }}
+                      >
+                        {gbp(Number(aiSpend.spend_pence) / 100)} of{" "}
+                        {gbp((ceilingPence + Number(aiSpend.credit_pence)) / 100)}
+                        {Number(aiSpend.credit_pence) > 0 && (
+                          <span style={{ color: "#8a8078", fontWeight: 400 }}>
+                            {" "}
+                            (incl. {gbp(Number(aiSpend.credit_pence) / 100)} credit)
+                          </span>
+                        )}
+                        {spendBlocked && (
+                          <span style={{ fontWeight: 600 }}> · blocked</span>
+                        )}
+                      </span>
+                    </div>
+                  )}
                   <div className="flex items-center justify-between text-sm">
                     <span style={{ color: "#6b6055" }}>Costs us</span>
                     <span className="font-semibold" style={{ color: "#1a1a1a" }}>
                       {gbpFromUsd(detail!.cost_usd)}
                     </span>
                   </div>
+                  {/* Resources are a Free-plan concept: paid plans have
+                      monthlyGenerations = null, so there is no count to top up.
+                      AI images are offered on both — Free is metered against
+                      its cap, and on paid plans the grant still shows in the
+                      teacher's own allowance.
+
+                      Credit is paid-only, and it is the one that lifts a real
+                      block: the £1.50 AI spend ceiling is what actually stops a
+                      Pro teacher generating (see generation-guard.ts), and no
+                      unit grant moves it. */}
                   <div className="flex flex-wrap gap-2 pt-1">
-                    <DrawerBtn onClick={() => setGrantKind("resource")}>Grant resources</DrawerBtn>
+                    {plan === "free" && (
+                      <DrawerBtn onClick={() => setGrantKind("resource")}>Grant resources</DrawerBtn>
+                    )}
                     <DrawerBtn onClick={() => setGrantKind("ai_image")}>Grant AI images</DrawerBtn>
+                    {ceilingPence !== null && (
+                      <DrawerBtn onClick={() => setGrantKind("credit_gbp")}>Grant AI credit (£)</DrawerBtn>
+                    )}
                   </div>
                 </div>
               </section>
