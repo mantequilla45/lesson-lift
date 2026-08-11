@@ -49,7 +49,7 @@ ${text}
       max_tokens: 700,
       temperature: 0.7,
     });
-    void recordUsage("edit-text", "gpt-4o-mini", completion.usage);
+    await recordUsage("edit-text", "gpt-4o-mini", completion.usage);
     const out = completion.choices[0]?.message?.content?.trim();
     if (!out) return NextResponse.json({ error: "Empty AI response" }, { status: 500 });
     // Strip wrapping quotes the model sometimes adds despite instructions.

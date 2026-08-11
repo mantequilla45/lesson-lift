@@ -1,0 +1,2286 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Jooma — Admin Console (build spec)</title>
+<style>
+/* =========================================================================
+   JOOMA ADMIN CONSOLE — BRAND TOKENS
+   Dev note: these six values are the only colour decisions in the file.
+   Swap them for the exact hex codes from jooma.ai and the whole console
+   re-skins. Nothing else hardcodes a colour.
+   ========================================================================= */
+:root{
+  --brand:#1F6B5B;        /* Jooma primary — buttons, active nav, links */
+  --brand-600:#185849;    /* primary hover */
+  --brand-50:#E8F2EF;     /* primary tint background */
+  --ai:#6B4FD8;           /* reserved for resource consumption ONLY */
+  --ai-50:#F1EDFD;
+  --img:#B4530E;          /* reserved for AI-IMAGE credits ONLY — they cost 33x a resource,
+                             so they never share a colour with anything else */
+  --img-50:#FBEFE6;
+  --warn:#A85F0C;
+  --warn-50:#FDF3E5;
+  --danger:#B3261E;
+  --danger-50:#FBECEB;
+  --ok:#1B7A45;
+  --ok-50:#E8F4EC;
+
+  --paper:#F4F6F8;
+  --surface:#FFFFFF;
+  --surface-2:#FAFBFC;
+  --ink:#15181D;
+  --ink-2:#586170;
+  --ink-3:#8A929F;
+  --line:#E3E7EC;
+  --line-2:#EFF2F5;
+
+  --r:10px; --r-sm:7px; --r-lg:14px;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+  --shadow:0 1px 2px rgba(21,24,29,.04),0 4px 14px rgba(21,24,29,.06);
+  --shadow-lg:0 10px 40px rgba(21,24,29,.16);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:var(--sans);background:var(--paper);color:var(--ink);
+  font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;
+}
+button,input,select,textarea{font:inherit;color:inherit}
+a{color:var(--brand);text-decoration:none}
+:focus-visible{outline:2px solid var(--brand);outline-offset:2px;border-radius:4px}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+
+/* ---------- app frame ---------- */
+.app{display:grid;grid-template-columns:236px minmax(0,1fr);min-height:100%}
+.side{
+  background:var(--surface);border-right:1px solid var(--line);
+  position:sticky;top:0;height:100vh;display:flex;flex-direction:column;
+}
+.brand{display:flex;align-items:center;gap:10px;padding:18px 18px 14px;border-bottom:1px solid var(--line-2)}
+.brand-mark{
+  width:30px;height:30px;border-radius:9px;background:var(--brand);color:#fff;
+  display:grid;place-items:center;font-weight:700;font-size:15px;flex:none;
+}
+.brand-name{font-weight:650;letter-spacing:-.01em}
+.brand-sub{font-size:11px;color:var(--ink-3);letter-spacing:.06em;text-transform:uppercase}
+.nav{flex:1;overflow-y:auto;padding:12px 10px 20px}
+.nav-group{font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3);
+  font-weight:650;padding:14px 8px 6px}
+.nav a{
+  display:flex;align-items:center;gap:9px;padding:7px 8px;border-radius:var(--r-sm);
+  color:var(--ink-2);font-weight:500;font-size:13.5px;margin-bottom:1px;
+}
+.nav a:hover{background:var(--surface-2);color:var(--ink)}
+.nav a.on{background:var(--brand-50);color:var(--brand-600);font-weight:600}
+.nav .ico{width:16px;text-align:center;opacity:.85;font-size:14px;flex:none}
+.nav .pill{margin-left:auto;background:var(--danger);color:#fff;font-size:10.5px;font-weight:700;
+  padding:1px 6px;border-radius:20px;line-height:1.6}
+.side-foot{border-top:1px solid var(--line-2);padding:12px 14px;display:flex;align-items:center;gap:9px}
+.avatar{width:28px;height:28px;border-radius:50%;background:var(--brand-50);color:var(--brand-600);
+  display:grid;place-items:center;font-size:11px;font-weight:700;flex:none}
+
+.main{min-width:0;display:flex;flex-direction:column}
+.topbar{
+  position:sticky;top:0;z-index:30;background:rgba(255,255,255,.86);backdrop-filter:blur(8px);
+  border-bottom:1px solid var(--line);padding:0 24px;height:56px;display:flex;align-items:center;gap:14px;
+}
+.crumb{font-size:13px;color:var(--ink-3)}
+.crumb b{color:var(--ink);font-weight:600}
+.omni{
+  flex:1;max-width:420px;margin-left:auto;position:relative;
+}
+.omni input{
+  width:100%;padding:7px 10px 7px 30px;border:1px solid var(--line);border-radius:var(--r-sm);
+  background:var(--surface-2);font-size:13px;
+}
+.omni input:focus{background:#fff;border-color:var(--brand);outline:none}
+.omni .mag{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--ink-3);font-size:13px}
+.env{font-size:11px;font-weight:650;padding:3px 8px;border-radius:5px;background:var(--warn-50);color:var(--warn)}
+.page{padding:22px 24px 72px;max-width:1440px;width:100%}
+.hamb{display:none;background:none;border:1px solid var(--line);border-radius:6px;padding:5px 9px;cursor:pointer}
+
+/* ---------- typography blocks ---------- */
+.h1{font-size:21px;font-weight:650;letter-spacing:-.02em}
+.h2{font-size:15px;font-weight:650;letter-spacing:-.01em}
+.sub{color:var(--ink-2);font-size:13px;margin-top:3px}
+.pagehead{display:flex;align-items:flex-start;gap:16px;margin-bottom:18px;flex-wrap:wrap}
+.pagehead .grow{flex:1;min-width:260px}
+.sechead{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.sechead .grow{flex:1}
+
+/* ---------- surfaces ---------- */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow)}
+.card-h{padding:13px 16px;border-bottom:1px solid var(--line-2);display:flex;align-items:center;gap:10px}
+.card-b{padding:16px}
+.card-b.tight{padding:0}
+.card-f{padding:11px 16px;border-top:1px solid var(--line-2);background:var(--surface-2);
+  border-radius:0 0 var(--r) var(--r);display:flex;align-items:center;gap:10px}
+.grid{display:grid;gap:14px}
+.g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.g4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.g-side{grid-template-columns:minmax(0,1fr) 320px}
+.row{display:flex;align-items:center;gap:10px}
+.wrap{flex-wrap:wrap}
+.grow{flex:1;min-width:0}
+.mt{margin-top:14px}.mt-lg{margin-top:22px}.mb{margin-bottom:14px}
+
+/* ---------- stat ---------- */
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px 15px;box-shadow:var(--shadow)}
+.stat .lab{font-size:11.5px;color:var(--ink-2);font-weight:550;letter-spacing:.01em;
+  display:flex;align-items:center;gap:6px}
+.stat .val{font-size:25px;font-weight:650;letter-spacing:-.03em;margin:6px 0 3px;font-family:var(--mono);
+  font-variant-numeric:tabular-nums}
+.stat .foot{font-size:11.5px;color:var(--ink-3)}
+.delta{font-weight:650;font-size:11.5px}
+.delta.up{color:var(--ok)}.delta.down{color:var(--danger)}
+
+/* ---------- buttons ---------- */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  padding:7px 13px;border-radius:var(--r-sm);border:1px solid var(--line);
+  background:var(--surface);font-size:13px;font-weight:550;cursor:pointer;white-space:nowrap;
+  transition:background .12s,border-color .12s;
+}
+.btn:hover{background:var(--surface-2);border-color:#D3D9E0}
+.btn.pri{background:var(--brand);border-color:var(--brand);color:#fff}
+.btn.pri:hover{background:var(--brand-600);border-color:var(--brand-600)}
+.btn.dang{color:var(--danger);border-color:#EDD3D1}
+.btn.dang:hover{background:var(--danger-50)}
+.btn.sm{padding:4px 9px;font-size:12px}
+.btn.ghost{border-color:transparent;background:transparent}
+.btn.ghost:hover{background:var(--surface-2);border-color:var(--line)}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap}
+
+/* ---------- tags / badges ---------- */
+.tag{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;
+  padding:2px 8px;border-radius:20px;background:var(--line-2);color:var(--ink-2);white-space:nowrap}
+.tag.ok{background:var(--ok-50);color:var(--ok)}
+.tag.warn{background:var(--warn-50);color:var(--warn)}
+.tag.dang{background:var(--danger-50);color:var(--danger)}
+.tag.ai{background:var(--ai-50);color:var(--ai)}
+.tag.brand{background:var(--brand-50);color:var(--brand-600)}
+.tag.img{background:var(--img-50);color:var(--img)}
+.tag.img.near{background:var(--warn-50);color:var(--warn)}
+.tag.img.over{background:var(--danger-50);color:var(--danger)}
+.dot{width:6px;height:6px;border-radius:50%;background:currentColor;flex:none}
+
+/* ---------- resource meter (signature component) ----------
+   One visual language for "how much fuel is left" — used in tables,
+   drawers, school pools and the top-up flow. Never restyle per-context. */
+.meter{display:flex;flex-direction:column;gap:4px;min-width:118px}
+.meter-bar{height:6px;border-radius:4px;background:var(--line-2);overflow:hidden;display:flex}
+.meter-fill{background:var(--ai);height:100%}
+.meter-fill.low{background:var(--warn)}
+.meter-fill.out{background:var(--danger)}
+.meter-fill.topup{background:var(--brand);opacity:.75}
+.meter-txt{font-size:11px;color:var(--ink-2);font-family:var(--mono);font-variant-numeric:tabular-nums}
+.meter-txt b{color:var(--ink);font-weight:600}
+
+/* ---------- seat pool (schools) ---------- */
+.seats{display:flex;flex-wrap:wrap;gap:4px}
+.seat{width:15px;height:15px;border-radius:4px;background:var(--line-2);border:1px solid var(--line)}
+.seat.used{background:var(--brand);border-color:var(--brand)}
+.seat.invited{background:var(--brand-50);border-color:var(--brand);border-style:dashed}
+.seat.dormant{background:var(--warn-50);border-color:var(--warn)}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:11.5px;color:var(--ink-2)}
+.legend i{width:10px;height:10px;border-radius:3px;display:inline-block;margin-right:5px;vertical-align:-1px}
+
+/* ---------- tables ---------- */
+.tblwrap{overflow-x:auto;border-radius:0 0 var(--r) var(--r)}
+table{width:100%;border-collapse:collapse}
+th{
+  text-align:left;font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3);
+  font-weight:650;padding:9px 14px;border-bottom:1px solid var(--line);background:var(--surface-2);
+  white-space:nowrap;position:sticky;top:0;
+}
+td{padding:11px 14px;border-bottom:1px solid var(--line-2);vertical-align:middle}
+tbody tr:last-child td{border-bottom:0}
+tbody tr:hover{background:var(--surface-2)}
+tbody tr.click{cursor:pointer}
+.cell-user{display:flex;align-items:center;gap:9px;min-width:0}
+.cell-user .nm{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cell-user .em{font-size:11.5px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tnum{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:13px}
+.rowact{opacity:0;transition:opacity .1s}
+tr:hover .rowact{opacity:1}
+
+/* ---------- filters ---------- */
+.filters{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:12px 16px;border-bottom:1px solid var(--line-2)}
+.field{position:relative}
+select.inp,input.inp,textarea.inp{
+  border:1px solid var(--line);border-radius:var(--r-sm);padding:6px 10px;background:var(--surface);
+  font-size:13px;min-width:0;
+}
+select.inp{padding-right:26px;appearance:none;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'><path d='M1 3l4 4 4-4' stroke='%238A929F' stroke-width='1.5' fill='none' stroke-linecap='round'/></svg>");
+  background-repeat:no-repeat;background-position:right 9px center}
+input.inp:focus,select.inp:focus,textarea.inp:focus{border-color:var(--brand);outline:none;
+  box-shadow:0 0 0 3px var(--brand-50)}
+.inp.w-full{width:100%}
+label.lbl{display:block;font-size:12px;font-weight:600;color:var(--ink-2);margin-bottom:5px}
+.help{font-size:11.5px;color:var(--ink-3);margin-top:4px}
+.formrow{margin-bottom:14px}
+.switch{position:relative;width:36px;height:20px;border-radius:20px;background:var(--line);
+  border:none;cursor:pointer;flex:none;transition:background .15s}
+.switch::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;
+  background:#fff;transition:transform .15s;box-shadow:0 1px 2px rgba(0,0,0,.2)}
+.switch.on{background:var(--brand)}
+.switch.on::after{transform:translateX(16px)}
+.togrow{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--line-2)}
+.togrow:last-child{border-bottom:0}
+.togrow .t{font-weight:550;font-size:13.5px}
+.togrow .d{font-size:12px;color:var(--ink-3);margin-top:1px}
+
+/* ---------- tabs ---------- */
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);margin-bottom:16px;overflow-x:auto}
+.tabs button{background:none;border:none;padding:9px 12px;font-size:13.5px;font-weight:550;color:var(--ink-2);
+  cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap}
+.tabs button:hover{color:var(--ink)}
+.tabs button.on{color:var(--brand-600);border-bottom-color:var(--brand)}
+
+/* ---------- drawer ---------- */
+.scrim{position:fixed;inset:0;background:rgba(21,24,29,.34);z-index:40;opacity:0;pointer-events:none;
+  transition:opacity .18s}
+.scrim.on{opacity:1;pointer-events:auto}
+.drawer{
+  position:fixed;top:0;right:0;height:100vh;width:min(560px,100vw);background:var(--surface);
+  z-index:50;box-shadow:var(--shadow-lg);transform:translateX(100%);transition:transform .22s cubic-bezier(.2,.8,.2,1);
+  display:flex;flex-direction:column;
+}
+.drawer.on{transform:none}
+.drawer-h{padding:16px 18px;border-bottom:1px solid var(--line);display:flex;align-items:flex-start;gap:12px}
+.drawer-b{flex:1;overflow-y:auto;padding:16px 18px}
+.drawer-f{padding:12px 18px;border-top:1px solid var(--line);background:var(--surface-2);display:flex;gap:8px;flex-wrap:wrap}
+.x{background:none;border:none;font-size:19px;color:var(--ink-3);cursor:pointer;line-height:1;padding:2px 4px}
+.x:hover{color:var(--ink)}
+
+/* ---------- modal ---------- */
+.modal{position:fixed;z-index:60;top:50%;left:50%;transform:translate(-50%,-46%);width:min(520px,94vw);
+  background:var(--surface);border-radius:var(--r-lg);box-shadow:var(--shadow-lg);opacity:0;pointer-events:none;
+  transition:opacity .16s,transform .16s}
+.modal.on{opacity:1;pointer-events:auto;transform:translate(-50%,-50%)}
+.modal-h{padding:16px 18px 0}
+.modal-b{padding:14px 18px}
+.modal-f{padding:12px 18px;border-top:1px solid var(--line-2);display:flex;gap:8px;justify-content:flex-end}
+
+/* ---------- definition list ---------- */
+.dl{display:grid;grid-template-columns:128px minmax(0,1fr);gap:0}
+.dl dt{font-size:12.5px;color:var(--ink-2);padding:7px 0;border-bottom:1px solid var(--line-2)}
+.dl dd{font-size:13px;padding:7px 0;border-bottom:1px solid var(--line-2);word-break:break-word}
+.dl dt:last-of-type,.dl dd:last-of-type{border-bottom:0}
+
+/* ---------- timeline ---------- */
+.tl{position:relative;padding-left:18px}
+.tl::before{content:"";position:absolute;left:4px;top:5px;bottom:5px;width:1px;background:var(--line)}
+.tl-i{position:relative;padding:0 0 15px}
+.tl-i::before{content:"";position:absolute;left:-18px;top:5px;width:9px;height:9px;border-radius:50%;
+  background:var(--surface);border:2px solid var(--line)}
+.tl-i.hi::before{border-color:var(--brand);background:var(--brand)}
+.tl-t{font-size:13px;font-weight:550}
+.tl-m{font-size:11.5px;color:var(--ink-3);font-family:var(--mono)}
+
+/* ---------- chat / inbox ---------- */
+.inbox{display:grid;grid-template-columns:290px minmax(0,1fr) 288px;height:calc(100vh - 56px);
+  border-top:1px solid var(--line);background:var(--surface)}
+.ib-list{border-right:1px solid var(--line);overflow-y:auto;display:flex;flex-direction:column}
+.ib-filter{padding:10px 12px;border-bottom:1px solid var(--line-2);position:sticky;top:0;background:var(--surface);z-index:2}
+.thread{padding:11px 13px;border-bottom:1px solid var(--line-2);cursor:pointer;display:flex;gap:10px}
+.thread:hover{background:var(--surface-2)}
+.thread.on{background:var(--brand-50)}
+.thread .t1{display:flex;align-items:center;gap:6px}
+.thread .nm{font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.thread .tm{font-size:11px;color:var(--ink-3);margin-left:auto;flex:none;font-family:var(--mono)}
+.thread .pv{font-size:12px;color:var(--ink-2);margin-top:2px;display:-webkit-box;-webkit-line-clamp:2;
+  -webkit-box-orient:vertical;overflow:hidden}
+.ib-conv{display:flex;flex-direction:column;min-width:0}
+.ib-head{padding:12px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px}
+.msgs{flex:1;overflow-y:auto;padding:18px 16px;display:flex;flex-direction:column;gap:12px;background:var(--surface-2)}
+.msg{max-width:74%;display:flex;flex-direction:column;gap:4px}
+.msg .bub{padding:9px 12px;border-radius:12px;font-size:13.5px;background:var(--surface);
+  border:1px solid var(--line);border-bottom-left-radius:3px}
+.msg .meta{font-size:10.5px;color:var(--ink-3);font-family:var(--mono)}
+.msg.me{align-self:flex-end;align-items:flex-end}
+.msg.me .bub{background:var(--brand);color:#fff;border-color:var(--brand);
+  border-bottom-left-radius:12px;border-bottom-right-radius:3px}
+.msg.note .bub{background:var(--warn-50);border-color:#F0DFC4;color:var(--ink)}
+.composer{border-top:1px solid var(--line);padding:11px 14px;background:var(--surface)}
+.composer textarea{width:100%;border:1px solid var(--line);border-radius:var(--r-sm);padding:9px 11px;
+  resize:vertical;min-height:62px;font-size:13.5px}
+.ib-ctx{border-left:1px solid var(--line);overflow-y:auto;padding:14px}
+.canned{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:9px}
+
+/* ---------- misc ---------- */
+.kbd{font-family:var(--mono);font-size:11px;background:var(--surface-2);border:1px solid var(--line);
+  border-bottom-width:2px;border-radius:5px;padding:1px 5px;color:var(--ink-2)}
+.note{background:var(--brand-50);border:1px solid #C9E0D9;border-radius:var(--r);padding:12px 14px;font-size:13px}
+.note.warn{background:var(--warn-50);border-color:#F0DFC4}
+.empty{text-align:center;padding:44px 20px;color:var(--ink-3)}
+.empty .h{font-weight:600;color:var(--ink-2);margin-bottom:4px;font-size:14px}
+.bar-chart{display:flex;align-items:flex-end;gap:6px;height:120px}
+.bar{flex:1;background:var(--brand);border-radius:4px 4px 0 0;min-height:3px;position:relative}
+.bar.alt{background:var(--ai)}
+.bar-lab{font-size:10.5px;color:var(--ink-3);text-align:center;margin-top:6px;font-family:var(--mono)}
+.split{display:flex;height:8px;border-radius:5px;overflow:hidden;background:var(--line-2)}
+.hr{height:1px;background:var(--line-2);margin:16px 0}
+.stepper{display:flex;gap:0;margin-bottom:22px;overflow-x:auto}
+.step{display:flex;align-items:center;gap:8px;padding:0 16px 0 0;flex:none}
+.step .n{width:23px;height:23px;border-radius:50%;background:var(--line-2);color:var(--ink-3);
+  display:grid;place-items:center;font-size:11.5px;font-weight:700;flex:none}
+.step.on .n{background:var(--brand);color:#fff}
+.step.done .n{background:var(--ok-50);color:var(--ok)}
+.step .s{font-size:12.5px;color:var(--ink-3);font-weight:550;white-space:nowrap}
+.step.on .s{color:var(--ink)}
+.step::after{content:"";width:22px;height:1px;background:var(--line);margin-left:8px}
+.step:last-child::after{display:none}
+.checklist{display:flex;flex-direction:column}
+.ck{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--line-2)}
+.ck:last-child{border-bottom:0}
+.ck .bx{width:17px;height:17px;border-radius:5px;border:1.5px solid var(--line);flex:none;margin-top:1px;
+  display:grid;place-items:center;font-size:10px;color:#fff;cursor:pointer}
+.ck.done .bx{background:var(--ok);border-color:var(--ok)}
+.ck.done .t{color:var(--ink-3);text-decoration:line-through}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(12px);z-index:80;
+  background:var(--ink);color:#fff;padding:9px 15px;border-radius:8px;font-size:13px;opacity:0;
+  pointer-events:none;transition:.18s}
+.toast.on{opacity:1;transform:translateX(-50%)}
+.mono-id{font-family:var(--mono);font-size:11.5px;color:var(--ink-3)}
+
+@media(max-width:1180px){
+  .g4{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .g-side{grid-template-columns:minmax(0,1fr)}
+  .inbox{grid-template-columns:250px minmax(0,1fr)}
+  .ib-ctx{display:none}
+}
+@media(max-width:900px){
+  .app{grid-template-columns:1fr}
+  .side{position:fixed;left:0;top:0;z-index:70;transform:translateX(-100%);transition:transform .2s;width:236px}
+  .side.on{transform:none}
+  .hamb{display:block}
+  .g2,.g3{grid-template-columns:minmax(0,1fr)}
+  .inbox{grid-template-columns:minmax(0,1fr);height:auto}
+  .ib-list{max-height:280px;border-right:0;border-bottom:1px solid var(--line)}
+  .page{padding:16px 14px 60px}
+}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side" id="side">
+    <div class="brand">
+      <div class="brand-mark">J</div>
+      <div>
+        <div class="brand-name">Jooma</div>
+        <div class="brand-sub">Admin</div>
+      </div>
+    </div>
+    <nav class="nav" id="nav"></nav>
+    <div class="side-foot">
+      <div class="avatar">AK</div>
+      <div class="grow" style="min-width:0">
+        <div style="font-size:12.5px;font-weight:600">Ash K.</div>
+        <div style="font-size:11px;color:var(--ink-3)">Super admin</div>
+      </div>
+      <button class="btn ghost sm" title="Sign out">&#9099;</button>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <button class="hamb" id="hamb" aria-label="Menu">&#9776;</button>
+      <div class="crumb" id="crumb"></div>
+      <div class="omni">
+        <span class="mag">&#9906;</span>
+        <input id="omni" placeholder="Search teachers, schools, invoices, tickets…" aria-label="Search">
+      </div>
+      <span class="env">Staging</span>
+    </header>
+    <main id="view"></main>
+  </div>
+</div>
+
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer" role="dialog" aria-modal="true"></aside>
+<div class="modal" id="modal" role="dialog" aria-modal="true"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* =========================================================================
+   MOCK DATA — replace every array below with API responses.
+   Field names are the suggested API contract; keep them and the UI works.
+
+   COSTS ARE REAL. Every cost figure in this console comes from the
+   developer's measured cost sheets (Aug 2026), converted at £0.79/$1.
+   ========================================================================= */
+
+const FX = 0.79;                    // USD -> GBP. Single place to change it.
+const COST = {
+  text:  0.0109 * FX,               // £0.0086  blended across 34 text tools
+  deckWeb: 0.0401 * FX,             // £0.0317  slideshow, Pixabay images
+  deckAI:  0.3600 * FX,             // £0.2844  slideshow, AI-generated images
+  image:   0.0455 * FX,             // £0.0359  per generated image
+  imagesPerDeck: 6.8,
+  cardPct: 0.015, cardFixed: 0.20,  // Stripe UK
+  infra: 0.15, support: 0.20        // per paying user per month
+};
+
+/* Plans. `res` = monthly resource allowance. `ai` = AI-image slideshows. */
+const PLANS = [
+  {id:'free', name:'Free',  aud:'teacher', price:0,     priceY:0,      interval:'month',
+   res:10,   ai:0,  desc:'10 resources a month, watermarked', users:2841, status:'live'},
+  {id:'pro',  name:'Pro',   aud:'teacher', price:7.99,  priceY:79.00,  interval:'month',
+   res:300,  ai:12, desc:'Everything, fair use. For one teacher.', users:412, status:'live'},
+  {id:'max',  name:'Max',   aud:'teacher', price:14.99, priceY:149.00, interval:'month',
+   res:600,  ai:25, desc:'Adds leadership, inspection and CPD tools', users:96, status:'live'},
+  {id:'school',name:'School',aud:'school', price:4.25,  priceY:51.00,  interval:'seat/month',
+   res:300,  ai:3,  desc:'Per seat, banded, invoiced annually', users:214, status:'live'}
+];
+
+/* School seat ladder — declining per seat, minimum 10. */
+const SEAT_BANDS = [
+  {band:'10–19',  min:10,  max:19,  rate:4.25},
+  {band:'20–49',  min:20,  max:49,  rate:3.50},
+  {band:'50–99',  min:50,  max:99,  rate:2.95},
+  {band:'100+',   min:100, max:9999,rate:2.50}
+];
+const seatRate = n => (SEAT_BANDS.find(b=>n>=b.min&&n<=b.max)||SEAT_BANDS[0]).rate;
+const ONBOARD_FEE = 395;
+
+/* Two kinds of top-up. Resources are cheap; AI images are not. */
+const TOPUPS = [
+  {id:'res-100', kind:'res', name:'100 extra resources', price:3.99,  unit:100, sold:184},
+  {id:'res-300', kind:'res', name:'300 extra resources', price:8.99,  unit:300, sold:96},
+  {id:'img-10',  kind:'ai',  name:'10 AI-image slideshows', price:2.99, unit:10, sold:141},
+  {id:'img-25',  kind:'ai',  name:'25 AI-image slideshows', price:5.99, unit:25, sold:58}
+];
+
+const SCHOOLS = [
+  {id:'sch_01', name:'St Aidan\'s CE Primary', urn:'104521', town:'Leeds', seats:14, assigned:11, invited:2, dormant:1,
+   contact:'Rachel Owen', email:'r.owen@staidans.sch.uk', phone:'0113 496 2210', billing:'invoice', po:'PO-2026-0088',
+   renews:'2027-08-31', started:'2026-06-12', status:'live', onboarding:100, resUsed:2060, aiUsed:74, trust:null},
+  {id:'sch_02', name:'Hollybrook Academy', urn:'138902', town:'Birmingham', seats:32, assigned:28, invited:3, dormant:5,
+   contact:'Marcus Bell', email:'m.bell@hollybrook.org', phone:'0121 340 8871', billing:'invoice', po:'PO-2026-0102',
+   renews:'2027-08-31', started:'2026-07-01', status:'live', onboarding:100, resUsed:5715, aiUsed:212, trust:'Northfield Trust'},
+  {id:'sch_03', name:'Greenway Junior School', urn:'112044', town:'Bristol', seats:12, assigned:4, invited:5, dormant:0,
+   contact:'Priya Nandra', email:'p.nandra@greenway.sch.uk', phone:'0117 220 4412', billing:'card', po:'—',
+   renews:'2027-07-14', started:'2026-07-14', status:'onboarding', onboarding:60, resUsed:305, aiUsed:11, trust:null},
+  {id:'sch_04', name:'Kestrel High', urn:'140338', town:'Manchester', seats:45, assigned:39, invited:1, dormant:8,
+   contact:'Dan Whitfield', email:'d.whitfield@kestrelhigh.ac.uk', phone:'0161 884 0092', billing:'invoice', po:'PO-2026-0064',
+   renews:'2027-08-31', started:'2026-05-20', status:'live', onboarding:100, resUsed:11445, aiUsed:488, trust:'Northfield Trust'},
+  {id:'sch_05', name:'Ashcombe Primary', urn:'119876', town:'Exeter', seats:12, assigned:0, invited:0, dormant:0,
+   contact:'Helen Rooke', email:'h.rooke@ashcombe.sch.uk', phone:'01392 771 220', billing:'invoice', po:'awaiting',
+   renews:'2027-09-01', started:'2026-08-01', status:'pending', onboarding:25, resUsed:0, aiUsed:0, trust:null}
+];
+
+/* `used` = resources this month. `aiUsed` = AI-image slideshows this month.
+   `deckWeb` = free-image slideshows (counted as resources, cost tracked separately). */
+const TEACHERS = [
+  {id:'usr_1041', name:'Sarah Whitby', email:'s.whitby@staidans.sch.uk', plan:'school', term:'seat', school:'sch_01', status:'active',
+   used:118, deckWeb:14, aiUsed:2, topupRes:0, topupAI:0, joined:'2026-06-14', last:'2h ago', gens:441, spend:0, risk:null, subject:'Year 4'},
+  {id:'usr_1042', name:'Tom Ellison', email:'tomellison88@gmail.com', plan:'pro', term:'monthly', school:null, status:'active',
+   used:241, deckWeb:28, aiUsed:12, topupRes:100, topupAI:10, joined:'2026-05-02', last:'20m ago', gens:1204, spend:34.95, risk:null, subject:'KS3 Science'},
+  {id:'usr_1043', name:'Amara Osei', email:'a.osei@hollybrook.org', plan:'school', term:'seat', school:'sch_02', status:'active',
+   used:299, deckWeb:16, aiUsed:3, topupRes:0, topupAI:0, joined:'2026-07-03', last:'1h ago', gens:598, spend:0, risk:'out of resources', subject:'Year 6'},
+  {id:'usr_1044', name:'James Peart', email:'jpeart@outlook.com', plan:'free', term:'free', school:null, status:'active',
+   used:10, deckWeb:1, aiUsed:0, topupRes:0, topupAI:0, joined:'2026-08-01', last:'5m ago', gens:10, spend:0, risk:'hit free cap', subject:'—'},
+  {id:'usr_1045', name:'Nadia Rahman', email:'n.rahman@kestrelhigh.ac.uk', plan:'school', term:'seat', school:'sch_04', status:'active',
+   used:56, deckWeb:4, aiUsed:1, topupRes:0, topupAI:0, joined:'2026-05-22', last:'3d ago', gens:112, spend:0, risk:null, subject:'MFL'},
+  {id:'usr_1046', name:'Chris Doughty', email:'chris.doughty@icloud.com', plan:'max', term:'monthly', school:null, status:'past_due',
+   used:612, deckWeb:48, aiUsed:33, topupRes:300, topupAI:0, joined:'2026-03-11', last:'1d ago', gens:3891, spend:104.85, risk:'payment failed ×2 · 33 AI slideshows', subject:'Primary SEN'},
+  {id:'usr_1047', name:'Beth Curran', email:'b.curran@greenway.sch.uk', plan:'school', term:'seat', school:'sch_03', status:'invited',
+   used:0, deckWeb:0, aiUsed:0, topupRes:0, topupAI:0, joined:'2026-07-28', last:'never', gens:0, spend:0, risk:'never signed in', subject:'Year 3'},
+  {id:'usr_1048', name:'Owen Blythe', email:'owenblythe@yahoo.co.uk', plan:'free', term:'free', school:null, status:'active',
+   used:4, deckWeb:0, aiUsed:0, topupRes:0, topupAI:0, joined:'2026-07-30', last:'6h ago', gens:4, spend:0, risk:null, subject:'—'},
+  {id:'usr_1049', name:'Grace Ibbotson', email:'g.ibbotson@hollybrook.org', plan:'school', term:'seat', school:'sch_02', status:'suspended',
+   used:300, deckWeb:9, aiUsed:3, topupRes:0, topupAI:0, joined:'2026-07-04', last:'12d ago', gens:600, spend:0, risk:'sharing login', subject:'Year 5'},
+  {id:'usr_1050', name:'Michael Oyelaran', email:'m.oyelaran@kestrelhigh.ac.uk', plan:'school', term:'seat', school:'sch_04', status:'active',
+   used:214, deckWeb:15, aiUsed:2, topupRes:100, topupAI:0, joined:'2026-05-20', last:'40m ago', gens:620, spend:3.99, risk:null, subject:'Maths'},
+  {id:'usr_1051', name:'Elin Prydderch', email:'elin.p@protonmail.com', plan:'pro', term:'monthly', school:null, status:'cancelling',
+   used:44, deckWeb:3, aiUsed:1, topupRes:0, topupAI:0, joined:'2026-04-18', last:'8d ago', gens:512, spend:31.96, risk:'cancels 12 Aug', subject:'Welsh / KS2'},
+  {id:'usr_1052', name:'Deborah Lang', email:'d.lang@staidans.sch.uk', plan:'school', term:'seat', school:'sch_01', status:'active',
+   used:97, deckWeb:7, aiUsed:1, topupRes:0, topupAI:0, joined:'2026-06-14', last:'4h ago', gens:301, spend:0, risk:null, subject:'SENDCo'},
+  {id:'usr_1053', name:'Ryan Coles', email:'rcoles@teachmail.co.uk', plan:'free', term:'free', school:null, status:'active',
+   used:10, deckWeb:2, aiUsed:0, topupRes:100, topupAI:0, joined:'2026-07-19', last:'2d ago', gens:105, spend:3.99, risk:null, subject:'—'},
+  {id:'usr_1054', name:'Priya Solanki', email:'p.solanki@gmail.com', plan:'pro', term:'annual', school:null, status:'active',
+   used:174, deckWeb:21, aiUsed:9, topupRes:0, topupAI:25, joined:'2026-07-11', last:'25m ago', gens:687, spend:84.99, risk:null, subject:'Year 2'},
+  {id:'usr_1055', name:'Gareth Ncube', email:'gncube@teachmail.co.uk', plan:'pro', term:'monthly', school:null, status:'active',
+   used:96, deckWeb:11, aiUsed:31, topupRes:0, topupAI:25, joined:'2026-06-02', last:'1h ago', gens:840, spend:21.96, risk:'AI images above plan', subject:'Art & Design'},
+  {id:'usr_1056', name:'Harriet Vane', email:'h.vane@ashcombe.sch.uk', plan:'school', term:'seat', school:'sch_05', status:'invited',
+   used:0, deckWeb:0, aiUsed:0, topupRes:0, topupAI:0, joined:'2026-08-02', last:'never', gens:0, spend:0, risk:'never signed in', subject:'Head'}
+];
+
+/* Real measured costs. `p` = pence per generation (£0.79/$1). Source: dev cost sheet. */
+const TOOLS = [
+  {id:'slideshow-ai',   name:'Slideshow — AI images', p:28.44, tok:2639, runs:2140, err:1.9, p95:41.2, plans:['pro','max','school'], on:true, route:'Terra + image model', flag:'cost'},
+  {id:'eyfs-planner',   name:'EYFS Planner',           p:4.35, tok:6224, runs:1180, err:0.6, p95:18.4, plans:['pro','max','school'], on:true, route:'Terra'},
+  {id:'slideshow-web',  name:'Slideshow — web images', p:3.17, tok:2639, runs:9210, err:0.9, p95:22.7, plans:['free','pro','max','school'], on:true, route:'Terra'},
+  {id:'inspection-prep',name:'Inspection Prep',        p:1.81, tok:3541, runs:1610, err:0.8, p95:15.8, plans:['max','school'], on:true, route:'Terra'},
+  {id:'sensory',        name:'Sensory Activities',     p:1.67, tok:2778, runs:1420, err:0.5, p95:13.1, plans:['pro','max','school'], on:true, route:'Terra'},
+  {id:'lesson-planner', name:'Lesson Planner',         p:1.65, tok:3304, runs:18420, err:0.4, p95:11.2, plans:['free','pro','max','school'], on:true, route:'Terra'},
+  {id:'phonics',        name:'Phonics Support',        p:1.53, tok:3304, runs:2310, err:0.5, p95:12.0, plans:['free','pro','max','school'], on:true, route:'Terra'},
+  {id:'eyfs-action',    name:'EYFS Action Plan',       p:1.42, tok:2762, runs:610,  err:0.7, p95:14.2, plans:['max','school'], on:true, route:'Terra'},
+  {id:'behaviour',      name:'Behaviour Support Plan', p:1.41, tok:3261, runs:2870, err:0.6, p95:13.4, plans:['pro','max','school'], on:true, route:'Terra'},
+  {id:'sip',            name:'School Improvement Plan',p:1.36, tok:2357, runs:340,  err:0.9, p95:14.9, plans:['max','school'], on:true, route:'Terra'},
+  {id:'topic-overview', name:'Topic Overview',         p:1.15, tok:2128, runs:3120, err:0.5, p95:10.8, plans:['pro','max','school'], on:true, route:'Terra'},
+  {id:'ect-report',     name:'ECT Report Writer',      p:1.15, tok:2192, runs:480,  err:0.6, p95:11.1, plans:['max','school'], on:true, route:'Terra'},
+  {id:'model-answer',   name:'Model Answer Generator', p:0.96, tok:2062, runs:2640, err:0.5, p95:10.2, plans:['pro','max','school'], on:true, route:'Terra'},
+  {id:'worksheet',      name:'Worksheet Generator',    p:0.95, tok:1858, runs:14880,err:0.6, p95:9.4,  plans:['free','pro','max','school'], on:true, route:'Terra'},
+  {id:'meeting',        name:'Meeting Planner',        p:0.94, tok:1745, runs:520,  err:0.4, p95:8.9,  plans:['max','school'], on:true, route:'Luna candidate'},
+  {id:'intervention',   name:'Targeted Intervention',  p:0.94, tok:1551, runs:1960, err:0.5, p95:9.1,  plans:['pro','max','school'], on:true, route:'Terra'},
+  {id:'assembly',       name:'Assembly Planner',       p:0.87, tok:1675, runs:410,  err:0.4, p95:8.6,  plans:['pro','max','school'], on:true, route:'Luna candidate'},
+  {id:'cover-lesson',   name:'Cover Lesson',           p:0.87, tok:1747, runs:4210, err:0.4, p95:8.8,  plans:['pro','max','school'], on:true, route:'Terra'},
+  {id:'perf-mgmt',      name:'Performance Management', p:0.87, tok:1561, runs:190,  err:0.6, p95:8.7,  plans:['max','school'], on:true, route:'Luna candidate'},
+  {id:'homework',       name:'Homework Generator',     p:0.83, tok:1633, runs:6110, err:0.4, p95:8.4,  plans:['free','pro','max','school'], on:true, route:'Terra'},
+  {id:'observation',    name:'Lesson Observation Report',p:0.83,tok:1606,runs:260,  err:0.5, p95:8.5,  plans:['max','school'], on:true, route:'Luna candidate'},
+  {id:'model-text',     name:'Model Text Generator',   p:0.77, tok:1519, runs:2140, err:0.4, p95:7.9,  plans:['pro','max','school'], on:true, route:'Terra'},
+  {id:'risk-assessment',name:'Risk Assessment',        p:0.77, tok:1575, runs:840,  err:0.3, p95:8.0,  plans:['pro','max','school'], on:true, route:'Luna candidate'},
+  {id:'policy',         name:'Policy Generator',       p:0.76, tok:1459, runs:220,  err:0.5, p95:7.8,  plans:['max','school'], on:true, route:'Terra'},
+  {id:'cpd-slideshow',  name:'CPD Slideshow',          p:0.73, tok:1862, runs:390,  err:0.7, p95:9.6,  plans:['max','school'], on:true, route:'Terra'},
+  {id:'comprehension',  name:'Comprehension Generator',p:0.71, tok:1312, runs:6110, err:0.8, p95:7.4,  plans:['pro','max','school'], on:true, route:'Terra'},
+  {id:'learning-walk',  name:'Learning Walk Report',   p:0.70, tok:1504, runs:180,  err:0.4, p95:7.6,  plans:['max','school'], on:true, route:'Luna candidate'},
+  {id:'mtp',            name:'Medium Term Planner',    p:0.70, tok:1404, runs:3410, err:0.5, p95:7.5,  plans:['pro','max','school'], on:true, route:'Terra'},
+  {id:'exam-question',  name:'Exam Question Generator',p:0.61, tok:1219, runs:4880, err:0.4, p95:6.8,  plans:['pro','max','school'], on:true, route:'Terra'},
+  {id:'pupil-premium',  name:'Pupil Premium Planner',  p:0.59, tok:1222, runs:210,  err:0.4, p95:6.9,  plans:['max','school'], on:true, route:'Luna candidate'},
+  {id:'one-page',       name:'One Page Profile',       p:0.54, tok:1366, runs:1840, err:0.3, p95:6.4,  plans:['pro','max','school'], on:true, route:'Luna candidate'},
+  {id:'smart-targets',  name:'SMART Targets',          p:0.46, tok:1160, runs:2210, err:0.3, p95:5.9,  plans:['pro','max','school'], on:true, route:'Luna candidate'},
+  {id:'newsletter',     name:'Newsletter Writer',      p:0.46, tok:937,  runs:1120, err:0.3, p95:5.4,  plans:['pro','max','school'], on:true, route:'Luna candidate'},
+  {id:'quiz',           name:'Quiz Generator',         p:0.40, tok:869,  runs:12040,err:0.5, p95:5.1,  plans:['free','pro','max','school'], on:true, route:'Luna candidate'},
+  {id:'report-writer',  name:'Report Writer',          p:0.30, tok:918,  runs:3980, err:0.7, p95:4.8,  plans:['pro','max','school'], on:true, route:'Luna candidate'},
+  {id:'letter-writer',  name:'Letter Writer',          p:0.22, tok:576,  runs:2870, err:0.4, p95:4.1,  plans:['free','pro','max','school'], on:true, route:'Luna candidate'}
+];
+
+const THREADS = [
+  {id:'tk_318', user:'usr_1043', name:'Amara Osei', school:'Hollybrook Academy', plan:'school', subj:'Ran out of resources mid-lesson',
+   status:'open', pri:'high', assigned:'Ash K.', updated:'6m', unread:true, msgs:[
+    {from:'them', t:'09:12', b:'Morning — I\'ve hit my limit and I\'ve got a Year 6 SATs booster to build for Thursday. Is there any way to get more? Our school bought the seats so I assumed it was unlimited.'},
+    {from:'us', t:'09:20', b:'Hi Amara — school seats come with 300 resources a month each, and you\'re at 299. Your school admin (Marcus) can move spare capacity across from the school pool, or I can add 100 to your account right now to keep you going.'},
+    {from:'them', t:'09:24', b:'That would be brilliant, thank you. Marcus is off this week.'}
+   ]},
+  {id:'tk_319', user:'usr_1055', name:'Gareth Ncube', school:null, plan:'pro', subj:'Why are AI images limited?',
+   status:'open', pri:'normal', assigned:'Unassigned', updated:'22m', unread:true, msgs:[
+    {from:'them', t:'08:58', b:'I teach Art and I use the AI image slideshows constantly. I\'ve bought two top-ups this month already. Is there a plan where I just get more?'},
+    {from:'note', t:'09:02', b:'Internal: 31 AI decks this month on Pro (12 included + 25 bought). Costs us £8.25 against £7.99 + £5.99 top-ups. He is profitable but only because of the top-ups. Push him to Max — 25 included.'}
+   ]},
+  {id:'tk_317', user:'usr_1046', name:'Chris Doughty', school:null, plan:'max', subj:'Card declined twice',
+   status:'open', pri:'high', assigned:'Unassigned', updated:'52m', unread:true, msgs:[
+    {from:'them', t:'08:40', b:'I keep getting an email saying my payment failed but the card works everywhere else. Account is going to lock tomorrow.'},
+    {from:'note', t:'08:44', b:'Internal: Stripe says 3DS challenge abandoned. Send the hosted update-card link rather than retrying.'}
+   ]},
+  {id:'tk_316', user:'usr_1047', name:'Beth Curran', school:'Greenway Junior School', plan:'school', subj:'Never got my invite email',
+   status:'pending', pri:'normal', assigned:'Ash K.', updated:'3h', unread:false, msgs:[
+    {from:'them', t:'Yesterday 16:02', b:'My head said I\'ve been added but nothing has arrived. Checked junk.'},
+    {from:'us', t:'Yesterday 16:31', b:'Invite was sent to b.curran@greenway.sch.uk on 28 July but bounced — looks like your filter is blocking us. I\'ve re-sent it and added jooma.ai to the allow-list instructions below.'}
+   ]},
+  {id:'tk_315', user:'usr_1042', name:'Tom Ellison', school:null, plan:'pro', subj:'Slideshow export loses images',
+   status:'open', pri:'normal', assigned:'Dev queue', updated:'5h', unread:false, msgs:[
+    {from:'them', t:'Yesterday 11:20', b:'When I export a slideshow to PowerPoint the generated images don\'t come through, just empty boxes.'},
+    {from:'note', t:'Yesterday 11:52', b:'Internal: reproduced. Affects PPTX export only, PDF fine. Raised as JOOM-241.'}
+   ]},
+  {id:'tk_314', user:'usr_1051', name:'Elin Prydderch', school:null, plan:'pro', subj:'Cancelling — too expensive over summer',
+   status:'open', pri:'normal', assigned:'Unassigned', updated:'1d', unread:false, msgs:[
+    {from:'them', t:'2 Aug 19:04', b:'Cancelling for now, I don\'t need it over the holidays. Might be back in September.'},
+    {from:'note', t:'2 Aug 19:30', b:'Internal: classic July/August churn. Offer the annual plan at £79 — pauses nothing but costs her less than 10 monthly payments.'}
+   ]},
+  {id:'tk_310', user:'usr_1041', name:'Sarah Whitby', school:'St Aidan\'s CE Primary', plan:'school', subj:'How do I share a folder with my year group?',
+   status:'closed', pri:'low', assigned:'Ash K.', updated:'3d', unread:false, msgs:[
+    {from:'them', t:'31 Jul 13:10', b:'Is there a way to share a whole folder rather than one resource at a time?'},
+    {from:'us', t:'31 Jul 13:44', b:'Yes — open the folder, Share, then pick your year group. Everyone on your school plan can be added. Guide linked below.'},
+    {from:'them', t:'31 Jul 14:02', b:'Perfect, thanks!'}
+   ]}
+];
+
+const AUDIT = [
+  {t:'today 09:20', who:'Ash K.', act:'Granted 100 resources', obj:'usr_1043 Amara Osei', ip:'81.2.44.10'},
+  {t:'today 08:55', who:'Ash K.', act:'Changed AI image allowance', obj:'plan:pro 10 → 12 decks/month', ip:'81.2.44.10'},
+  {t:'today 08:12', who:'system', act:'Payment failed (2nd attempt)', obj:'usr_1046 Chris Doughty', ip:'—'},
+  {t:'today 07:40', who:'system', act:'Margin alert', obj:'usr_1055 Gareth Ncube — AI image cost above plan value', ip:'—'},
+  {t:'yesterday 17:40', who:'Ash K.', act:'Suspended account', obj:'usr_1049 Grace Ibbotson — login sharing', ip:'81.2.44.10'},
+  {t:'yesterday 15:02', who:'Sam T.', act:'Published landing page copy', obj:'home / hero — v14', ip:'92.40.19.7'},
+  {t:'yesterday 11:52', who:'Ash K.', act:'Viewed as user', obj:'usr_1042 Tom Ellison (12 min session)', ip:'81.2.44.10'},
+  {t:'2 Aug 10:30', who:'Ash K.', act:'Created school', obj:'sch_05 Ashcombe Primary — 12 seats @ £4.25', ip:'81.2.44.10'},
+  {t:'1 Aug 16:15', who:'Sam T.', act:'Refunded', obj:'inv_20841 £14.99 — duplicate charge', ip:'92.40.19.7'}
+];
+
+const INVOICES = [
+  {id:'INV-2026-0311', to:'Kestrel High', type:'school', amt:2295.00, status:'paid', due:'2026-06-01', method:'BACS · 45 seats @ £3.50'},
+  {id:'INV-2026-0310', to:'Hollybrook Academy', type:'school', amt:1344.00, status:'paid', due:'2026-07-15', method:'BACS · 32 seats @ £3.50'},
+  {id:'INV-2026-0309', to:'Ashcombe Primary', type:'school', amt:1112.00, status:'sent', due:'2026-09-01', method:'BACS · 12 seats + onboarding'},
+  {id:'INV-2026-0308', to:'St Aidan\'s CE Primary', type:'school', amt:714.00, status:'overdue', due:'2026-07-20', method:'BACS · 14 seats @ £4.25'},
+  {id:'ch_88216', to:'Priya Solanki', type:'card', amt:79.00, status:'paid', due:'2026-07-11', method:'Visa ••2019 · Pro annual'},
+  {id:'ch_88214', to:'Chris Doughty', type:'card', amt:14.99, status:'failed', due:'2026-08-03', method:'Visa ••4411'},
+  {id:'ch_88213', to:'Tom Ellison', type:'card', amt:7.99, status:'paid', due:'2026-08-02', method:'Mastercard ••8820'},
+  {id:'ch_88212', to:'Gareth Ncube', type:'card', amt:5.99, status:'paid', due:'2026-08-01', method:'Top-up · 25 AI slideshows'}
+];
+
+const COPY_BLOCKS = [
+  {id:'home.hero.eyebrow', where:'Landing / hero', val:'AI-Powered Lesson Creation', v:12, live:true},
+  {id:'home.hero.h1', where:'Landing / hero', val:'Create personalised lessons in minutes, not hours.', v:14, live:true},
+  {id:'home.hero.sub', where:'Landing / hero', val:'Jooma helps teachers generate personalised, curriculum-aligned lessons in minutes — reducing planning time while improving classroom engagement.', v:9, live:true},
+  {id:'home.hero.cta', where:'Landing / hero', val:'Get Started', v:3, live:true},
+  {id:'home.hero.reassure', where:'Landing / hero', val:'No card required · 10 free resources every month', v:6, live:false},
+  {id:'pricing.pro.price_note', where:'Pricing', val:'£79 a year — that\'s two months free, and it covers the whole school year', v:1, live:false},
+  {id:'pricing.ai_images', where:'Pricing', val:'AI-generated slideshow images: {n} a month included', v:1, live:false},
+  {id:'dash.empty.title', where:'Teacher dashboard', val:'Nothing here yet', v:4, live:true},
+  {id:'dash.empty.body', where:'Teacher dashboard', val:'Pick a tool and make your first resource — it takes about a minute.', v:4, live:true},
+  {id:'dash.res.low', where:'Teacher dashboard', val:'You have {n} resources left this month.', v:8, live:true},
+  {id:'dash.res.out', where:'Teacher dashboard', val:'You have used this month\'s resources. Top up or wait until {date}.', v:6, live:false},
+  {id:'dash.ai.out', where:'Teacher dashboard', val:'You have used your AI slideshow images. Free images from our library are still unlimited.', v:2, live:false}
+];
+
+/* =========================================================================
+   HELPERS
+   ========================================================================= */
+const $  = s => document.querySelector(s);
+const money = n => '£' + n.toLocaleString('en-GB',{minimumFractionDigits:2, maximumFractionDigits:2});
+const pence = n => n < 1 ? (n*100).toFixed(1)+'p' : money(n);
+const int   = n => Math.round(n).toLocaleString('en-GB');
+const esc   = s => String(s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const initials = n => n.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
+const schoolName = id => (SCHOOLS.find(s=>s.id===id)||{}).name || '—';
+const plan = id => PLANS.find(p=>p.id===id) || {};
+const planName = id => plan(id).name || id;
+
+function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('on'); clearTimeout(t._x); t._x=setTimeout(()=>t.classList.remove('on'),2400); }
+
+/* -------------------------------------------------------------------------
+   MARGIN MATHS — the heart of the console.
+   Every figure traces back to the developer's measured cost sheets.
+   ------------------------------------------------------------------------- */
+function aiCost(t){
+  return t.used * COST.text + t.deckWeb * COST.deckWeb + t.aiUsed * COST.deckAI;
+}
+function revenue(t){
+  const p = plan(t.plan);
+  if (t.term === 'annual') return p.priceY / 12;
+  if (t.term === 'seat')   return p.price;          // per seat per month
+  if (t.term === 'free')   return 0;
+  return p.price;
+}
+function costToServe(t){
+  const rev = revenue(t);
+  if (t.plan === 'free') return aiCost(t);
+  const card = t.term === 'seat' ? 0 : (rev * COST.cardPct + COST.cardFixed);
+  return aiCost(t) + card + COST.infra + COST.support;
+}
+function contribution(t){ return revenue(t) - costToServe(t); }
+function marginPct(t){ const r = revenue(t); return r ? contribution(t)/r : 0; }
+
+/** Token/resource meter — one visual language for "how much is left". */
+function meter(used, allow, topup=0, compact=false){
+  const total = allow + topup;
+  if (!total) return '<span class="meter-txt">—</span>';
+  const pct   = Math.min(100, Math.round(used/total*100));
+  const remain= Math.max(0, total-used);
+  const state = remain===0 ? 'out' : (remain/total < .15 ? 'low' : '');
+  const topPct= topup ? Math.round(topup/total*100) : 0;
+  return `<div class="meter">
+    <div class="meter-bar">
+      <div class="meter-fill ${state}" style="width:${pct}%"></div>
+      ${topPct?`<div class="meter-fill topup" style="width:${Math.max(0,Math.min(topPct,100-pct))}%"></div>`:''}
+    </div>
+    ${compact?'':`<div class="meter-txt"><b>${int(remain)}</b> left of ${int(total)}${topup?` <span style="color:var(--brand)">(+${int(topup)} top-up)</span>`:''}</div>`}
+  </div>`;
+}
+
+/** AI-image credits. Deliberately a different colour and shape from resources —
+    they cost 33x as much and must never be confused with each other. */
+function aiChip(used, allow, topup=0){
+  const total = allow + topup;
+  if (!total) return '<span class="tag" title="Not on this plan">—</span>';
+  const over = used > total;
+  const near = !over && (total-used)/total < .2;
+  return `<span class="tag img ${over?'over':near?'near':''}" title="${int(used)} of ${int(total)} AI-image slideshows used this month">
+    <span class="dot"></span>${int(used)} / ${int(total)}${topup?` <span style="opacity:.7">+${int(topup)}</span>`:''}</span>`;
+}
+
+function marginChip(t){
+  if (t.plan === 'free') return `<span class="tag">costs ${pence(aiCost(t))}</span>`;
+  const m = marginPct(t);
+  const cls = m < 0 ? 'dang' : m < 0.35 ? 'warn' : 'ok';
+  return `<span class="tag ${cls}">${(m*100).toFixed(0)}%</span>`;
+}
+
+function statusTag(s){
+  const map = {
+    active:['ok','Active'], invited:['','Invited'], suspended:['dang','Suspended'],
+    past_due:['warn','Past due'], cancelling:['warn','Cancelling'],
+    live:['ok','Live'], onboarding:['warn','Onboarding'], pending:['','Not started'],
+    open:['warn','Open'], closed:['ok','Closed'], paid:['ok','Paid'], sent:['','Sent'],
+    overdue:['dang','Overdue'], failed:['dang','Failed'], draft:['','Draft'],
+    monthly:['','Monthly'], annual:['brand','Annual'], seat:['brand','School seat'], free:['','Free']
+  };
+  const [cls,label] = map[s] || ['', s];
+  return `<span class="tag ${cls}"><span class="dot"></span>${label}</span>`;
+}
+
+/* ---------- drawer / modal ---------- */
+function openDrawer(html){ $('#drawer').innerHTML=html; $('#drawer').classList.add('on'); $('#scrim').classList.add('on'); }
+function closeAll(){ $('#drawer').classList.remove('on'); $('#modal').classList.remove('on'); $('#scrim').classList.remove('on'); }
+function openModal(title, body, footer){
+  $('#modal').innerHTML = `<div class="modal-h"><div class="h2">${title}</div></div>
+    <div class="modal-b">${body}</div><div class="modal-f">${footer}</div>`;
+  $('#modal').classList.add('on'); $('#scrim').classList.add('on');
+}
+$('#scrim').addEventListener('click', closeAll);
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeAll(); });
+
+/* =========================================================================
+   NAVIGATION
+   ========================================================================= */
+const NAV = [
+  ['Overview', [
+    ['dashboard','Dashboard','&#9636;']
+  ]],
+  ['People', [
+    ['teachers','Teachers','&#9787;'],
+    ['schools','Schools','&#9962;'],
+    ['onboard','Onboard a school','&#10010;']
+  ]],
+  ['Money', [
+    ['plans','Plans &amp; pricing','&#163;'],
+    ['billing','Payments &amp; invoices','&#9635;'],
+    ['topups','Top-ups','&#9889;'],
+    ['promos','Promo codes','&#9733;']
+  ]],
+  ['Product', [
+    ['usage','Usage &amp; margins','&#9650;'],
+    ['tools','Tools','&#9881;'],
+    ['flags','Safeguarding flags','&#9873;']
+  ]],
+  ['Support', [
+    ['inbox','Inbox','&#9993;', 3]
+  ]],
+  ['Content', [
+    ['copy','Website &amp; app copy','&#9998;'],
+    ['emails','Email templates','&#9993;'],
+    ['announce','Announcements','&#9737;']
+  ]],
+  ['Admin', [
+    ['team','Team &amp; roles','&#9784;'],
+    ['audit','Audit log','&#9781;'],
+    ['settings','Settings','&#9881;']
+  ]]
+];
+
+function buildNav(){
+  $('#nav').innerHTML = NAV.map(([group, items]) => `
+    <div class="nav-group">${group}</div>
+    ${items.map(([id,label,ico,badge])=>`
+      <a href="#${id}" data-r="${id}"><span class="ico">${ico}</span>${label}${badge?`<span class="pill">${badge}</span>`:''}</a>
+    `).join('')}
+  `).join('');
+}
+
+const TITLES = {};
+NAV.forEach(([g,items])=>items.forEach(([id,label])=>TITLES[id]=[g,label]));
+
+function route(){
+  const r = (location.hash||'#dashboard').slice(1).split('/')[0];
+  const fn = VIEWS[r] || VIEWS.dashboard;
+  document.querySelectorAll('#nav a').forEach(a=>a.classList.toggle('on', a.dataset.r===r));
+  const [g,l] = TITLES[r] || ['Overview','Dashboard'];
+  $('#crumb').innerHTML = `${g} <span style="opacity:.4">/</span> <b>${l}</b>`;
+  $('#view').innerHTML = fn();
+  window.scrollTo(0,0);
+  $('#side').classList.remove('on');
+  if(AFTER[r]) AFTER[r]();
+}
+const AFTER = {};
+
+/* =========================================================================
+   VIEWS
+   ========================================================================= */
+const VIEWS = {};
+
+/* ---------- 1. DASHBOARD ---------- */
+VIEWS.dashboard = () => {
+  const bars = [['Mar',18],['Apr',34],['May',61],['Jun',96],['Jul',148],['Aug',212]];
+  const max = Math.max(...bars.map(b=>b[1]));
+  return `
+  <div class="page">
+    <div class="pagehead">
+      <div class="grow">
+        <div class="h1">Dashboard</div>
+        <div class="sub">Everything at a glance. Figures update every 15 minutes.</div>
+      </div>
+      <div class="btn-row">
+        <select class="inp"><option>Last 30 days</option><option>Last 7 days</option><option>This term</option><option>All time</option></select>
+        <button class="btn" onclick="toast('CSV export queued — emailed when ready')">Export</button>
+      </div>
+    </div>
+
+    <div class="grid g4">
+      ${stat('Teachers', int(3349), '+212 this month', 'up', 'Free 2,841 · Pro 412 · Max 96')}
+      ${stat('Paying teachers', int(508), '+61 this month', 'up', '15.2% of all teachers')}
+      ${stat('Annual plan mix', '31%', '+6pt', 'up', 'Target 40% before September')}
+      ${stat('MRR', money(5987.42), '+18.4%', 'up', 'B2C £4,388 · B2B £1,599')}
+    </div>
+
+    <div class="grid g4 mt">
+      ${stat('Gross margin', '74.1%', '−2.8pt', 'down', 'AI images are the drag')}
+      ${stat('AI cost this month', money(1284.20), '+31%', 'down', money(842)+' of it is images')}
+      ${stat('Seats sold', '115', '85 assigned', '', '30 sitting idle — chase schools')}
+      ${stat('Open tickets', '5', '2 high priority', '', 'Median first reply 22 min')}
+    </div>
+
+    <div class="grid g-side mt-lg">
+      <div class="card">
+        <div class="card-h"><div class="h2 grow">Signups by month</div><span class="tag ai">Paid ads started July</span></div>
+        <div class="card-b">
+          <div class="bar-chart">
+            ${bars.map(([m,v])=>`<div style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;height:100%">
+              <div class="bar" style="height:${v/max*100}%" title="${m}: ${v}"></div></div>`).join('')}
+          </div>
+          <div style="display:flex;gap:6px">${bars.map(([m])=>`<div class="bar-lab" style="flex:1">${m}</div>`).join('')}</div>
+          <div class="hr"></div>
+          <div class="row wrap" style="gap:22px">
+            <div><div class="meter-txt">Free → paid conversion</div><div style="font-weight:650;font-size:17px" class="num">6.4%</div></div>
+            <div><div class="meter-txt">Cost per signup (Meta)</div><div style="font-weight:650;font-size:17px" class="num">£1.84</div></div>
+            <div><div class="meter-txt">Cost per paying teacher</div><div style="font-weight:650;font-size:17px" class="num">£28.75</div></div>
+            <div><div class="meter-txt">LTV vs CAC (monthly)</div><div style="font-weight:650;font-size:17px;color:var(--warn)" class="num">2.4×</div></div>
+            <div><div class="meter-txt">LTV vs CAC (annual)</div><div style="font-weight:650;font-size:17px;color:var(--ok)" class="num">5.3×</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-h"><div class="h2 grow">Needs you today</div></div>
+        <div class="card-b" style="display:flex;flex-direction:column;gap:12px">
+          ${todo('1 teacher is costing more than they pay','Gareth Ncube — 29 AI slideshows on Pro. Move him to Max.','#usage','See margins')}
+          ${todo('2 tickets marked high priority','Amara Osei is out of resources; Chris Doughty\'s card failed twice.','#inbox','Open inbox')}
+          ${todo('St Aidan\'s invoice is 15 days overdue','£714.00 — BACS, PO-2026-0088.','#billing','Chase invoice')}
+          ${todo('Ashcombe Primary hasn\'t started','12 seats bought on 1 Aug, nobody invited yet.','#schools','Open school')}
+        </div>
+      </div>
+    </div>
+
+    <div class="grid g2 mt-lg">
+      <div class="card">
+        <div class="card-h"><div class="h2 grow">Where signups come from</div></div>
+        <div class="card-b">
+          ${chanRow('Meta (Facebook + Instagram)', 138, 212, 'var(--brand)')}
+          ${chanRow('TikTok', 41, 212, 'var(--ai)')}
+          ${chanRow('Organic / direct', 22, 212, 'var(--ink-3)')}
+          ${chanRow('LinkedIn', 7, 212, 'var(--warn)')}
+          ${chanRow('Referral from a colleague', 4, 212, 'var(--ok)')}
+          <div class="help mt">Attribution comes from the UTM stored at signup. Keep your ad links tagged or teachers land in "organic".</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-h"><div class="h2 grow">What's eating the margin</div><a href="#usage" style="font-size:12.5px">Full breakdown</a></div>
+        <div class="card-b">
+          ${costRow('AI-image slideshows', 842, 1284, 'var(--img)', '2,140 decks × 28.4p')}
+          ${costRow('Text tools (34 of them)', 350, 1284, 'var(--ai)', '~40,700 generations × 0.86p')}
+          ${costRow('Web-image slideshows', 92, 1284, 'var(--brand)', '9,210 decks × 3.2p')}
+          <div class="note warn mt" style="font-size:12.5px">
+            AI images are <b>18% of generations but 66% of cost</b>. Cutting images per deck from 6.8 to 4 would save about £370 a month at current volume.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+};
+
+function stat(lab,val,delta,dir,foot){
+  return `<div class="stat">
+    <div class="lab">${lab}</div>
+    <div class="val">${val}</div>
+    <div class="foot">${delta?`<span class="delta ${dir}">${delta}</span> · `:''}${foot}</div>
+  </div>`;
+}
+function todo(t,d,href,cta){
+  return `<div style="display:flex;gap:11px;align-items:flex-start">
+    <span class="dot" style="background:var(--warn);margin-top:7px"></span>
+    <div class="grow"><div style="font-weight:600;font-size:13.5px">${t}</div>
+      <div style="font-size:12.5px;color:var(--ink-2);margin-top:2px">${d}</div>
+      <a href="${href}" style="font-size:12.5px;font-weight:600;display:inline-block;margin-top:5px">${cta} &rarr;</a></div>
+  </div>`;
+}
+function chanRow(name,v,total,col){
+  return `<div style="margin-bottom:11px">
+    <div class="row" style="margin-bottom:4px"><div class="grow" style="font-size:13px;font-weight:550">${name}</div>
+      <div class="tnum">${v}</div><div style="font-size:11.5px;color:var(--ink-3);width:42px;text-align:right">${Math.round(v/total*100)}%</div></div>
+    <div class="meter-bar"><div class="meter-fill" style="width:${v/total*100}%;background:${col}"></div></div>
+  </div>`;
+}
+function costRow(name,v,total,col,sub){
+  return `<div style="margin-bottom:13px">
+    <div class="row" style="margin-bottom:4px"><div class="grow" style="font-size:13px;font-weight:550">${name}</div>
+      <div class="tnum">${money(v)}</div><div style="font-size:11.5px;color:var(--ink-3);width:42px;text-align:right">${Math.round(v/total*100)}%</div></div>
+    <div class="meter-bar"><div class="meter-fill" style="width:${v/total*100}%;background:${col}"></div></div>
+    <div class="help" style="margin-top:3px">${sub}</div>
+  </div>`;
+}
+
+/* ---------- 2. TEACHERS ---------- */
+let tFilter = {q:'', plan:'', status:'', school:'', risk:''};
+
+VIEWS.teachers = () => `
+  <div class="page">
+    <div class="pagehead">
+      <div class="grow">
+        <div class="h1">Teachers</div>
+        <div class="sub">Every account, whether they pay themselves or sit on a school plan.</div>
+      </div>
+      <div class="btn-row">
+        <button class="btn" onclick="toast('CSV of the current filter — emailed to you')">Export</button>
+        <button class="btn" onclick="bulkInvite()">Invite teachers</button>
+        <button class="btn pri" onclick="toast('Opens the create-account form')">&#10010; Add teacher</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="filters">
+        <input class="inp" id="tq" placeholder="Name, email or user ID" style="min-width:220px" value="${tFilter.q}">
+        <select class="inp" id="tplan">
+          <option value="">All plans</option>
+          ${PLANS.map(p=>`<option value="${p.id}" ${tFilter.plan===p.id?'selected':''}>${p.name}</option>`).join('')}
+        </select>
+        <select class="inp" id="tstatus">
+          <option value="">Any status</option>
+          ${['active','invited','past_due','cancelling','suspended'].map(s=>`<option value="${s}" ${tFilter.status===s?'selected':''}>${s.replace('_',' ')}</option>`).join('')}
+        </select>
+        <select class="inp" id="tschool">
+          <option value="">Any school</option>
+          <option value="none" ${tFilter.school==='none'?'selected':''}>No school (individual)</option>
+          ${SCHOOLS.map(s=>`<option value="${s.id}" ${tFilter.school===s.id?'selected':''}>${s.name}</option>`).join('')}
+        </select>
+        <select class="inp" id="trisk">
+          <option value="">Any margin</option>
+          <option value="low" ${tFilter.risk==='low'?'selected':''}>Margin under 35%</option>
+          <option value="neg" ${tFilter.risk==='neg'?'selected':''}>Losing money</option>
+        </select>
+        <button class="btn sm ghost" onclick="tFilter={q:'',plan:'',status:'',school:'',risk:''};route()">Clear</button>
+        <div class="grow"></div>
+        <span class="tag" id="tcount"></span>
+      </div>
+      <div class="tblwrap">
+        <table>
+          <thead><tr>
+            <th style="width:26px"><input type="checkbox" onclick="toast('Selects everything in this filter')"></th>
+            <th>Teacher</th><th>Plan</th><th>School</th>
+            <th>Resources this month</th><th title="AI-image slideshows used / included">AI images</th>
+            <th>Status</th><th style="text-align:right">Costs us</th><th style="text-align:right">Margin</th><th></th>
+          </tr></thead>
+          <tbody id="trows"></tbody>
+        </table>
+      </div>
+      <div class="card-f">
+        <span style="font-size:12.5px;color:var(--ink-2)" id="tfoot"></span>
+        <div class="grow"></div>
+        <button class="btn sm" disabled>Previous</button>
+        <button class="btn sm">Next</button>
+      </div>
+    </div>
+
+    <div class="note mt">
+      <b>Costs us</b> is that teacher's real AI spend this month, using the measured cost of every tool they ran — 0.86p for a text tool, 3.2p for a web-image slideshow, 28.4p for an AI-image one. <b>Margin</b> is what's left after AI, card fees, hosting and support. Anything under 35% is worth a look; anything red is losing you money.
+    </div>
+  </div>`;
+
+AFTER.teachers = () => {
+  const draw = () => {
+    const rows = TEACHERS.filter(t=>{
+      if(tFilter.q && !(t.name+t.email+t.id).toLowerCase().includes(tFilter.q.toLowerCase())) return false;
+      if(tFilter.plan && t.plan!==tFilter.plan) return false;
+      if(tFilter.status && t.status!==tFilter.status) return false;
+      if(tFilter.school==='none' && t.school) return false;
+      if(tFilter.school && tFilter.school!=='none' && t.school!==tFilter.school) return false;
+      if(tFilter.risk==='low' && !(t.plan!=='free' && marginPct(t) < .35)) return false;
+      if(tFilter.risk==='neg' && !(t.plan!=='free' && contribution(t) < 0)) return false;
+      return true;
+    });
+    $('#trows').innerHTML = rows.length ? rows.map(t=>{
+      const p = plan(t.plan);
+      return `
+      <tr class="click" onclick="userDrawer('${t.id}')">
+        <td onclick="event.stopPropagation()"><input type="checkbox"></td>
+        <td><div class="cell-user">
+          <span class="avatar">${initials(t.name)}</span>
+          <span style="min-width:0"><span class="nm">${esc(t.name)}</span><br><span class="em">${esc(t.email)}</span></span>
+        </div></td>
+        <td><span class="tag ${t.plan==='free'?'':'brand'}">${planName(t.plan)}</span>
+            <div style="margin-top:3px">${statusTag(t.term)}</div></td>
+        <td style="font-size:12.5px;color:var(--ink-2)">${t.school?esc(schoolName(t.school)):'<span style="color:var(--ink-3)">Individual</span>'}</td>
+        <td>${meter(t.used, p.res, t.topupRes)}</td>
+        <td>${aiChip(t.aiUsed, p.ai, t.topupAI)}</td>
+        <td>${statusTag(t.status)}${t.risk?`<div style="font-size:11px;color:var(--warn);margin-top:3px">${esc(t.risk)}</div>`:''}</td>
+        <td class="tnum" style="text-align:right">${money(aiCost(t))}</td>
+        <td style="text-align:right">${marginChip(t)}</td>
+        <td onclick="event.stopPropagation()"><button class="btn sm rowact" onclick="userDrawer('${t.id}')">Open</button></td>
+      </tr>`;}).join('') :
+      `<tr><td colspan="10"><div class="empty"><div class="h">No teachers match that</div>Try clearing a filter.</div></td></tr>`;
+    $('#tcount').textContent = rows.length + ' shown';
+    const paid = rows.filter(t=>t.plan!=='free');
+    const totalC = paid.reduce((s,t)=>s+contribution(t),0);
+    $('#tfoot').innerHTML = `Showing ${rows.length} of ${TEACHERS.length} · combined monthly contribution from this filter <b>${money(totalC)}</b>`;
+  };
+  ['tq','tplan','tstatus','tschool','trisk'].forEach(id=>{
+    const k = {tq:'q',tplan:'plan',tstatus:'status',tschool:'school',trisk:'risk'}[id];
+    const e = $('#'+id);
+    e[id==='tq'?'oninput':'onchange'] = ev => { tFilter[k]=ev.target.value; draw(); };
+  });
+  draw();
+};
+
+function userDrawer(id){
+  const t = TEACHERS.find(x=>x.id===id); if(!t) return;
+  const p = plan(t.plan);
+  const rev = revenue(t), c = contribution(t);
+  openDrawer(`
+    <div class="drawer-h">
+      <span class="avatar" style="width:38px;height:38px;font-size:13px">${initials(t.name)}</span>
+      <div class="grow">
+        <div class="h2">${esc(t.name)}</div>
+        <div style="font-size:12.5px;color:var(--ink-2)">${esc(t.email)}</div>
+        <div class="row wrap" style="gap:6px;margin-top:6px">
+          <span class="tag ${t.plan==='free'?'':'brand'}">${planName(t.plan)}</span>
+          ${statusTag(t.term)}${statusTag(t.status)}
+          <span class="mono-id">${t.id}</span>
+        </div>
+      </div>
+      <button class="x" onclick="closeAll()">&times;</button>
+    </div>
+    <div class="drawer-b">
+      ${t.risk?`<div class="note warn mb"><b>Flagged:</b> ${esc(t.risk)}</div>`:''}
+      ${c<0?`<div class="note warn mb"><b>This teacher costs more than they pay.</b> ${money(rev)} in, ${money(costToServe(t))} out. Almost always AI images — offer them Max, or an AI top-up.</div>`:''}
+
+      <div class="h2 mb">This month</div>
+      <div class="card" style="box-shadow:none"><div class="card-b">
+        <div class="meter-txt mb" style="font-weight:600;color:var(--ink)">Resources</div>
+        ${meter(t.used, p.res, t.topupRes)}
+        <div class="row mt" style="gap:10px;align-items:center">
+          <div class="meter-txt" style="font-weight:600;color:var(--ink)">AI-image slideshows</div>
+          ${aiChip(t.aiUsed, p.ai, t.topupAI)}
+        </div>
+        <div class="help mt">Slideshows using free library images are unlimited and count only as resources. ${t.deckWeb} made this month.</div>
+        <div class="btn-row mt">
+          <button class="btn sm" onclick="grantModal('${t.id}','res')">Grant resources</button>
+          <button class="btn sm" onclick="grantModal('${t.id}','ai')">Grant AI images</button>
+          <button class="btn sm" onclick="toast('Allowance reset')">Reset allowance</button>
+        </div>
+      </div></div>
+
+      <div class="h2 mb mt-lg">What this teacher is worth</div>
+      <div class="card" style="box-shadow:none"><div class="card-b tight">
+        <table><tbody>
+          <tr><td>Revenue this month</td><td class="tnum" style="text-align:right">${money(rev)}</td></tr>
+          <tr><td style="padding-left:26px;color:var(--ink-2)">${int(t.used)} text resources</td><td class="tnum" style="text-align:right;color:var(--ink-2)">−${money(t.used*COST.text)}</td></tr>
+          <tr><td style="padding-left:26px;color:var(--ink-2)">${int(t.deckWeb)} web-image slideshows</td><td class="tnum" style="text-align:right;color:var(--ink-2)">−${money(t.deckWeb*COST.deckWeb)}</td></tr>
+          <tr><td style="padding-left:26px;color:var(--img);font-weight:550">${int(t.aiUsed)} AI-image slideshows</td><td class="tnum" style="text-align:right;color:var(--img);font-weight:600">−${money(t.aiUsed*COST.deckAI)}</td></tr>
+          <tr><td style="padding-left:26px;color:var(--ink-2)">Card fees, hosting, support</td><td class="tnum" style="text-align:right;color:var(--ink-2)">−${money(costToServe(t)-aiCost(t))}</td></tr>
+          <tr style="background:var(--surface-2)"><td style="font-weight:650">Contribution</td>
+            <td class="tnum" style="text-align:right;font-weight:650;color:${c<0?'var(--danger)':'var(--ok)'}">${money(c)} ${marginChip(t)}</td></tr>
+        </tbody></table>
+      </div></div>
+
+      <div class="h2 mb mt-lg">Account</div>
+      <dl class="dl">
+        <dt>User ID</dt><dd class="mono-id">${t.id}</dd>
+        <dt>School</dt><dd>${t.school?`<a href="#schools">${esc(schoolName(t.school))}</a>`:'Individual account'}</dd>
+        <dt>Teaches</dt><dd>${esc(t.subject)}</dd>
+        <dt>Joined</dt><dd>${t.joined}</dd>
+        <dt>Last active</dt><dd>${t.last}</dd>
+        <dt>Generations</dt><dd class="num">${int(t.gens)} all time</dd>
+        <dt>Lifetime spend</dt><dd class="num">${t.spend?money(t.spend):'£0.00'}</dd>
+        <dt>Signed up via</dt><dd>Meta &middot; <span class="mono-id">utm_campaign=aug-launch-primary</span></dd>
+        <dt>Email verified</dt><dd>${t.status==='invited'?'<span class="tag warn">Not yet</span>':'<span class="tag ok">Yes</span>'}</dd>
+      </dl>
+
+      <div class="h2 mb mt-lg">Subscription</div>
+      <dl class="dl">
+        <dt>Plan</dt><dd>${planName(t.plan)} ${t.term==='seat'?'(paid by school)':t.term==='annual'?`— annual, ${money(p.priceY)}/yr`:''}</dd>
+        <dt>Billing</dt><dd>${t.term==='seat'?'Central — school invoice':t.term==='free'?'None':'Card &middot; Stripe'}</dd>
+        <dt>Renews</dt><dd>${t.status==='cancelling'?'<span class="tag warn">Cancels 12 Aug 2026</span>':t.term==='annual'?'11 Jul 2027':'1 Sep 2026'}</dd>
+        <dt>Payment status</dt><dd>${t.status==='past_due'?'<span class="tag dang">2 failed attempts</span>':'<span class="tag ok">Good</span>'}</dd>
+      </dl>
+      <div class="btn-row mt">
+        <button class="btn sm" onclick="planModal('${t.id}')">Change plan</button>
+        ${t.term==='monthly'?`<button class="btn sm pri" onclick="toast('Annual switch offer sent — ${money(p.priceY)}/yr')">Offer annual</button>`:''}
+        <button class="btn sm" onclick="toast('Card update link sent to ${esc(t.email)}')">Send card update link</button>
+        <button class="btn sm" onclick="toast('Refund form opened')">Refund</button>
+      </div>
+
+      <div class="h2 mb mt-lg">Recent activity</div>
+      <div class="tl">
+        <div class="tl-i hi"><div class="tl-t">Generated “Year 6 fractions starter”</div><div class="tl-m">Worksheet Generator · 0.95p · ${t.last}</div></div>
+        <div class="tl-i"><div class="tl-t">Generated “Rainforest slideshow”</div><div class="tl-m">Slideshow, AI images · 28.4p · yesterday 14:02</div></div>
+        <div class="tl-i"><div class="tl-t">Export failed</div><div class="tl-m">PPTX export · error TIMEOUT · yesterday 13:58</div></div>
+        <div class="tl-i"><div class="tl-t">Signed in</div><div class="tl-m">Chrome / macOS · 81.2.44.10 · yesterday 13:40</div></div>
+      </div>
+      <a href="#" style="font-size:12.5px" onclick="toast('Full log opened');return false">See full activity log &rarr;</a>
+
+      <div class="h2 mb mt-lg">Support history</div>
+      ${THREADS.filter(x=>x.user===t.id).length
+        ? THREADS.filter(x=>x.user===t.id).map(x=>`<div class="ck"><div class="grow">
+            <div style="font-weight:550;font-size:13px">${esc(x.subj)}</div>
+            <div class="mono-id">${x.id} · updated ${x.updated} ago</div></div>${statusTag(x.status)}</div>`).join('')
+        : '<div class="help">No tickets yet.</div>'}
+      <button class="btn sm mt" onclick="location.hash='inbox';closeAll()">Message this teacher</button>
+
+      <div class="h2 mb mt-lg">Internal notes</div>
+      <textarea class="inp w-full" rows="3" placeholder="Only your team sees this."></textarea>
+      <button class="btn sm mt" onclick="toast('Note saved')">Save note</button>
+    </div>
+    <div class="drawer-f">
+      <button class="btn" onclick="toast('Password reset email sent to ${esc(t.email)}')">Reset password</button>
+      <button class="btn" onclick="viewAsModal('${t.id}')">View as this teacher</button>
+      <div class="grow"></div>
+      <button class="btn dang" onclick="toast('Account suspended — they will be signed out')">Suspend</button>
+    </div>`);
+}
+
+function grantModal(id, kind){
+  const t = TEACHERS.find(x=>x.id===id);
+  const isAI = kind==='ai';
+  openModal(`Grant ${isAI?'AI-image slideshows':'resources'} to ${esc(t.name)}`, `
+    <div class="formrow"><label class="lbl">How many</label>
+      <input class="inp w-full" type="number" value="${isAI?10:100}">
+      <div class="help">${isAI
+        ? `Each AI-image slideshow costs you about ${pence(COST.deckAI)}. Ten is roughly ${money(10*COST.deckAI)}.`
+        : `Each resource costs you about ${pence(COST.text)}. A hundred is roughly ${money(100*COST.text)}.`}
+        Goes on top of this month's allowance and doesn't roll over.</div></div>
+    <div class="formrow"><label class="lbl">Reason (shows in the audit log)</label>
+      <select class="inp w-full">
+        <option>Goodwill — support issue</option><option>Compensating a failed generation</option>
+        <option>Trial extension</option><option>School pool transfer</option><option>Other</option>
+      </select></div>`,
+    `<button class="btn" onclick="closeAll()">Cancel</button>
+     <button class="btn pri" onclick="closeAll();toast('Granted to ${esc(t.name)}')">Grant</button>`);
+}
+function planModal(id){
+  const t = TEACHERS.find(x=>x.id===id);
+  openModal('Change plan for ' + esc(t.name), `
+    <div class="formrow"><label class="lbl">New plan</label>
+      <select class="inp w-full">${PLANS.map(p=>`<option ${p.id===t.plan?'selected':''}>${p.name} — ${p.price?money(p.price)+'/'+p.interval:'Free'} · ${int(p.res)} resources · ${p.ai} AI slideshows</option>`).join('')}</select></div>
+    <div class="formrow"><label class="lbl">Billing term</label>
+      <select class="inp w-full"><option>Monthly</option><option>Annual — better retention, cash upfront</option></select></div>
+    <div class="formrow"><label class="lbl">When</label>
+      <select class="inp w-full"><option>Immediately, prorated</option><option>Immediately, no charge</option><option>At the end of this billing period</option></select></div>
+    <div class="note">Changing plan adjusts both allowances straight away. Anything already used this month is not refunded.</div>`,
+    `<button class="btn" onclick="closeAll()">Cancel</button>
+     <button class="btn pri" onclick="closeAll();toast('Plan updated')">Change plan</button>`);
+}
+function viewAsModal(id){
+  const t = TEACHERS.find(x=>x.id===id);
+  openModal('View as ' + esc(t.name), `
+    <p style="font-size:13.5px;color:var(--ink-2)">You'll see Jooma exactly as they do, read-only. Nothing you click will use their allowance or change their data.</p>
+    <div class="note warn mt">This is logged. ${esc(t.name)} is shown a banner saying a Jooma admin is viewing their account, and the session ends after 30 minutes.</div>`,
+    `<button class="btn" onclick="closeAll()">Cancel</button>
+     <button class="btn pri" onclick="closeAll();toast('Opening their dashboard in a new tab…')">Start session</button>`);
+}
+function bulkInvite(){
+  openModal('Invite teachers', `
+    <div class="formrow"><label class="lbl">Email addresses</label>
+      <textarea class="inp w-full" rows="4" placeholder="One per line, or paste a comma-separated list"></textarea>
+      <div class="help">Or <a href="#" onclick="return false">upload a CSV</a> with name, email, year group.</div></div>
+    <div class="formrow"><label class="lbl">Add to</label>
+      <select class="inp w-full"><option>No school — individual accounts</option>${SCHOOLS.map(s=>`<option>${esc(s.name)} (${s.seats-s.assigned-s.invited} seats free)</option>`).join('')}</select></div>
+    <div class="formrow"><label class="lbl">Plan</label>
+      <select class="inp w-full">${PLANS.map(p=>`<option>${p.name}</option>`).join('')}</select></div>`,
+    `<button class="btn" onclick="closeAll()">Cancel</button>
+     <button class="btn pri" onclick="closeAll();toast('Invites sent')">Send invites</button>`);
+}
+
+/* ---------- 3. SCHOOLS ---------- */
+const schoolSeatCost = s => s.resUsed*COST.text + s.aiUsed*COST.deckAI;
+const schoolMRR = s => s.seats * seatRate(s.seats);
+
+VIEWS.schools = () => `
+  <div class="page">
+    <div class="pagehead">
+      <div class="grow">
+        <div class="h1">Schools</div>
+        <div class="sub">Seat pools, invoices and onboarding progress for every institution.</div>
+      </div>
+      <div class="btn-row">
+        <button class="btn" onclick="toast('Trust view groups schools under one contract')">Group by trust</button>
+        <a class="btn pri" href="#onboard">&#10010; Onboard a school</a>
+      </div>
+    </div>
+
+    <div class="grid g4 mb">
+      ${stat('Schools', '5', '', '', '4 live · 1 pending')}
+      ${stat('Seats sold', '115', '', '', 'across 5 schools')}
+      ${stat('Seats assigned', '85', '74% used', '', '30 sitting idle')}
+      ${stat('B2B monthly value', money(SCHOOLS.reduce((a,s)=>a+schoolMRR(s),0)), '', '', 'Invoiced annually in advance')}
+    </div>
+
+    <div class="card">
+      <div class="filters">
+        <input class="inp" placeholder="School name, URN or contact" style="min-width:230px">
+        <select class="inp"><option>Any status</option><option>Live</option><option>Onboarding</option><option>Not started</option></select>
+        <select class="inp"><option>Any trust</option><option>Northfield Trust</option><option>Standalone</option></select>
+        <div class="grow"></div>
+        <span class="tag">${SCHOOLS.length} schools</span>
+      </div>
+      <div class="tblwrap">
+        <table>
+          <thead><tr><th>School</th><th>Seat pool</th><th>Assigned</th><th>Band</th><th>Resource pool</th><th>AI images</th><th style="text-align:right">Per year</th><th>Status</th><th></th></tr></thead>
+          <tbody>
+          ${SCHOOLS.map(s=>{
+            const rate = seatRate(s.seats);
+            return `
+            <tr class="click" onclick="schoolDrawer('${s.id}')">
+              <td>
+                <div style="font-weight:600">${esc(s.name)}</div>
+                <div style="font-size:11.5px;color:var(--ink-3)">${esc(s.town)} · URN ${s.urn}${s.trust?` · ${esc(s.trust)}`:''}</div>
+              </td>
+              <td><div class="seats">${seatSquares(s)}</div></td>
+              <td class="tnum">${s.assigned}/${s.seats}${s.seats-s.assigned-s.invited>0?`<div style="font-size:11px;color:var(--warn);font-family:var(--sans)">${s.seats-s.assigned-s.invited} free</div>`:''}</td>
+              <td><span class="tag brand">${money(rate)}</span><div class="mono-id">${(SEAT_BANDS.find(b=>s.seats>=b.min&&s.seats<=b.max)||SEAT_BANDS[0]).band} seats</div></td>
+              <td style="width:145px">${meter(s.resUsed, s.seats*300, 0)}</td>
+              <td>${aiChip(s.aiUsed, s.seats*3, 0)}</td>
+              <td class="tnum" style="text-align:right">${money(schoolMRR(s)*12)}</td>
+              <td>${statusTag(s.status)}${s.onboarding<100?`<div style="font-size:11px;color:var(--ink-3);margin-top:3px">${s.onboarding}% set up</div>`:''}</td>
+              <td onclick="event.stopPropagation()"><button class="btn sm rowact" onclick="schoolDrawer('${s.id}')">Open</button></td>
+            </tr>`;}).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="grid g2 mt">
+      <div class="card">
+        <div class="card-h"><div class="h2 grow">Seat legend</div></div>
+        <div class="card-b">
+          <div class="legend">
+            <span><i style="background:var(--brand)"></i>Assigned and active</span>
+            <span><i style="background:var(--warn-50);border:1px solid var(--warn)"></i>Assigned but dormant 30+ days</span>
+            <span><i style="background:var(--brand-50);border:1px dashed var(--brand)"></i>Invited, not accepted</span>
+            <span><i style="background:var(--line-2);border:1px solid var(--line)"></i>Unassigned</span>
+          </div>
+          <div class="help mt">Dormant and unassigned seats are your renewal risk. Chase them before the invoice, not after.</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-h"><div class="h2 grow">Seat price ladder</div><a href="#plans" style="font-size:12.5px">Edit</a></div>
+        <div class="card-b tight">
+          <table><thead><tr><th>Seats</th><th style="text-align:right">Per seat / mo</th><th style="text-align:right">Per seat / yr</th><th style="text-align:right">Example</th></tr></thead>
+          <tbody>${SEAT_BANDS.map(b=>`<tr>
+            <td style="font-weight:550">${b.band}</td>
+            <td class="tnum" style="text-align:right">${money(b.rate)}</td>
+            <td class="tnum" style="text-align:right">${money(b.rate*12)}</td>
+            <td class="tnum" style="text-align:right;color:var(--ink-2)">${b.min} seats = ${money(b.rate*12*b.min)}</td></tr>`).join('')}</tbody></table>
+        </div>
+        <div class="card-f"><span style="font-size:12px;color:var(--ink-2)">Plus a one-off ${money(ONBOARD_FEE)} onboarding and training package, waived on two-year deals.</span></div>
+      </div>
+    </div>
+  </div>`;
+
+function seatSquares(s){
+  const active = s.assigned - s.dormant;
+  const free = s.seats - s.assigned - s.invited;
+  return '<span class="seat used"></span>'.repeat(Math.max(0,active))
+       + '<span class="seat dormant"></span>'.repeat(Math.max(0,s.dormant))
+       + '<span class="seat invited"></span>'.repeat(Math.max(0,s.invited))
+       + '<span class="seat"></span>'.repeat(Math.max(0,free));
+}
+
+function schoolDrawer(id){
+  const s = SCHOOLS.find(x=>x.id===id); if(!s) return;
+  const staff = TEACHERS.filter(t=>t.school===id);
+  const rate = seatRate(s.seats), mrr = schoolMRR(s), cost = schoolSeatCost(s);
+  openDrawer(`
+    <div class="drawer-h">
+      <div class="grow">
+        <div class="h2">${esc(s.name)}</div>
+        <div style="font-size:12.5px;color:var(--ink-2)">${esc(s.town)} · URN ${s.urn}${s.trust?` · ${esc(s.trust)}`:''}</div>
+        <div class="row wrap" style="gap:6px;margin-top:6px">${statusTag(s.status)}<span class="tag brand">${s.seats} seats @ ${money(rate)}</span><span class="mono-id">${s.id}</span></div>
+      </div>
+      <button class="x" onclick="closeAll()">&times;</button>
+    </div>
+    <div class="drawer-b">
+      ${s.onboarding<100?`<div class="note warn mb"><b>Onboarding ${s.onboarding}% complete.</b> ${s.assigned===0?'No teachers invited yet — this school has paid and isn\'t using it.':'Some teachers still haven\'t accepted their invite.'}</div>`:''}
+
+      <div class="h2 mb">Seat pool</div>
+      <div class="card" style="box-shadow:none"><div class="card-b">
+        <div class="seats" style="margin-bottom:10px">${seatSquares(s)}</div>
+        <div class="row wrap" style="gap:20px">
+          <div><div class="meter-txt">Bought</div><div class="num" style="font-weight:650">${s.seats}</div></div>
+          <div><div class="meter-txt">Assigned</div><div class="num" style="font-weight:650">${s.assigned}</div></div>
+          <div><div class="meter-txt">Invited</div><div class="num" style="font-weight:650">${s.invited}</div></div>
+          <div><div class="meter-txt">Free</div><div class="num" style="font-weight:650">${s.seats-s.assigned-s.invited}</div></div>
+          <div><div class="meter-txt">Dormant 30d</div><div class="num" style="font-weight:650;color:var(--warn)">${s.dormant}</div></div>
+        </div>
+        <div class="btn-row mt">
+          <button class="btn sm pri" onclick="bulkInvite()">Invite teachers</button>
+          <button class="btn sm" onclick="seatModal('${s.id}')">Change seat count</button>
+          <button class="btn sm" onclick="toast('Reclaim frees the seat and archives their resources')">Reclaim a seat</button>
+          <button class="btn sm" onclick="toast('Invite link copied')">Copy invite link</button>
+        </div>
+      </div></div>
+
+      <div class="h2 mb mt-lg">Pools this month</div>
+      <div class="meter-txt mb" style="font-weight:600;color:var(--ink)">Resources — 300 per seat</div>
+      ${meter(s.resUsed, s.seats*300, 0)}
+      <div class="row mt" style="gap:10px;align-items:center">
+        <div class="meter-txt" style="font-weight:600;color:var(--ink)">AI-image slideshows — 3 per seat, pooled</div>
+        ${aiChip(s.aiUsed, s.seats*3, 0)}
+      </div>
+      <div class="help mt">Neither pool rolls over, but both are <b>shared across the school</b> — a 30-seat school has 9,000 resources and 90 AI slideshows to distribute as it likes. That flexibility is the reason a school plan beats individual accounts, so lead with it in sales.</div>
+      <button class="btn sm mt" onclick="toast('Pool transfer opened')">Move capacity to a teacher</button>
+
+      <div class="h2 mb mt-lg">What this school is worth</div>
+      <div class="card" style="box-shadow:none"><div class="card-b tight">
+        <table><tbody>
+          <tr><td>${s.seats} seats × ${money(rate)}</td><td class="tnum" style="text-align:right">${money(mrr)} / mo</td></tr>
+          <tr><td>Annual invoice</td><td class="tnum" style="text-align:right">${money(mrr*12)}</td></tr>
+          <tr><td style="color:var(--ink-2)">AI cost this month</td><td class="tnum" style="text-align:right;color:var(--ink-2)">−${money(cost)}</td></tr>
+          <tr><td style="color:var(--ink-2)">Hosting and support, ${s.assigned} active</td><td class="tnum" style="text-align:right;color:var(--ink-2)">−${money(s.assigned*(COST.infra+COST.support))}</td></tr>
+          <tr style="background:var(--surface-2)"><td style="font-weight:650">Contribution</td>
+            <td class="tnum" style="text-align:right;font-weight:650">${money(mrr-cost-s.assigned*(COST.infra+COST.support))} / mo</td></tr>
+        </tbody></table>
+      </div></div>
+      <div class="help mt">No card fees — schools pay by BACS, which is worth about ${money(mrr*COST.cardPct)} a month to you.</div>
+
+      <div class="h2 mb mt-lg">Contact &amp; contract</div>
+      <dl class="dl">
+        <dt>Main contact</dt><dd>${esc(s.contact)}<div class="mono-id">${esc(s.email)}</div></dd>
+        <dt>Phone</dt><dd>${esc(s.phone)}</dd>
+        <dt>Started</dt><dd>${s.started}</dd>
+        <dt>Renews</dt><dd>${s.renews} <span class="help" style="display:inline">(aligned to academic year)</span></dd>
+        <dt>Billing</dt><dd>${s.billing==='invoice'?'Purchase order / BACS':'Card'}</dd>
+        <dt>PO number</dt><dd class="mono-id">${esc(s.po)}</dd>
+        <dt>Onboarding fee</dt><dd>${s.status==='pending'?money(ONBOARD_FEE)+' — on this invoice':'<span class="tag ok">Paid</span>'}</dd>
+        <dt>Domain allow-list</dt><dd class="mono-id">@${s.email.split('@')[1]}</dd>
+        <dt>DPA signed</dt><dd>${s.status==='pending'?'<span class="tag warn">Awaiting signature</span>':'<span class="tag ok">Yes · 12 Jun 2026</span>'}</dd>
+      </dl>
+
+      <div class="h2 mb mt-lg">Teachers on this plan (${staff.length})</div>
+      ${staff.length ? staff.map(t=>`
+        <div class="ck">
+          <span class="avatar" style="width:24px;height:24px;font-size:10px">${initials(t.name)}</span>
+          <div class="grow"><div style="font-weight:550;font-size:13px">${esc(t.name)}</div>
+            <div class="mono-id">${esc(t.subject)} · ${t.last}</div></div>
+          <div style="width:100px">${meter(t.used,300,t.topupRes,true)}</div>
+          ${aiChip(t.aiUsed, 3, t.topupAI)}
+          <button class="btn sm" onclick="userDrawer('${t.id}')">Open</button>
+        </div>`).join('') : '<div class="help">Nobody has been invited yet.</div>'}
+
+      <div class="h2 mb mt-lg">Onboarding checklist</div>
+      <div class="checklist">
+        ${checkItem('Contract and DPA signed', s.onboarding>=25)}
+        ${checkItem('Purchase order received', s.onboarding>=50)}
+        ${checkItem('Admin contact set up', s.onboarding>=50)}
+        ${checkItem('Teachers invited', s.onboarding>=75)}
+        ${checkItem('At least half have signed in', s.onboarding>=100)}
+        ${checkItem('Twilight training session delivered', s.onboarding>=100)}
+      </div>
+    </div>
+    <div class="drawer-f">
+      <button class="btn" onclick="toast('Invoice drafted')">Create invoice</button>
+      <button class="btn" onclick="location.hash='inbox';closeAll()">Message contact</button>
+      <div class="grow"></div>
+      <button class="btn dang" onclick="toast('Access paused for all seats')">Pause access</button>
+    </div>`);
+}
+function checkItem(t, done){
+  return `<div class="ck ${done?'done':''}"><span class="bx">${done?'&#10003;':''}</span><div class="grow t" style="font-size:13px">${t}</div></div>`;
+}
+function seatModal(id){
+  const s = SCHOOLS.find(x=>x.id===id);
+  openModal('Change seats for ' + esc(s.name), `
+    <div class="formrow"><label class="lbl">Seats</label><input class="inp w-full" type="number" value="${s.seats}" id="seatedit" oninput="seatEditPrev()"></div>
+    <div class="note" id="seateditprev"><b>${s.seats} seats at ${money(seatRate(s.seats))} = ${money(schoolMRR(s))} a month</b>, ${money(schoolMRR(s)*12)} a year.</div>
+    <div class="help mt">Crossing a band boundary re-prices every seat, not just the new ones. Adding seats generates a prorated invoice to the renewal date; removing seats takes effect at renewal and teachers keep access until then.</div>`,
+    `<button class="btn" onclick="closeAll()">Cancel</button><button class="btn pri" onclick="closeAll();toast('Seat count updated')">Save seats</button>`);
+}
+function seatEditPrev(){
+  const n = +($('#seatedit')||{}).value || 0, p = $('#seateditprev');
+  if(!p) return;
+  const r = seatRate(n);
+  p.innerHTML = `<b>${n} seats at ${money(r)} = ${money(n*r)} a month</b>, ${money(n*r*12)} a year. Pools: ${int(n*300)} resources and ${n*8} AI slideshows a month.`;
+}
+
+/* ---------- 4. ONBOARD A SCHOOL (wizard) ---------- */
+let step = 1;
+const STEPS = ['School details','Plan &amp; seats','Billing','Admin contact','Invite teachers','Go live'];
+
+VIEWS.onboard = () => `
+  <div class="page" style="max-width:880px">
+    <div class="pagehead"><div class="grow">
+      <div class="h1">Onboard a school</div>
+      <div class="sub">Six steps. You can save and come back — nothing goes live until the last one.</div>
+    </div></div>
+    <div class="stepper">
+      ${STEPS.map((s,i)=>`<div class="step ${i+1===step?'on':''} ${i+1<step?'done':''}">
+        <span class="n">${i+1<step?'&#10003;':i+1}</span><span class="s">${s}</span></div>`).join('')}
+    </div>
+    <div class="card"><div class="card-b">${stepBody()}</div>
+      <div class="card-f">
+        <button class="btn" ${step===1?'disabled':''} onclick="step--;route()">Back</button>
+        <div class="grow"></div>
+        <button class="btn" onclick="toast('Saved as a draft')">Save draft</button>
+        ${step<6
+          ? `<button class="btn pri" onclick="step++;route()">Continue</button>`
+          : `<button class="btn pri" onclick="step=1;toast('School created and invites sent');location.hash='schools'">Create school</button>`}
+      </div>
+    </div>
+  </div>`;
+
+function stepBody(){
+  if(step===1) return `
+    <div class="grid g2">
+      <div class="formrow"><label class="lbl">School name</label><input class="inp w-full" placeholder="e.g. Ashcombe Primary"></div>
+      <div class="formrow"><label class="lbl">URN</label><input class="inp w-full" placeholder="6 digits">
+        <div class="help">Pulls the DfE record so you don't type the address.</div></div>
+      <div class="formrow"><label class="lbl">Phase</label><select class="inp w-full"><option>Primary</option><option>Secondary</option><option>All-through</option><option>Special / AP</option></select></div>
+      <div class="formrow"><label class="lbl">Town</label><input class="inp w-full"></div>
+      <div class="formrow"><label class="lbl">Part of a trust?</label><select class="inp w-full"><option>Standalone</option><option>Northfield Trust</option><option>+ Add a new trust</option></select></div>
+      <div class="formrow"><label class="lbl">Teaching staff (approx)</label><input class="inp w-full" type="number" placeholder="30"></div>
+    </div>`;
+  if(step===2) return `
+    <div class="grid g2">
+      <div class="formrow"><label class="lbl">Seats (minimum 10)</label><input class="inp w-full" type="number" value="14" id="seatn" oninput="seatPrev()"></div>
+      <div class="formrow"><label class="lbl">Contract length</label><select class="inp w-full"><option>12 months, aligned to academic year</option><option>24 months (onboarding fee waived)</option><option>Term only (pilot)</option></select></div>
+      <div class="formrow"><label class="lbl">Resources per seat / month</label><input class="inp w-full" type="number" value="300"></div>
+      <div class="formrow"><label class="lbl">AI-image slideshows per seat / month</label><input class="inp w-full" type="number" value="3">
+        <div class="help">Each costs about ${pence(COST.deckAI)}. Raise it and the seat margin falls fast.</div></div>
+    </div>
+    <div class="formrow"><label class="lbl">Onboarding &amp; training</label>
+      <select class="inp w-full"><option>${money(ONBOARD_FEE)} one-off — setup, twilight session, a term of check-ins</option><option>Waived (two-year deal)</option><option>Waived (goodwill — needs a reason)</option></select></div>
+    <div class="note" id="seatprev"></div>
+    <div class="card mt"><div class="card-b tight"><table>
+      <thead><tr><th>Band</th><th style="text-align:right">Per seat / month</th><th style="text-align:right">Per seat / year</th></tr></thead>
+      <tbody>${SEAT_BANDS.map(b=>`<tr><td>${b.band} seats</td><td class="tnum" style="text-align:right">${money(b.rate)}</td><td class="tnum" style="text-align:right">${money(b.rate*12)}</td></tr>`).join('')}</tbody>
+    </table></div></div>`;
+  if(step===3) return `
+    <div class="formrow"><label class="lbl">How do they pay?</label>
+      <select class="inp w-full"><option>Invoice / purchase order (most schools)</option><option>Card</option><option>Direct debit</option></select></div>
+    <div class="grid g2">
+      <div class="formrow"><label class="lbl">PO number</label><input class="inp w-full" placeholder="Leave blank if not issued yet"></div>
+      <div class="formrow"><label class="lbl">Payment terms</label><select class="inp w-full"><option>30 days</option><option>60 days</option><option>On receipt</option></select></div>
+      <div class="formrow"><label class="lbl">Finance email</label><input class="inp w-full" placeholder="finance@school.sch.uk"></div>
+      <div class="formrow"><label class="lbl">Invoice schedule</label><select class="inp w-full"><option>Annually in advance</option><option>Termly</option></select></div>
+    </div>
+    <div class="togrow"><div class="grow"><div class="t">VAT registered school</div><div class="d">Adds VAT at 20% and shows the number on the invoice.</div></div><button class="switch" onclick="this.classList.toggle('on')"></button></div>
+    <div class="togrow"><div class="grow"><div class="t">Give access before payment clears</div><div class="d">Schools often need to start before finance processes the PO.</div></div><button class="switch on" onclick="this.classList.toggle('on')"></button></div>`;
+  if(step===4) return `
+    <p class="sub mb">The school admin manages their own seats — you shouldn't have to do it for them.</p>
+    <div class="grid g2">
+      <div class="formrow"><label class="lbl">Name</label><input class="inp w-full"></div>
+      <div class="formrow"><label class="lbl">Role</label><input class="inp w-full" placeholder="e.g. Deputy Head"></div>
+      <div class="formrow"><label class="lbl">Email</label><input class="inp w-full"></div>
+      <div class="formrow"><label class="lbl">Phone</label><input class="inp w-full"></div>
+    </div>
+    <div class="hr"></div>
+    <div class="h2 mb">What can the school admin do?</div>
+    <div class="togrow"><div class="grow"><div class="t">Invite and remove teachers</div><div class="d">Within their seat count.</div></div><button class="switch on" onclick="this.classList.toggle('on')"></button></div>
+    <div class="togrow"><div class="grow"><div class="t">Move capacity between teachers</div><div class="d">From the school pool.</div></div><button class="switch on" onclick="this.classList.toggle('on')"></button></div>
+    <div class="togrow"><div class="grow"><div class="t">See usage reports</div><div class="d">Who's using it, and how much time it's saving.</div></div><button class="switch on" onclick="this.classList.toggle('on')"></button></div>
+    <div class="togrow"><div class="grow"><div class="t">Buy more seats themselves</div><div class="d">Off by default — most schools need a PO first.</div></div><button class="switch" onclick="this.classList.toggle('on')"></button></div>`;
+  if(step===5) return `
+    <div class="formrow"><label class="lbl">Email domain</label><input class="inp w-full" placeholder="school.sch.uk">
+      <div class="help">Anyone with this domain can join without an individual invite, up to the seat count.</div></div>
+    <div class="formrow"><label class="lbl">Teacher emails</label>
+      <textarea class="inp w-full" rows="5" placeholder="One per line — or skip and let the school admin do it"></textarea></div>
+    <div class="formrow"><label class="lbl">Or upload a CSV</label><input class="inp w-full" type="file"></div>
+    <div class="togrow"><div class="grow"><div class="t">Send invites now</div><div class="d">Off if term hasn't started — schedule them instead.</div></div><button class="switch on" onclick="this.classList.toggle('on')"></button></div>
+    <div class="formrow mt"><label class="lbl">Or send on</label><input class="inp w-full" type="date" value="2026-09-01"></div>`;
+  return `
+    <div class="h2 mb">Ready to go live</div>
+    <div class="checklist mb">
+      ${checkItem('School record created', true)}
+      ${checkItem('Seats assigned and band price locked', true)}
+      ${checkItem('Invoice terms set — 30 days, PO pending', true)}
+      ${checkItem('Admin contact invited', true)}
+      ${checkItem('Teacher invites scheduled for 1 Sep', true)}
+      ${checkItem('DPA sent for signature', false)}
+      ${checkItem('Intro session booked', false)}
+    </div>
+    <div class="note warn">Two things are outstanding. You can still create the school — they'll show as an amber flag on the school record until they're done.</div>
+    <div class="hr"></div>
+    <div class="togrow"><div class="grow"><div class="t">Send the welcome pack</div><div class="d">Getting-started guide, poster for the staffroom, and a 20-minute training link.</div></div><button class="switch on" onclick="this.classList.toggle('on')"></button></div>
+    <div class="togrow"><div class="grow"><div class="t">Add to the onboarding follow-up sequence</div><div class="d">Nudges at day 3, 14 and 30 if usage is low.</div></div><button class="switch on" onclick="this.classList.toggle('on')"></button></div>`;
+}
+AFTER.onboard = () => { if(step===2) seatPrev(); };
+function seatPrev(){
+  const n = +($('#seatn')||{}).value || 0;
+  const p = $('#seatprev'); if(!p) return;
+  if(n < 10){ p.innerHTML = '<b>Minimum is 10 seats.</b> Below that, individual Pro accounts work out better for them and for you.'; return; }
+  const r = seatRate(n);
+  p.innerHTML = `<b>${n} seats &times; ${money(r)} = ${money(n*r)} a month</b> — invoiced annually at <b>${money(n*r*12)}</b>, plus ${money(ONBOARD_FEE)} onboarding.
+    Pools: ${int(n*300)} resources and ${n*3} AI-image slideshows a month.
+    ${n*r*12 < 1000 ? '<br><span style="color:var(--ok);font-weight:600">Under £1,000 — most heads can approve this without governors.</span>' : ''}`;
+}
+
+/* ---------- 5. PLANS & PRICING ---------- */
+VIEWS.plans = () => `
+  <div class="page">
+    <div class="pagehead"><div class="grow">
+      <div class="h1">Plans &amp; pricing</div>
+      <div class="sub">What each plan costs, what it includes, and what it leaves you. Editing here updates Stripe and the pricing page.</div>
+    </div><button class="btn pri" onclick="toast('New plan form')">&#10010; New plan</button></div>
+
+    <div class="grid g4">
+      ${PLANS.map(p=>{
+        const isSchool = p.aud==='school';
+        const worstAI = p.res*COST.text + p.ai*COST.deckAI;
+        const rev = isSchool ? p.price : p.price;
+        const card = isSchool ? 0 : (rev*COST.cardPct + COST.cardFixed);
+        const worstContrib = rev - worstAI - card - (p.id==='free'?0:COST.infra+COST.support);
+        return `
+        <div class="card">
+          <div class="card-h">
+            <div class="grow"><div class="h2">${p.name}</div>
+              <div class="help" style="margin:0">${isSchool?'Schools':'Teachers'}</div></div>
+            ${statusTag(p.status)}
+          </div>
+          <div class="card-b">
+            <div class="num" style="font-size:25px;font-weight:650;letter-spacing:-.03em">
+              ${p.price?money(p.price):'£0'}<span style="font-size:12.5px;color:var(--ink-3);font-family:var(--sans);font-weight:500"> / ${p.interval}</span></div>
+            ${p.priceY?`<div class="help" style="margin-top:2px">${isSchool?money(p.priceY)+' per seat per year':money(p.priceY)+' a year'}</div>`:'<div class="help" style="margin-top:2px">Free forever</div>'}
+            <div class="help mt">${esc(p.desc)}</div>
+            <div class="hr" style="margin:12px 0"></div>
+            <div class="row" style="justify-content:space-between"><span class="meter-txt">Resources / month</span><b class="num">${int(p.res)}</b></div>
+            <div class="row mt" style="justify-content:space-between;margin-top:6px"><span class="meter-txt">AI-image slideshows</span><b class="num" style="color:var(--img)">${p.ai||'—'}</b></div>
+            <div class="row" style="justify-content:space-between;margin-top:6px"><span class="meter-txt">On this plan</span><b class="num">${int(p.users)}</b></div>
+            <div class="hr" style="margin:12px 0"></div>
+            <div class="row" style="justify-content:space-between"><span class="meter-txt">Cost if fully used</span><b class="num">${money(worstAI)}</b></div>
+            <div class="row" style="justify-content:space-between;margin-top:6px"><span class="meter-txt">Worst-case contribution</span>
+              <b class="num" style="color:${worstContrib<0?'var(--danger)':worstContrib/Math.max(rev,0.01)<0.35?'var(--warn)':'var(--ok)'}">${p.price?money(worstContrib):'—'}</b></div>
+          </div>
+          <div class="card-f">
+            <button class="btn sm" onclick="editPlan('${p.id}')">Edit</button>
+            <button class="btn sm" onclick="toast('Tool access matrix opened')">Tools</button>
+          </div>
+        </div>`;}).join('')}
+    </div>
+
+    <div class="grid g2 mt-lg">
+      <div class="card">
+        <div class="card-h"><div class="h2 grow">School seat ladder</div><button class="btn sm" onclick="toast('Band editor')">Edit bands</button></div>
+        <div class="card-b tight">
+          <table><thead><tr><th>Seats</th><th style="text-align:right">Per seat / mo</th><th style="text-align:right">Per seat / yr</th><th style="text-align:right">14-seat school</th><th style="text-align:right">40-seat school</th></tr></thead>
+          <tbody>${SEAT_BANDS.map(b=>`<tr>
+            <td style="font-weight:600">${b.band}</td>
+            <td class="tnum" style="text-align:right">${money(b.rate)}</td>
+            <td class="tnum" style="text-align:right">${money(b.rate*12)}</td>
+            <td class="tnum" style="text-align:right;color:var(--ink-2)">${b.min<=14&&14<=b.max?money(b.rate*12*14):'—'}</td>
+            <td class="tnum" style="text-align:right;color:var(--ink-2)">${b.min<=40&&40<=b.max?money(b.rate*12*40):'—'}</td></tr>`).join('')}</tbody></table>
+        </div>
+        <div class="card-f"><span style="font-size:12px;color:var(--ink-2)">A 14-seat school lands at £714 a year — deliberately under £1,000, which most heads can approve without governors.</span></div>
+      </div>
+
+      <div class="card">
+        <div class="card-h"><div class="h2 grow">Pricing rules</div></div>
+        <div class="card-b">
+          <div class="togrow"><div class="grow"><div class="t">Show annual as the default option</div><div class="d">Annual users are worth roughly twice as much. Make it the pre-selected toggle.</div></div><button class="switch on" onclick="this.classList.toggle('on')"></button></div>
+          <div class="togrow"><div class="grow"><div class="t">Existing subscribers keep their price</div><div class="d">Price changes only apply to new sign-ups. Strongly recommended.</div></div><button class="switch on" onclick="this.classList.toggle('on')"></button></div>
+          <div class="togrow"><div class="grow"><div class="t">Free plan available</div><div class="d">Turning this off makes signup card-required.</div></div><button class="switch on" onclick="this.classList.toggle('on')"></button></div>
+          <div class="togrow"><div class="grow"><div class="t">Hide the resource counter on paid plans</div><div class="d">Show it only above 80% used. A visible counter makes teachers generate less, and light users churn more.</div></div><button class="switch on" onclick="this.classList.toggle('on')"></button></div>
+          <div class="togrow"><div class="grow"><div class="t">One-off onboarding fee for schools</div><div class="d">${money(ONBOARD_FEE)}, waived on two-year deals. No recurring admin fee.</div></div><button class="switch on" onclick="this.classList.toggle('on')"></button></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="note mt-lg">
+      <b>Language check.</b> Nothing teacher-facing should say "tokens". The words are <b>resources</b> and <b>AI-image slideshows</b>. This console uses the internal cost figures; the pricing page and dashboard must not.
+    </div>
+  </div>`;
+
+function editPlan(id){
+  const p = PLANS.find(x=>x.id===id);
+  openModal('Edit ' + p.name, `
+    <div class="grid g2">
+      <div class="formrow"><label class="lbl">Plan name</label><input class="inp w-full" value="${p.name}"></div>
+      <div class="formrow"><label class="lbl">Price (£/month)</label><input class="inp w-full" type="number" step="0.01" value="${p.price}"></div>
+      <div class="formrow"><label class="lbl">Annual price (£)</label><input class="inp w-full" type="number" step="0.01" value="${p.priceY}"></div>
+      <div class="formrow"><label class="lbl">Resources / month</label><input class="inp w-full" type="number" value="${p.res}"></div>
+      <div class="formrow"><label class="lbl">AI-image slideshows / month</label><input class="inp w-full" type="number" value="${p.ai}">
+        <div class="help">Each one costs about ${pence(COST.deckAI)}. This is the number that decides whether the plan makes money.</div></div>
+      <div class="formrow"><label class="lbl">Web-image slideshows</label><select class="inp w-full"><option>Unlimited (counts as a resource)</option><option>Capped</option></select></div>
+    </div>
+    <div class="formrow"><label class="lbl">One-line description (shows on the pricing page)</label><input class="inp w-full" value="${esc(p.desc)}"></div>
+    <div class="note warn">${int(p.users)} teachers are on this plan. Changing the price won't affect them unless you turn off price grandfathering.</div>`,
+    `<button class="btn" onclick="closeAll()">Cancel</button><button class="btn pri" onclick="closeAll();toast('Plan saved — Stripe updated')">Save plan</button>`);
+}
+
+
+/* ---------- 6. PAYMENTS & INVOICES ---------- */
+VIEWS.billing = () => `
+  <div class="page">
+    <div class="pagehead"><div class="grow">
+      <div class="h1">Payments &amp; invoices</div>
+      <div class="sub">Card charges from teachers and BACS invoices from schools, in one list.</div>
+    </div><div class="btn-row">
+      <button class="btn" onclick="toast('Export for your accountant')">Export</button>
+      <button class="btn pri" onclick="toast('New invoice form')">&#10010; Raise invoice</button></div></div>
+
+    <div class="grid g4 mb">
+      ${stat('Collected this month', money(6842.10), '+12.6%', 'up', '31 card · 2 BACS')}
+      ${stat('Outstanding', money(1868.88), '', '', '1 overdue · 1 due Sept')}
+      ${stat('Failed payments', '2', '', '', money(29.98)+' at risk')}
+      ${stat('Refunded', money(14.99), '', '', '1 refund this month')}
+    </div>
+
+    <div class="card mb">
+      <div class="card-h"><div class="h2 grow">Failed payments &mdash; act on these</div><span class="tag dang">2</span></div>
+      <div class="card-b" style="display:flex;flex-direction:column;gap:12px">
+        <div class="row wrap">
+          <div class="grow"><b>Chris Doughty</b> · Max · £14.99
+            <div class="help">Attempt 2 of 4 failed on 3 Aug. 3D Secure challenge abandoned. Next retry 5 Aug, access locks 10 Aug.</div></div>
+          <button class="btn sm" onclick="toast('Card update link sent')">Send update link</button>
+          <button class="btn sm" onclick="toast('Retrying now')">Retry now</button>
+        </div>
+        <div class="hr" style="margin:0"></div>
+        <div class="row wrap">
+          <div class="grow"><b>St Aidan's CE Primary</b> · Invoice INV-2026-0308 · £1,006.32
+            <div class="help">15 days overdue. PO-2026-0088. Two reminders sent.</div></div>
+          <button class="btn sm" onclick="toast('Reminder sent to finance@')">Send reminder</button>
+          <button class="btn sm" onclick="location.hash='inbox'">Call contact</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="filters">
+        <input class="inp" placeholder="Invoice number, name or amount" style="min-width:230px">
+        <select class="inp"><option>Any status</option><option>Paid</option><option>Sent</option><option>Overdue</option><option>Failed</option></select>
+        <select class="inp"><option>All types</option><option>School invoice</option><option>Card charge</option><option>Top-up</option></select>
+        <div class="grow"></div>
+        <span class="tag">Stripe synced 4 min ago</span>
+      </div>
+      <div class="tblwrap"><table>
+        <thead><tr><th>Reference</th><th>Who</th><th>Method</th><th style="text-align:right">Amount</th><th>Due</th><th>Status</th><th></th></tr></thead>
+        <tbody>${INVOICES.map(i=>`
+          <tr class="click" onclick="toast('Invoice ${i.id} opened')">
+            <td class="mono-id" style="color:var(--ink)">${i.id}</td>
+            <td style="font-weight:550">${esc(i.to)}</td>
+            <td style="font-size:12.5px;color:var(--ink-2)">${esc(i.method)}</td>
+            <td class="tnum" style="text-align:right">${money(i.amt)}</td>
+            <td style="font-size:12.5px">${i.due}</td>
+            <td>${statusTag(i.status)}</td>
+            <td onclick="event.stopPropagation()"><button class="btn sm rowact" onclick="toast('PDF opened')">PDF</button></td>
+          </tr>`).join('')}</tbody>
+      </table></div>
+    </div>
+
+    <div class="grid g2 mt">
+      <div class="card"><div class="card-h"><div class="h2">Dunning — what happens when a card fails</div></div><div class="card-b">
+        <div class="tl">
+          <div class="tl-i hi"><div class="tl-t">Day 0 — retry, email “your payment didn't go through”</div><div class="tl-m">Template: payment_failed_1</div></div>
+          <div class="tl-i hi"><div class="tl-t">Day 3 — retry, email with a one-click card update link</div><div class="tl-m">Template: payment_failed_2</div></div>
+          <div class="tl-i"><div class="tl-t">Day 7 — final retry, in-app banner</div><div class="tl-m">Template: payment_failed_3</div></div>
+          <div class="tl-i"><div class="tl-t">Day 10 — downgrade to Free, keep all their resources</div><div class="tl-m">Never delete their work. They come back.</div></div>
+          <div class="tl-i"><div class="tl-t">Day 14 — offer the annual plan</div><div class="tl-m">A failed card is often a switched card. Annual removes the problem for a year.</div></div>
+        </div>
+        <button class="btn sm mt" onclick="toast('Dunning settings opened')">Edit this sequence</button>
+      </div></div>
+      <div class="card"><div class="card-h"><div class="h2">Tax &amp; company</div></div><div class="card-b">
+        <div class="note warn mb" style="font-size:12.5px">VAT registration would take £7.99 down to £6.66 net. Worth modelling before you cross the threshold — schools can usually reclaim it, individual teachers can't.</div>
+        <dl class="dl">
+          <dt>VAT status</dt><dd>Not registered <span class="help" style="display:inline">— revisit near £90k</span></dd>
+          <dt>Currency</dt><dd>GBP only</dd>
+          <dt>Invoice prefix</dt><dd class="mono-id">INV-2026-</dd>
+          <dt>Payment terms</dt><dd>30 days default</dd>
+          <dt>Stripe account</dt><dd><span class="tag ok">Connected</span></dd>
+          <dt>Accounting</dt><dd>Xero <span class="tag ok">Syncing</span></dd>
+        </dl>
+      </div></div>
+    </div>
+  </div>`;
+
+/* ---------- 7. TOP-UPS ---------- */
+VIEWS.topups = () => {
+  const unitCost = t => t.kind==='ai' ? t.unit*COST.deckAI : t.unit*COST.text;
+  return `
+  <div class="page">
+    <div class="pagehead"><div class="grow">
+      <div class="h1">Top-ups</div>
+      <div class="sub">What a teacher can buy when they run out mid-month. Two separate pools — resources are cheap, AI images are not.</div>
+    </div><button class="btn pri" onclick="toast('New pack form')">&#10010; New pack</button></div>
+
+    <div class="grid g4 mb">
+      ${stat('Top-ups sold', '479', '+81 this month', 'up', '280 resource · 199 AI image')}
+      ${stat('Top-up revenue', money(2114.61), '+34%', 'up', '32.5% of B2C revenue')}
+      ${stat('AI image packs', '199', '+62', 'up', 'Fastest growing line')}
+      ${stat('Buy again rate', '44%', '', '', 'of teachers who topped up once')}
+    </div>
+
+    <div class="card">
+      <div class="card-h"><div class="h2 grow">Packs</div></div>
+      <div class="tblwrap"><table>
+        <thead><tr><th>Pack</th><th>Pool</th><th style="text-align:right">Price</th><th style="text-align:right">Costs us</th><th style="text-align:right">Margin</th><th style="text-align:right">Sold</th><th>Available to</th><th></th></tr></thead>
+        <tbody>${TOPUPS.map(t=>{
+          const c = unitCost(t), m = (t.price-c)/t.price;
+          return `<tr>
+          <td style="font-weight:600">${t.name}</td>
+          <td>${t.kind==='ai'?'<span class="tag img"><span class="dot"></span>AI images</span>':'<span class="tag ai"><span class="dot"></span>Resources</span>'}</td>
+          <td class="tnum" style="text-align:right">${money(t.price)}</td>
+          <td class="tnum" style="text-align:right;color:var(--ink-2)">${money(c)}</td>
+          <td class="tnum" style="text-align:right"><span class="tag ${m<0.35?'warn':'ok'}">${Math.round(m*100)}%</span></td>
+          <td class="tnum" style="text-align:right">${t.sold}</td>
+          <td>${t.kind==='ai'?'<span class="tag">Pro</span> <span class="tag">Max</span>':'<span class="tag">Free</span> <span class="tag">Pro</span> <span class="tag">Max</span>'}</td>
+          <td><button class="btn sm rowact" onclick="toast('Edit pack')">Edit</button></td>
+        </tr>`;}).join('')}</tbody>
+      </table></div>
+      <div class="card-f"><span style="font-size:12px;color:var(--ink-2)">
+        AI image packs run at a much thinner margin than resource packs — that's deliberate, they exist to stop heavy users going underwater, not to make money. If someone buys two in a month, sell them Max instead.</span></div>
+    </div>
+
+    <div class="card mt">
+      <div class="card-h"><div class="h2 grow">Rules</div></div>
+      <div class="card-b">
+        <div class="togrow"><div class="grow"><div class="t">Top-ups expire at the end of the month</div><div class="d">Off means they roll over — friendlier, but harder to forecast.</div></div><button class="switch" onclick="this.classList.toggle('on')"></button></div>
+        <div class="togrow"><div class="grow"><div class="t">Offer a top-up when someone hits zero</div><div class="d">Shows in the tool, at the moment they're blocked.</div></div><button class="switch on" onclick="this.classList.toggle('on')"></button></div>
+        <div class="togrow"><div class="grow"><div class="t">Suggest an upgrade after two top-ups</div><div class="d">A Pro teacher buying two AI packs is cheaper on Max. Say so.</div></div><button class="switch on" onclick="this.classList.toggle('on')"></button></div>
+        <div class="togrow"><div class="grow"><div class="t">Offer free library images as the alternative</div><div class="d">When AI images run out, remind them Pixabay slideshows are unlimited. Costs you 3.2p instead of 28.4p.</div></div><button class="switch on" onclick="this.classList.toggle('on')"></button></div>
+        <div class="togrow"><div class="grow"><div class="t">School teachers can buy their own top-ups</div><div class="d">Off means they ask their school admin to move capacity instead.</div></div><button class="switch" onclick="this.classList.toggle('on')"></button></div>
+      </div>
+    </div>
+  </div>`;
+};
+
+/* ---------- 8. PROMO CODES ---------- */
+VIEWS.promos = () => `
+  <div class="page">
+    <div class="pagehead"><div class="grow">
+      <div class="h1">Promo codes</div>
+      <div class="sub">For campaigns, conferences and win-backs. Each code reports its own signups and revenue.</div>
+    </div><button class="btn pri" onclick="toast('New code form')">&#10010; New code</button></div>
+    <div class="card"><div class="tblwrap"><table>
+      <thead><tr><th>Code</th><th>Offer</th><th>Where it's used</th><th style="text-align:right">Redeemed</th><th style="text-align:right">Revenue</th><th>Expires</th><th>Status</th><th></th></tr></thead>
+      <tbody>
+        ${[['BACKTOSCHOOL','50% off 3 months','Meta + TikTok, August',184,'£734.08','30 Sep 2026','live'],
+           ['TWITTERTEACH','First month free','X / staffroom shares',62,'£495.38','31 Dec 2026','live'],
+           ['BETT26','3 months free','BETT stand — schools only',9,'£0.00','31 Mar 2027','live'],
+           ['COMEBACK','40% off 2 months','Win-back email to cancellers',21,'£100.66','—','live'],
+           ['LESSONLIFT','Legacy name redirect','Old brand links',5,'£39.95','31 Aug 2026','draft']
+        ].map(r=>`<tr class="click" onclick="toast('${r[0]} opened')">
+          <td class="mono-id" style="color:var(--ink);font-weight:600">${r[0]}</td>
+          <td>${r[1]}</td><td style="font-size:12.5px;color:var(--ink-2)">${r[2]}</td>
+          <td class="tnum" style="text-align:right">${r[3]}</td><td class="tnum" style="text-align:right">${r[4]}</td>
+          <td style="font-size:12.5px">${r[5]}</td><td>${statusTag(r[6])}</td>
+          <td><button class="btn sm rowact">Edit</button></td></tr>`).join('')}
+      </tbody></table></div></div>
+  </div>`;
+
+/* ---------- 9. USAGE & MARGINS ---------- */
+VIEWS.usage = () => {
+  const paid = TEACHERS.filter(t=>t.plan!=='free');
+  const byMargin = [...paid].sort((a,b)=>marginPct(a)-marginPct(b));
+  const totalAI = TOOLS.reduce((s,t)=>s+t.runs*t.p/100,0);
+  const imgCost = TOOLS.find(t=>t.id==='slideshow-ai').runs * COST.deckAI;
+  return `
+  <div class="page">
+    <div class="pagehead"><div class="grow">
+      <div class="h1">Usage &amp; margins</div>
+      <div class="sub">What teachers are generating, what it costs you, and who is costing more than they pay.</div>
+    </div><select class="inp"><option>This month</option><option>Last month</option><option>This term</option></select></div>
+
+    <div class="grid g4 mb">
+      ${stat('AI spend this month', money(totalAI), '+31%', 'down', 'measured, not estimated')}
+      ${stat('AI images share', Math.round(imgCost/totalAI*100)+'%', '', '', 'of total AI cost, from 18% of runs')}
+      ${stat('Cost per active teacher', money(totalAI/3349*3), '', '', 'blended across all plans')}
+      ${stat('Gross margin', '74.1%', '−2.8pt', 'down', 'was 81% before AI images launched')}
+    </div>
+
+    <div class="note warn mb">
+      <b>The single lever that matters.</b> AI-image slideshows cost ${pence(COST.deckAI)} each against ${pence(COST.text)} for a text resource — <b>33 times more</b>. They're ${Math.round(imgCost/totalAI*100)}% of your AI bill. Dropping from ${COST.imagesPerDeck} images per deck to 4 would cut the cost per deck to about ${pence((0.045+4*0.0455)*FX)} and save roughly ${money(TOOLS.find(t=>t.id==='slideshow-ai').runs*(COST.deckAI-(0.045+4*0.0455)*FX))} a month at current volume.
+    </div>
+
+    <div class="grid g2">
+      <div class="card"><div class="card-h"><div class="h2 grow">Where the money goes</div></div><div class="card-b tight">
+        <table><thead><tr><th>Tool</th><th style="text-align:right">Runs</th><th style="text-align:right">Each</th><th style="text-align:right">Total</th><th style="width:90px"></th></tr></thead>
+        <tbody>${[...TOOLS].sort((a,b)=>b.runs*b.p-a.runs*a.p).slice(0,10).map(t=>{
+          const tot=t.runs*t.p/100;
+          return `<tr>
+          <td style="font-weight:550">${t.name}${t.flag==='cost'?' <span class="tag img" style="font-size:10px">cost driver</span>':''}</td>
+          <td class="tnum" style="text-align:right">${int(t.runs)}</td>
+          <td class="tnum" style="text-align:right;color:var(--ink-2)">${t.p.toFixed(2)}p</td>
+          <td class="tnum" style="text-align:right;font-weight:600">${money(tot)}</td>
+          <td><div class="meter-bar"><div class="meter-fill" style="width:${tot/totalAI*100}%;background:${t.flag==='cost'?'var(--img)':'var(--ai)'}"></div></div></td></tr>`;}).join('')}</tbody></table>
+      </div></div>
+
+      <div class="card"><div class="card-h"><div class="h2 grow">Thinnest margins</div><span class="tag warn">watch these</span></div><div class="card-b tight">
+        <table><thead><tr><th>Teacher</th><th>Plan</th><th style="text-align:right">Pays</th><th style="text-align:right">Costs</th><th style="text-align:right">Margin</th></tr></thead>
+        <tbody>${byMargin.slice(0,8).map(t=>`
+          <tr class="click" onclick="userDrawer('${t.id}')">
+            <td style="font-weight:550">${esc(t.name)}<div class="mono-id">${t.aiUsed} AI slideshows</div></td>
+            <td><span class="tag brand">${planName(t.plan)}</span></td>
+            <td class="tnum" style="text-align:right">${money(revenue(t))}</td>
+            <td class="tnum" style="text-align:right">${money(costToServe(t))}</td>
+            <td style="text-align:right">${marginChip(t)}</td></tr>`).join('')}</tbody></table>
+      </div>
+      <div class="card-f"><span style="font-size:12px;color:var(--ink-2)">Anyone red here should be offered Max or an AI top-up, not left alone.</span></div>
+      </div>
+    </div>
+
+    <div class="card mt">
+      <div class="card-h"><div class="h2 grow">Model routing</div><span class="tag ai">GPT-5.6 Terra · $2 / $12 per 1M</span></div>
+      <div class="card-b">
+        <div class="help mb">Your measured costs sit between $4.11 and $8.84 per million tokens, which is consistent with Terra throughout. Luna is $0.20/$1.20 — ten times cheaper — and several tools almost certainly don't need frontier reasoning.</div>
+        <div class="row wrap" style="gap:22px">
+          <div><div class="meter-txt">Tools on Terra</div><div class="num" style="font-weight:650;font-size:17px">${TOOLS.filter(t=>t.route.startsWith('Terra')).length}</div></div>
+          <div><div class="meter-txt">Luna candidates</div><div class="num" style="font-weight:650;font-size:17px;color:var(--ok)">${TOOLS.filter(t=>t.route==='Luna candidate').length}</div></div>
+          <div><div class="meter-txt">Estimated saving if switched</div><div class="num" style="font-weight:650;font-size:17px;color:var(--ok)">${money(TOOLS.filter(t=>t.route==='Luna candidate').reduce((s,t)=>s+t.runs*t.p/100*0.85,0))} / mo</div></div>
+        </div>
+        <div class="help mt">Test quality on a handful before switching anything. A cheaper lesson plan that a teacher doesn't trust costs far more than the saving.</div>
+      </div>
+    </div>
+
+    <div class="card mt">
+      <div class="card-h"><div class="h2 grow">Fair use and abuse</div></div>
+      <div class="card-b">
+        <div class="togrow"><div class="grow"><div class="t">Rate limit</div><div class="d">Maximum generations per teacher per hour.</div></div><input class="inp" type="number" value="40" style="width:90px"></div>
+        <div class="togrow"><div class="grow"><div class="t">Alert me when a paying teacher's margin goes negative</div><div class="d">Currently ${paid.filter(t=>contribution(t)<0).length} teacher(s). This is the alert that protects your unit economics.</div></div><button class="switch on" onclick="this.classList.toggle('on')"></button></div>
+        <div class="togrow"><div class="grow"><div class="t">Flag concurrent sessions</div><div class="d">Two or more devices in different places usually means a shared login.</div></div><button class="switch on" onclick="this.classList.toggle('on')"></button></div>
+        <div class="togrow"><div class="grow"><div class="t">Block sign-ups from disposable email domains</div><div class="d">Stops people farming the free plan.</div></div><button class="switch on" onclick="this.classList.toggle('on')"></button></div>
+        <div class="togrow"><div class="grow"><div class="t">Log real cost per generation</div><div class="d">Leave this on. Everything on this page depends on it, and the current figures come from a sample of fewer than 200 runs.</div></div><button class="switch on" onclick="this.classList.toggle('on')"></button></div>
+      </div>
+    </div>
+  </div>`;
+};
+
+/* ---------- 10. TOOLS ---------- */
+VIEWS.tools = () => `
+  <div class="page">
+    <div class="pagehead"><div class="grow">
+      <div class="h1">Tools</div>
+      <div class="sub">All ${TOOLS.length}, with their measured cost. Turn one off, change who gets it, or move it to a cheaper model — without a deploy.</div>
+    </div><div class="btn-row">
+      <button class="btn" onclick="toast('Cost report exported')">Export costs</button>
+      <button class="btn pri" onclick="toast('New tool form')">&#10010; Add tool</button></div></div>
+
+    <div class="card">
+      <div class="filters">
+        <input class="inp" placeholder="Tool name" style="min-width:220px">
+        <select class="inp"><option>All plans</option>${PLANS.map(p=>`<option>${p.name}</option>`).join('')}</select>
+        <select class="inp"><option>Any model</option><option>Terra</option><option>Luna candidate</option></select>
+        <div class="grow"></div>
+        <span class="tag">Sorted by cost</span>
+      </div>
+      <div class="tblwrap"><table>
+        <thead><tr><th>Tool</th><th style="text-align:right">Cost / run</th><th style="text-align:right">Avg tokens</th><th style="text-align:right">Runs (30d)</th><th style="text-align:right">Monthly cost</th><th style="text-align:right">Errors</th><th>Model</th><th>Plans</th><th>Live</th></tr></thead>
+        <tbody>${TOOLS.map(t=>`<tr>
+          <td><div style="font-weight:600">${t.name}</div><div class="mono-id">${t.id}</div></td>
+          <td class="tnum" style="text-align:right;font-weight:600;color:${t.p>3?'var(--img)':'var(--ink)'}">${t.p.toFixed(2)}p</td>
+          <td class="tnum" style="text-align:right;color:var(--ink-2)">${int(t.tok)}</td>
+          <td class="tnum" style="text-align:right">${int(t.runs)}</td>
+          <td class="tnum" style="text-align:right">${money(t.runs*t.p/100)}</td>
+          <td style="text-align:right">${t.err>1.5?`<span class="tag dang">${t.err}%</span>`:`<span class="tag ok">${t.err}%</span>`}</td>
+          <td>${t.route==='Luna candidate'?'<span class="tag ok">Luna candidate</span>':`<span class="tag">${t.route}</span>`}</td>
+          <td>${t.plans.map(p=>`<span class="tag ${p==='free'?'':'brand'}">${planName(p)}</span>`).join(' ')}</td>
+          <td><button class="switch ${t.on?'on':''}" onclick="this.classList.toggle('on');toast('${t.name} toggled')"></button></td>
+        </tr>`).join('')}</tbody>
+      </table></div>
+      <div class="card-f">
+        <span style="font-size:12.5px;color:var(--ink-2)">
+          ${TOOLS.length} tools · total measured cost ${money(TOOLS.reduce((s,t)=>s+t.runs*t.p/100,0))} this month ·
+          costs sourced from the developer's measured runs, converted at £${FX}/$1
+        </span>
+      </div>
+    </div>
+
+    <div class="note mt">
+      <b>Sample size warning.</b> Most of these costs were measured over 2–10 runs. They're right to an order of magnitude but won't show the tail — a long EYFS plan for a mixed-ability class could easily be three times the average. Once real traffic is flowing, this table should read from live billing rather than the sample.
+    </div>
+  </div>`;
+
+/* ---------- 11. SAFEGUARDING FLAGS ---------- */
+VIEWS.flags = () => `
+  <div class="page">
+    <div class="pagehead"><div class="grow">
+      <div class="h1">Safeguarding flags</div>
+      <div class="sub">Generations the filter caught. Schools will ask how you handle this — keep it clean and be able to show it.</div>
+    </div><button class="btn" onclick="toast('Policy settings')">Filter settings</button></div>
+
+    <div class="grid g4 mb">
+      ${stat('Flagged (30d)', '17', '', '', '0.004% of generations')}
+      ${stat('Awaiting review', '3', '', '', 'oldest 4 hours')}
+      ${stat('Confirmed issues', '1', '', '', 'account suspended')}
+      ${stat('False positives', '13', '', '', 'filter is a little tight')}
+    </div>
+
+    <div class="card"><div class="tblwrap"><table>
+      <thead><tr><th>When</th><th>Teacher</th><th>Tool</th><th>Why it flagged</th><th>Status</th><th></th></tr></thead>
+      <tbody>${[
+        ['today 08:14','Owen Blythe','Comprehension','Text mentioned self-harm — likely a PSHE lesson','review'],
+        ['today 07:02','Tom Ellison','Quiz Generator','Historical violence — WWII topic','review'],
+        ['yesterday 15:33','Grace Ibbotson','Parent Email Writer','Personal data in prompt: pupil full name + address','confirmed'],
+        ['yesterday 09:10','Sarah Whitby','Lesson Planner','Medical terms — puberty topic, KS2','cleared'],
+        ['2 Aug 14:20','Nadia Rahman','Report Writer','Named pupil in output','cleared']
+      ].map(r=>`<tr class="click" onclick="toast('Full record opened')">
+        <td style="font-size:12.5px;color:var(--ink-2)">${r[0]}</td>
+        <td style="font-weight:550">${r[1]}</td><td>${r[2]}</td>
+        <td style="font-size:12.5px">${r[3]}</td>
+        <td>${r[4]==='review'?'<span class="tag warn"><span class="dot"></span>Needs review</span>':r[4]==='confirmed'?'<span class="tag dang"><span class="dot"></span>Confirmed</span>':'<span class="tag ok"><span class="dot"></span>Cleared</span>'}</td>
+        <td><button class="btn sm rowact">Review</button></td></tr>`).join('')}</tbody>
+    </table></div></div>
+
+    <div class="note mt"><b>Why this matters:</b> UK schools will ask about safeguarding and data protection before they'll sign. Being able to open this page in a sales call is worth more than any slide.</div>
+  </div>`;
+
+/* ---------- 12. INBOX (support chat) ---------- */
+let openThread = 'tk_318';
+VIEWS.inbox = () => {
+  const t = THREADS.find(x=>x.id===openThread) || THREADS[0];
+  const u = TEACHERS.find(x=>x.id===t.user);
+  return `
+  <div class="inbox">
+    <div class="ib-list">
+      <div class="ib-filter">
+        <input class="inp w-full mb" placeholder="Search conversations" style="margin-bottom:8px">
+        <div class="row" style="gap:6px">
+          <select class="inp" style="flex:1"><option>Open (4)</option><option>All</option><option>Assigned to me</option><option>Unassigned</option><option>Closed</option></select>
+          <button class="btn sm" onclick="toast('Sorted by priority')">&#8645;</button>
+        </div>
+      </div>
+      ${THREADS.map(x=>`
+        <div class="thread ${x.id===openThread?'on':''}" onclick="openThread='${x.id}';route()">
+          <span class="avatar">${initials(x.name)}</span>
+          <div class="grow" style="min-width:0">
+            <div class="t1"><span class="nm">${esc(x.name)}</span>
+              ${x.pri==='high'?'<span class="dot" style="background:var(--danger)"></span>':''}
+              <span class="tm">${x.updated}</span></div>
+            <div class="pv"><b>${esc(x.subj)}</b> — ${esc(x.msgs[x.msgs.length-1].b).slice(0,70)}…</div>
+            <div class="row" style="gap:5px;margin-top:5px">${statusTag(x.status)}<span class="tag">${planName(x.plan)}</span></div>
+          </div>
+        </div>`).join('')}
+    </div>
+
+    <div class="ib-conv">
+      <div class="ib-head">
+        <div class="grow"><div class="h2">${esc(t.subj)}</div>
+          <div class="mono-id">${t.id} · ${esc(t.name)}${t.school?' · '+esc(t.school):''} · assigned to ${esc(t.assigned)}</div></div>
+        <select class="inp"><option>Open</option><option>Pending</option><option>Closed</option></select>
+        <button class="btn sm" onclick="toast('Assigned to you')">Assign to me</button>
+        <button class="btn sm pri" onclick="toast('Marked resolved')">Resolve</button>
+      </div>
+      <div class="msgs">
+        ${t.msgs.map(m=>`
+          <div class="msg ${m.from==='us'?'me':''} ${m.from==='note'?'note':''}">
+            <div class="bub">${m.from==='note'?'<b>&#9873; Internal note</b><br>':''}${esc(m.b)}</div>
+            <div class="meta">${m.from==='them'?esc(t.name):m.from==='note'?'Ash K. — not visible to them':'Ash K.'} · ${m.t}</div>
+          </div>`).join('')}
+      </div>
+      <div class="composer">
+        <div class="canned">
+          <button class="btn sm" onclick="fillReply('tokens')">Out of resources</button>
+          <button class="btn sm" onclick="fillReply('images')">AI images used up</button>
+          <button class="btn sm" onclick="fillReply('annual')">Offer annual</button>
+          <button class="btn sm" onclick="fillReply('card')">Card failed</button>
+          <button class="btn sm" onclick="fillReply('invite')">Invite not received</button>
+          <button class="btn sm" onclick="fillReply('bug')">Known bug</button>
+          <button class="btn sm ghost" onclick="toast('Snippet library')">All snippets</button>
+        </div>
+        <textarea class="inp w-full" id="reply" placeholder="Reply to ${esc(t.name)}… they'll get this in the app and by email."></textarea>
+        <div class="row mt" style="gap:8px">
+          <button class="btn sm" onclick="toast('Attach a file')">Attach</button>
+          <button class="btn sm" onclick="toast('Internal note added')">Add internal note</button>
+          <div class="grow"></div>
+          <span class="help" style="margin:0">${'<span class="kbd">&#8984;</span> <span class="kbd">&#8629;</span>'} to send</span>
+          <button class="btn pri" onclick="toast('Reply sent')">Send reply</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="ib-ctx">
+      ${u?`
+      <div class="row mb"><span class="avatar" style="width:34px;height:34px">${initials(u.name)}</span>
+        <div class="grow"><div style="font-weight:650">${esc(u.name)}</div><div class="mono-id">${esc(u.email)}</div></div></div>
+      <div class="row wrap mb" style="gap:6px">${statusTag(u.status)}<span class="tag brand">${planName(u.plan)}</span></div>
+      <div class="h2 mb">This month</div>
+      ${meter(u.used, plan(u.plan).res, u.topupRes)}
+      <div class="row mt" style="gap:8px;align-items:center">
+        <span class="meter-txt" style="font-weight:600;color:var(--ink)">AI images</span>
+        ${aiChip(u.aiUsed, plan(u.plan).ai, u.topupAI)}
+      </div>
+      <div class="row mt" style="gap:8px;align-items:center">
+        <span class="meter-txt" style="font-weight:600;color:var(--ink)">Margin</span>${marginChip(u)}
+        <span class="meter-txt">${money(revenue(u))} in, ${money(costToServe(u))} out</span>
+      </div>
+      <div class="btn-row mt">
+        <button class="btn sm" onclick="grantModal('${u.id}','res')">Grant resources</button>
+        <button class="btn sm" onclick="grantModal('${u.id}','ai')">Grant AI images</button>
+      </div>
+      <div class="hr"></div>
+      <dl class="dl" style="grid-template-columns:96px 1fr">
+        <dt>School</dt><dd>${u.school?esc(schoolName(u.school)):'Individual'}</dd>
+        <dt>Joined</dt><dd>${u.joined}</dd>
+        <dt>Last active</dt><dd>${u.last}</dd>
+        <dt>Generations</dt><dd class="num">${int(u.gens)}</dd>
+        <dt>Spend</dt><dd class="num">${u.spend?money(u.spend):'£0.00'}</dd>
+        <dt>Term</dt><dd>${planName(u.plan)} · ${u.term}</dd>
+      </dl>
+      <div class="h2 mb mt-lg">Quick actions</div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <button class="btn sm" onclick="userDrawer('${u.id}')">Open full account</button>
+        <button class="btn sm" onclick="viewAsModal('${u.id}')">View as this teacher</button>
+        <button class="btn sm" onclick="toast('Password reset sent')">Reset password</button>
+        <button class="btn sm" onclick="planModal('${u.id}')">Change plan</button>
+        ${u.term==='monthly'?`<button class="btn sm pri" onclick="toast('Annual offer sent — ${money(plan(u.plan).priceY)}/yr')">Offer annual</button>`:''}
+        <button class="btn sm" onclick="toast('Refund form')">Refund last payment</button>
+      </div>
+      <div class="h2 mb mt-lg">Recent errors</div>
+      <div class="help">PPTX export timeout — yesterday 13:58<br>No other errors in 30 days.</div>
+      `:'<div class="empty">No linked account</div>'}
+    </div>
+  </div>`;
+};
+function fillReply(k){
+  const map = {
+    tokens:"You've used this month's resources. I've added 100 to your account so you're not stuck — they'll be there next time you refresh. Your allowance resets on the 1st.",
+    images:"You've used your AI-generated slideshow images for this month. Slideshows using our free image library are still unlimited, and honestly they look great — most teachers can't tell the difference on a whiteboard. If you'd rather keep the AI ones, a pack of 10 is £2.99, or Max includes 25 a month.",
+    annual:"Before you go — the annual plan is £79 for the year, which works out cheaper than ten monthly payments and covers you right through to next summer. No pause needed over the holidays. Want me to switch you over?",
+    card:"Your card was declined by your bank rather than by us, which usually means a security check wasn't completed. Here's a secure link to re-enter your card — it takes about 30 seconds and nothing else changes: [link]",
+    invite:"Your invite bounced, which normally means your school's email filter blocked it. I've re-sent it now. If it still doesn't arrive, ask your IT lead to allow jooma.ai — instructions here: [link]",
+    bug:"Thanks for flagging this — you're right, and it's a bug on our side rather than anything you've done. It's with the developers now (ref JOOM-241) and I'll come back to you the moment it's fixed."
+  };
+  const r = $('#reply'); if(r){ r.value = map[k]; r.focus(); }
+}
+
+/* ---------- 13. COPY EDITOR ---------- */
+VIEWS.copy = () => `
+  <div class="page">
+    <div class="pagehead"><div class="grow">
+      <div class="h1">Website &amp; app copy</div>
+      <div class="sub">Every bit of text on jooma.ai and in the teacher dashboard, editable without touching code.</div>
+    </div><div class="btn-row">
+      <button class="btn" onclick="toast('Preview opened in a new tab')">Preview</button>
+      <button class="btn pri" onclick="toast('2 changes published to jooma.ai')">Publish changes</button></div></div>
+
+    <div class="note mb"><b>2 unpublished changes.</b> Everything edits as a draft first, so nothing goes live by accident. Every block keeps its full version history and can be rolled back in one click.</div>
+
+    <div class="card">
+      <div class="filters">
+        <input class="inp" placeholder="Search copy or key" style="min-width:230px">
+        <select class="inp"><option>Everywhere</option><option>Landing page</option><option>Pricing</option><option>Teacher dashboard</option><option>Emails</option><option>Errors &amp; empty states</option></select>
+        <div class="grow"></div>
+        <span class="tag warn">2 drafts</span>
+      </div>
+      <div class="tblwrap"><table>
+        <thead><tr><th style="width:190px">Key</th><th>Where</th><th>Text</th><th>Version</th><th></th></tr></thead>
+        <tbody>${COPY_BLOCKS.map(c=>`
+          <tr class="click" onclick="copyModal('${c.id}')">
+            <td class="mono-id" style="color:var(--ink)">${c.id}</td>
+            <td style="font-size:12.5px;color:var(--ink-2)">${c.where}</td>
+            <td style="max-width:400px">${esc(c.val)}</td>
+            <td>v${c.v} ${c.live?'<span class="tag ok">Live</span>':'<span class="tag warn">Draft</span>'}</td>
+            <td><button class="btn sm rowact">Edit</button></td>
+          </tr>`).join('')}</tbody>
+      </table></div>
+    </div>
+
+    <div class="grid g2 mt">
+      <div class="card"><div class="card-h"><div class="h2">Pricing page</div></div><div class="card-b">
+        <div class="help mb">Prices come from Plans &amp; pricing — edit them there and this page updates itself. Here you control only the words around them.</div>
+        <div class="formrow"><label class="lbl">Headline</label><input class="inp w-full" value="Simple pricing for smarter lesson planning"></div>
+        <div class="formrow"><label class="lbl">Sub-headline</label><textarea class="inp w-full" rows="2">Choose a plan that saves you time, reduces workload, and helps you create better lessons in seconds.</textarea></div>
+        <div class="formrow"><label class="lbl">Schools CTA</label><input class="inp w-full" value="Contact Sales"></div>
+        <button class="btn sm" onclick="toast('Saved as draft')">Save draft</button>
+      </div></div>
+      <div class="card"><div class="card-h"><div class="h2">Blocks you can switch on and off</div></div><div class="card-b">
+        <div class="togrow"><div class="grow"><div class="t">Logo strip (“Used by educators…”)</div><div class="d">Currently placeholder logos — replace or hide before launch.</div></div><button class="switch on" onclick="this.classList.toggle('on')"></button></div>
+        <div class="togrow"><div class="grow"><div class="t">FAQ section</div><div class="d">4 questions live.</div></div><button class="switch on" onclick="this.classList.toggle('on')"></button></div>
+        <div class="togrow"><div class="grow"><div class="t">Yearly pricing toggle</div><div class="d">Shows the 20% saving.</div></div><button class="switch on" onclick="this.classList.toggle('on')"></button></div>
+        <div class="togrow"><div class="grow"><div class="t">Top banner</div><div class="d">Set the message in Announcements.</div></div><button class="switch" onclick="this.classList.toggle('on')"></button></div>
+      </div></div>
+    </div>
+  </div>`;
+
+function copyModal(id){
+  const c = COPY_BLOCKS.find(x=>x.id===id);
+  openModal('Edit copy', `
+    <div class="formrow"><label class="lbl">Key</label><div class="mono-id">${c.id}</div>
+      <div class="help">Where it appears: ${c.where}</div></div>
+    <div class="formrow"><label class="lbl">Text</label><textarea class="inp w-full" rows="4">${esc(c.val)}</textarea>
+      <div class="help">Anything in {curly braces} is filled in automatically — leave it alone.</div></div>
+    <div class="formrow"><label class="lbl">Version history</label>
+      <div class="tl">
+        <div class="tl-i hi"><div class="tl-t">v${c.v} — current</div><div class="tl-m">Ash K. · 2 Aug</div></div>
+        <div class="tl-i"><div class="tl-t">v${c.v-1}</div><div class="tl-m">Sam T. · 21 Jul · <a href="#" onclick="return false">restore</a></div></div>
+      </div></div>`,
+    `<button class="btn" onclick="closeAll()">Cancel</button>
+     <button class="btn" onclick="closeAll();toast('Saved as draft')">Save draft</button>
+     <button class="btn pri" onclick="closeAll();toast('Published to jooma.ai')">Publish now</button>`);
+}
+
+/* ---------- 14. EMAIL TEMPLATES ---------- */
+VIEWS.emails = () => `
+  <div class="page">
+    <div class="pagehead"><div class="grow">
+      <div class="h1">Email templates</div>
+      <div class="sub">Every automatic email Jooma sends. Edit the wording, see whether people open them.</div>
+    </div><button class="btn pri" onclick="toast('New template')">&#10010; New template</button></div>
+    <div class="card"><div class="tblwrap"><table>
+      <thead><tr><th>Template</th><th>Sent when</th><th style="text-align:right">Sent (30d)</th><th style="text-align:right">Opened</th><th style="text-align:right">Clicked</th><th>Live</th><th></th></tr></thead>
+      <tbody>${[
+        ['Welcome','Someone signs up',212,'71%','44%',true],
+        ['Verify your email','Signup, immediately',212,'82%','78%',true],
+        ['Invite to a school plan','Admin adds a teacher',96,'64%','51%',true],
+        ['Resources running low','80% of allowance used',188,'58%','22%',true],
+        ['Out of resources','Resource allowance hits zero',94,'66%','31%',true],
+        ['AI images used up','AI-image allowance hits zero',188,'62%','38%',true],
+        ['Payment failed (1 of 3)','Card declined',12,'74%','40%',true],
+        ['Password reset','Requested',31,'91%','88%',true],
+        ['We miss you','14 days inactive',144,'29%','6%',false],
+        ['School welcome pack','School goes live',5,'100%','80%',true]
+      ].map(r=>`<tr class="click" onclick="toast('${r[0]} editor opened')">
+        <td style="font-weight:600">${r[0]}</td><td style="font-size:12.5px;color:var(--ink-2)">${r[1]}</td>
+        <td class="tnum" style="text-align:right">${r[2]}</td><td class="tnum" style="text-align:right">${r[3]}</td>
+        <td class="tnum" style="text-align:right">${r[4]}</td>
+        <td onclick="event.stopPropagation()"><button class="switch ${r[5]?'on':''}" onclick="this.classList.toggle('on')"></button></td>
+        <td><button class="btn sm rowact">Edit</button></td></tr>`).join('')}</tbody>
+    </table></div></div>
+    <div class="note mt">Delivery log lives under Settings → Email. If a teacher says “I never got it”, check there first — it'll tell you whether the school's filter bounced it.</div>
+  </div>`;
+
+/* ---------- 15. ANNOUNCEMENTS ---------- */
+VIEWS.announce = () => `
+  <div class="page">
+    <div class="pagehead"><div class="grow">
+      <div class="h1">Announcements</div>
+      <div class="sub">Banners inside the teacher dashboard. Use sparingly — for maintenance, new tools, and term-start messages.</div>
+    </div><button class="btn pri" onclick="toast('New announcement')">&#10010; New announcement</button></div>
+    <div class="grid g2">
+      <div class="card"><div class="card-h"><div class="h2 grow">Live now</div><span class="tag ok">1</span></div><div class="card-b">
+        <div class="note mb"><b>New: Slideshow Generator now exports to Google Slides.</b> Dismissible · shown to Pro, Max and School · since 1 Aug</div>
+        <div class="row"><span class="help grow">Seen by 1,204 · dismissed by 812 · clicked 96</span>
+          <button class="btn sm">Edit</button><button class="btn sm dang" onclick="toast('Taken down')">Take down</button></div>
+      </div></div>
+      <div class="card"><div class="card-h"><div class="h2 grow">Scheduled</div></div><div class="card-b">
+        <div class="note warn mb"><b>Planned maintenance Sunday 07:00–08:00.</b> All teachers · 1 Sep</div>
+        <div class="row"><span class="help grow">Goes live 30 Aug</span><button class="btn sm">Edit</button></div>
+      </div></div>
+    </div>
+    <div class="card mt"><div class="card-h"><div class="h2">Compose</div></div><div class="card-b">
+      <div class="grid g2">
+        <div class="formrow"><label class="lbl">Message</label><input class="inp w-full" placeholder="Keep it to one sentence"></div>
+        <div class="formrow"><label class="lbl">Type</label><select class="inp w-full"><option>Information</option><option>Warning</option><option>Maintenance</option></select></div>
+        <div class="formrow"><label class="lbl">Show to</label><select class="inp w-full"><option>Everyone</option><option>Free plan only</option><option>Paying teachers</option><option>School plans only</option><option>One school</option></select></div>
+        <div class="formrow"><label class="lbl">Until</label><input class="inp w-full" type="date"></div>
+      </div>
+      <div class="togrow"><div class="grow"><div class="t">Teachers can dismiss it</div><div class="d">Turn off for anything they must read.</div></div><button class="switch on" onclick="this.classList.toggle('on')"></button></div>
+      <button class="btn pri mt" onclick="toast('Announcement scheduled')">Schedule</button>
+    </div></div>
+  </div>`;
+
+/* ---------- 16. TEAM & ROLES ---------- */
+VIEWS.team = () => `
+  <div class="page">
+    <div class="pagehead"><div class="grow">
+      <div class="h1">Team &amp; roles</div>
+      <div class="sub">Who on your side can see what. Partners, support staff and your developer shouldn't all have the same access.</div>
+    </div><button class="btn pri" onclick="toast('Invite form')">&#10010; Invite admin</button></div>
+    <div class="card mb"><div class="tblwrap"><table>
+      <thead><tr><th>Person</th><th>Role</th><th>Last active</th><th>2FA</th><th></th></tr></thead>
+      <tbody>${[
+        ['Ash K.','ash@jooma.ai','Super admin','2 minutes ago',true],
+        ['Sam T.','sam@jooma.ai','Content','yesterday 15:02',true],
+        ['Priya M.','priya@jooma.ai','Support','3 days ago',false],
+        ['Dev (contract)','dev@studio.co','Developer — read only','1 week ago',true]
+      ].map(r=>`<tr><td><div style="font-weight:600">${r[0]}</div><div class="mono-id">${r[1]}</div></td>
+        <td><span class="tag brand">${r[2]}</span></td>
+        <td style="font-size:12.5px;color:var(--ink-2)">${r[3]}</td>
+        <td>${r[4]?'<span class="tag ok">On</span>':'<span class="tag dang">Off</span>'}</td>
+        <td><button class="btn sm rowact">Edit</button></td></tr>`).join('')}</tbody>
+    </table></div></div>
+
+    <div class="card"><div class="card-h"><div class="h2 grow">What each role can do</div></div><div class="tblwrap"><table>
+      <thead><tr><th>Permission</th><th style="text-align:center">Super admin</th><th style="text-align:center">Support</th><th style="text-align:center">Finance</th><th style="text-align:center">Content</th><th style="text-align:center">Developer</th></tr></thead>
+      <tbody>${[
+        ['See teacher accounts',1,1,1,0,1],
+        ['Reset passwords',1,1,0,0,0],
+        ['View as a teacher',1,1,0,0,0],
+        ['Grant resources or AI images',1,1,0,0,0],
+        ['Change a plan or price',1,0,1,0,0],
+        ['Issue refunds',1,0,1,0,0],
+        ['Edit website copy',1,0,0,1,0],
+        ['Onboard a school',1,1,1,0,0],
+        ['Turn tools on and off',1,0,0,0,1],
+        ['Manage admins',1,0,0,0,0],
+        ['Export personal data',1,0,0,0,0]
+      ].map(r=>`<tr><td style="font-weight:550">${r[0]}</td>
+        ${r.slice(1).map(v=>`<td style="text-align:center;color:${v?'var(--ok)':'var(--ink-3)'};font-weight:700">${v?'&#10003;':'&mdash;'}</td>`).join('')}</tr>`).join('')}</tbody>
+    </table></div></div>
+  </div>`;
+
+/* ---------- 17. AUDIT LOG ---------- */
+VIEWS.audit = () => `
+  <div class="page">
+    <div class="pagehead"><div class="grow">
+      <div class="h1">Audit log</div>
+      <div class="sub">Every admin action, permanently. This is what you show a school's data protection officer when they ask.</div>
+    </div><button class="btn" onclick="toast('Export sent')">Export</button></div>
+    <div class="card">
+      <div class="filters">
+        <input class="inp" placeholder="Search actions, users or IDs" style="min-width:240px">
+        <select class="inp"><option>Everyone</option><option>Ash K.</option><option>Sam T.</option><option>System</option></select>
+        <select class="inp"><option>All actions</option><option>Account changes</option><option>Billing</option><option>Content</option><option>Access</option></select>
+      </div>
+      <div class="tblwrap"><table>
+        <thead><tr><th style="width:150px">When</th><th style="width:110px">Who</th><th>Action</th><th>Object</th><th>IP</th></tr></thead>
+        <tbody>${AUDIT.map(a=>`<tr>
+          <td style="font-size:12.5px;color:var(--ink-2)">${a.t}</td>
+          <td style="font-weight:550">${a.who}</td>
+          <td>${a.act}</td>
+          <td class="mono-id" style="color:var(--ink-2)">${esc(a.obj)}</td>
+          <td class="mono-id">${a.ip}</td></tr>`).join('')}</tbody>
+      </table></div>
+      <div class="card-f"><span style="font-size:12.5px;color:var(--ink-2)">Retained for 7 years. Not editable by anyone, including super admins.</span></div>
+    </div>
+  </div>`;
+
+/* ---------- 18. SETTINGS ---------- */
+VIEWS.settings = () => `
+  <div class="page">
+    <div class="pagehead"><div class="grow"><div class="h1">Settings</div>
+      <div class="sub">System-wide switches. Most of these you'll set once and forget.</div></div></div>
+    <div class="grid g2">
+      <div class="card"><div class="card-h"><div class="h2">Access</div></div><div class="card-b">
+        <div class="togrow"><div class="grow"><div class="t">Signups open</div><div class="d">Turn off to run a closed beta.</div></div><button class="switch on" onclick="this.classList.toggle('on')"></button></div>
+        <div class="togrow"><div class="grow"><div class="t">Maintenance mode</div><div class="d">Shows a holding page. Admins can still get in.</div></div><button class="switch" onclick="this.classList.toggle('on')"></button></div>
+        <div class="togrow"><div class="grow"><div class="t">Require 2FA for admins</div><div class="d">One of your four admins doesn't have it on.</div></div><button class="switch on" onclick="this.classList.toggle('on')"></button></div>
+        <div class="togrow"><div class="grow"><div class="t">Google sign-in for teachers</div><div class="d">Most schools are Google or Microsoft. Offer both.</div></div><button class="switch on" onclick="this.classList.toggle('on')"></button></div>
+        <div class="togrow"><div class="grow"><div class="t">Microsoft sign-in for teachers</div><div class="d"></div></div><button class="switch on" onclick="this.classList.toggle('on')"></button></div>
+      </div></div>
+
+      <div class="card"><div class="card-h"><div class="h2">Feature flags</div></div><div class="card-b">
+        <div class="help mb">Release something to a slice of teachers before everyone.</div>
+        ${[['New folders view','40% of teachers',true],['Google Slides export','Pro and Max only',true],['Marking Assistant','Off — error rate too high',false],['School analytics tab','School admins only',true]].map(f=>`
+          <div class="togrow"><div class="grow"><div class="t">${f[0]}</div><div class="d">${f[1]}</div></div><button class="switch ${f[2]?'on':''}" onclick="this.classList.toggle('on')"></button></div>`).join('')}
+      </div></div>
+
+      <div class="card"><div class="card-h"><div class="h2">Data protection</div></div><div class="card-b">
+        <dl class="dl">
+          <dt>Data retention</dt><dd>Resources kept 24 months after last sign-in</dd>
+          <dt>Deleted accounts</dt><dd>Purged after 30 days</dd>
+          <dt>Prompts stored</dt><dd>90 days, then anonymised</dd>
+          <dt>Model training</dt><dd><span class="tag ok">Teacher content never used</span></dd>
+          <dt>Hosting</dt><dd>UK / EU only</dd>
+          <dt>Sub-processors</dt><dd><a href="#" onclick="return false">4 listed</a></dd>
+        </dl>
+        <div class="btn-row mt">
+          <button class="btn sm" onclick="toast('Export request form')">Handle a data request</button>
+          <button class="btn sm" onclick="toast('DPA template')">DPA template</button>
+        </div>
+        <div class="help mt">Subject access and deletion requests both start here and are logged in the audit trail automatically.</div>
+      </div></div>
+
+      <div class="card"><div class="card-h"><div class="h2">Connections</div></div><div class="card-b">
+        ${[['Stripe','Payments','ok','Synced 4 min ago'],['Xero','Accounting','ok','Synced today'],['Postmark','Transactional email','ok','99.4% delivered'],['OpenAI / Anthropic','Model providers','ok','All healthy'],['Meta Pixel','Ad attribution','warn','Not firing on /signup'],['TikTok Pixel','Ad attribution','ok','Live']].map(c=>`
+          <div class="togrow"><div class="grow"><div class="t">${c[0]} <span class="help" style="display:inline">· ${c[1]}</span></div>
+            <div class="d">${c[3]}</div></div>${c[2]==='ok'?'<span class="tag ok">Healthy</span>':'<span class="tag warn">Check</span>'}</div>`).join('')}
+      </div></div>
+    </div>
+  </div>`;
+
+/* =========================================================================
+   BOOT
+   ========================================================================= */
+buildNav();
+window.addEventListener('hashchange', route);
+$('#hamb').onclick = () => $('#side').classList.toggle('on');
+$('#omni').addEventListener('keydown', e=>{ if(e.key==='Enter'){ tFilter.q=e.target.value; location.hash='teachers'; route(); }});
+route();
+</script>
+</body>
+</html>

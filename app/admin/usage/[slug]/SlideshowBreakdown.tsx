@@ -12,6 +12,8 @@ interface ImageRow {
 interface Breakdown {
   text: number;
   audio: number;
+  /** Absent on decks generated before YouTube cost was folded into the total. */
+  youtube?: number;
   images: ImageRow[];
 }
 export interface SlideRow {
@@ -22,7 +24,8 @@ export interface SlideRow {
 }
 
 // Flatten a deck's stored breakdown into display lines (deck text, each slide's
-// images, then audio). Empty when the row predates breakdown capture.
+// images, then audio, then the YouTube lookup). These lines sum to the deck's
+// stored cost_usd. Empty when the row predates breakdown capture.
 function lines(b: Breakdown | null | undefined): { label: string; cost_usd: number }[] {
   if (!b) return [];
   const out: { label: string; cost_usd: number }[] = [];
@@ -34,6 +37,10 @@ function lines(b: Breakdown | null | undefined): { label: string; cost_usd: numb
     });
   }
   if (b.audio > 0) out.push({ label: "Audio (script + speech)", cost_usd: b.audio });
+  // Optional: decks recorded before this was tracked have no `youtube` key.
+  if ((b.youtube ?? 0) > 0) {
+    out.push({ label: "YouTube (search query)", cost_usd: b.youtube! });
+  }
   return out;
 }
 

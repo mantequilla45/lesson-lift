@@ -1,6 +1,12 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
-import { isGenerationRequest, checkGenerationQuota } from "@/app/lib/generation-guard";
+import {
+  isGenerationRequest,
+  isCostBearingRequest,
+  checkAllGates,
+  quotaBlockBody,
+  QUOTA_BLOCK_HEADERS,
+} from "@/app/lib/generation-guard";
 
 // Routes reachable without a session. Everything else redirects to /login.
 const PUBLIC_PATHS = [
@@ -80,22 +86,24 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Enforce the monthly AI-generation cap for free users. Runs only on the tool
-  // generation POSTs, and only once we know there's a user. Free users over the
-  // limit get a 402 the client turns into an upgrade prompt; paid plans are
-  // unlimited (checkGenerationQuota returns null).
-  if (user && isGenerationRequest(request.method, pathname)) {
-    const quota = await checkGenerationQuota(supabase, user.id);
-    if (quota?.blocked) {
-      return NextResponse.json(
-        {
-          error: `You've used all ${quota.limit} of your free generations this month. Upgrade to Pro for unlimited generations.`,
-          code: "generation_limit_reached",
-          used: quota.used,
-          limit: quota.limit,
-        },
-        { status: 402, headers: { "x-upgrade-required": "1" } },
-      );
+  // Enforce the plan gates. Two things are checked here (see
+  // generation-guard.ts): the Free daily/monthly generation caps, and the paid
+  // plans' monthly AI-spend ceiling. The ceiling applies to sub-asset and
+  // refinement routes too, which is why the condition is broader than
+  // isGenerationRequest alone — otherwise a Pro user at their limit could keep
+  // spending through /api/modify.
+  //
+  // NOTE: /api/generate-slideshow is excluded from this proxy's matcher (see
+  // config below) and self-gates inside its route handler instead.
+  if (user && isCostBearingRequest(request.method, pathname)) {
+    const quota = await checkAllGates(supabase, {
+      countsAsGeneration: isGenerationRequest(request.method, pathname),
+    });
+    if (quota) {
+      return NextResponse.json(quotaBlockBody(quota), {
+        status: 402,
+        headers: QUOTA_BLOCK_HEADERS,
+      });
     }
   }
 

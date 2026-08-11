@@ -10,7 +10,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { getOpenAI } from "@/app/lib/openai";
-import { recordUsage } from "@/app/lib/usage";
+import { recordUsage, costUsd } from "@/app/lib/usage";
 
 export const maxDuration = 30;
 
@@ -151,6 +151,9 @@ Return three things:
   let searchQuery = body.topic;
   let slideHeading = `WATCH: ${body.topic.toUpperCase()}`;
   let slideSubtitle = "Let's watch this together to deepen our understanding.";
+  // Returned to the caller so a parent tool can fold this into its own cost
+  // rollup. See the `costUsd` field on the response below.
+  let queryCostUsd = 0;
   try {
     const completion = await client.chat.completions.create({
       model: "gpt-4o-2024-08-06",
@@ -163,7 +166,13 @@ Return three things:
     // Record the query-refinement cost. When the slideshow calls this
     // (parentTool set), attribute it to the slideshow's breakdown.
     const parentTool = (body as { parentTool?: string }).parentTool;
-    void recordUsage(parentTool ?? "find-youtube", "gpt-4o-2024-08-06", completion.usage, parentTool ? "YouTube" : null);
+    // Awaited, not fire-and-forget: on Fluid Compute the instance can be frozen
+    // as soon as the response is sent, suspending an in-flight write until the
+    // socket behind it is dead. Awaiting costs a few ms and keeps the row.
+    await recordUsage(parentTool ?? "find-youtube", "gpt-4o-2024-08-06", completion.usage, parentTool ? "YouTube" : null);
+    if (completion.usage) {
+      queryCostUsd = costUsd("gpt-4o-2024-08-06", completion.usage);
+    }
     const content = completion.choices[0]?.message?.content;
     if (content) {
       const parsed: { query: string; slideHeading: string; slideSubtitle: string } = JSON.parse(content);
@@ -250,5 +259,11 @@ Return three things:
     slideHeading,
     slideSubtitle,
     candidates,
+    // USD cost of the query-refinement call above. Already recorded to
+    // token_usage by recordUsage(); returned as well so a parent tool can
+    // include it in its own per-run cost rollup (generate-slideshow folds it
+    // into the deck total). Reporting reads token_usage, so surfacing the
+    // number here does not double-count it.
+    costUsd: Number(queryCostUsd.toFixed(6)),
   });
 }

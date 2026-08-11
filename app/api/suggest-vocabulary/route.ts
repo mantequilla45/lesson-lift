@@ -51,7 +51,7 @@ Return 5-8 essential terms — the specific subject words pupils need to learn f
       ],
       response_format: { type: "json_schema", json_schema: vocabSchema },
     });
-    void recordUsage("suggest-vocabulary", "gpt-4o-2024-08-06", completion.usage);
+    await recordUsage("suggest-vocabulary", "gpt-4o-2024-08-06", completion.usage);
     const content = completion.choices[0]?.message?.content;
     if (!content) return NextResponse.json({ error: "Empty AI response" }, { status: 500 });
     const parsed: { terms: string[] } = JSON.parse(content);

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import type Stripe from "stripe";
 import { stripe, planForPriceId } from "@/app/lib/stripe";
 import { supabaseAdmin } from "@/app/lib/supabase-admin";
-import { DEFAULT_PLAN } from "@/app/lib/plans";
+import { DEFAULT_PLAN, TOPUP_PENCE } from "@/app/lib/plans";
 
 // Stripe → app sync. This is the ONLY place a user's plan is upgraded/downgraded
 // from payment state. It runs with the service-role key (no user session) and
@@ -66,6 +66,197 @@ async function syncSubscription(sub: Stripe.Subscription) {
   if (error) console.error("[stripe/webhook] profile update failed", error);
 }
 
+// ── AI credit top-ups ────────────────────────────────────────────────────────
+
+/** End of the current month, UTC — when purchased credit expires. Matches the
+ *  convention in admin_grant_allowance(): credit tops up the month it was
+ *  bought in and never rolls over. */
+function endOfMonthIso(): string {
+  const now = new Date();
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1)).toISOString();
+}
+
+/**
+ * Grant £1.50 of AI credit for a completed one-off Checkout session.
+ *
+ * IDEMPOTENCY: Stripe retries on any non-2xx, and this handler deliberately
+ * returns 500 on failure to invite those retries — so this must not grant twice
+ * for one payment. The `topup_purchases` insert is the gate: its
+ * `stripe_payment_intent_id` column is UNIQUE, so a retry loses the race and
+ * hits 23505, and we return before touching the grant.
+ *
+ * The write ORDER is therefore load-bearing: purchase row first, then the
+ * grant, then the invoice mirror. Do not reorder these — `invoices` has no
+ * unique key that would stop a duplicate on its own.
+ */
+async function grantTopUpCredit(session: Stripe.Checkout.Session) {
+  const paymentIntentId =
+    typeof session.payment_intent === "string"
+      ? session.payment_intent
+      : session.payment_intent?.id;
+
+  // Without a PaymentIntent there is no idempotency key, so granting could
+  // double up on a retry. Skip rather than risk it.
+  if (!paymentIntentId) {
+    console.warn("[stripe/webhook] top-up session has no payment_intent", session.id);
+    return;
+  }
+
+  const userId = session.metadata?.userId ?? session.client_reference_id;
+  if (!userId) {
+    console.warn("[stripe/webhook] top-up session has no userId", session.id);
+    return;
+  }
+
+  const amountPence = session.amount_total ?? TOPUP_PENCE;
+
+  // 1. Idempotency gate.
+  const { error: purchaseErr } = await supabaseAdmin.from("topup_purchases").insert({
+    user_id: userId,
+    // Not a topup_packs purchase — packs are unit-denominated (N resources,
+    // N images) and a GBP credit doesn't fit that shape. pack_id is nullable.
+    pack_id: null,
+    kind: "credit_gbp",
+    units: amountPence, // pence, matching allowance_grants.amount for this kind
+    price_gbp: toMajor(amountPence),
+    stripe_payment_intent_id: paymentIntentId,
+  });
+  if (purchaseErr) {
+    if (purchaseErr.code === "23505") return; // already processed — not an error
+    throw purchaseErr; // 500 → Stripe retries
+  }
+
+  // 2. The credit itself. `amount` is PENCE for kind='credit_gbp'.
+  const { error: grantErr } = await supabaseAdmin.from("allowance_grants").insert({
+    user_id: userId,
+    kind: "credit_gbp",
+    amount: amountPence,
+    reason: "Purchased AI credit top-up",
+    granted_by: null, // bought, not granted by an admin
+    expires_at: endOfMonthIso(),
+  });
+  if (grantErr) throw grantErr;
+
+  // 3. Local mirror so the charge shows in billing views without a Stripe trip.
+  const { error: invoiceErr } = await supabaseAdmin.from("invoices").insert({
+    reference: session.id,
+    user_id: userId,
+    type: "topup",
+    amount_gbp: toMajor(amountPence),
+    status: "paid",
+    paid_at: new Date().toISOString(),
+    method: "Card · AI credit top-up",
+  });
+  if (invoiceErr) {
+    // The credit is already granted, which is what the customer paid for.
+    // Don't throw: a retry would hit the purchase gate and skip the grant,
+    // leaving this row missing anyway. Log it for manual reconciliation.
+    console.error("[stripe/webhook] top-up invoice mirror failed", invoiceErr);
+  }
+}
+
+// ── Invoice mirroring ────────────────────────────────────────────────────────
+// Stripe remains the system of record for card payments; these rows are a local
+// mirror so the admin console can list card charges and school BACS invoices in
+// one place, and so a failed payment is visible without opening the Stripe
+// dashboard. Nothing here grants or revokes access — only syncSubscription does
+// that.
+
+/** Stripe works in minor units (pence). Everything we store is major (pounds). */
+function toMajor(minor: number | null | undefined): number {
+  return (minor ?? 0) / 100;
+}
+
+/** Resolve the local profile id for a Stripe customer. */
+async function userIdForCustomer(customer: string | null): Promise<string | null> {
+  if (!customer) return null;
+  const { data } = await supabaseAdmin
+    .from("profiles")
+    .select("id")
+    .eq("stripe_customer_id", customer)
+    .maybeSingle();
+  return data?.id ?? null;
+}
+
+/** Human-readable payment method, e.g. "Visa ••4242 · Pro monthly". */
+function describeInvoice(inv: Stripe.Invoice): string {
+  const line = inv.lines?.data?.[0];
+  const desc = line?.description ?? null;
+  const brandLast4 = (
+    inv as unknown as {
+      payment_method_details?: { card?: { brand?: string; last4?: string } };
+    }
+  ).payment_method_details?.card;
+
+  const parts: string[] = [];
+  if (brandLast4?.brand && brandLast4?.last4) {
+    parts.push(`${brandLast4.brand} ••${brandLast4.last4}`);
+  }
+  if (desc) parts.push(desc);
+  return parts.join(" · ") || "Card · Stripe";
+}
+
+/**
+ * Upsert one Stripe invoice into our table, keyed on stripe_invoice_id so
+ * webhook retries and out-of-order delivery converge rather than duplicate.
+ */
+async function syncInvoice(inv: Stripe.Invoice, status: string) {
+  const customerId = typeof inv.customer === "string" ? inv.customer : (inv.customer?.id ?? null);
+  const userId = await userIdForCustomer(customerId);
+
+  // A charge with no local profile is almost certainly test noise or a customer
+  // created outside the app. Log rather than inventing an orphan row.
+  if (!userId) {
+    console.warn("[stripe/webhook] no profile for invoice customer", customerId);
+    return;
+  }
+
+  const chargeId =
+    typeof (inv as unknown as { charge?: string | { id: string } }).charge === "string"
+      ? ((inv as unknown as { charge: string }).charge)
+      : ((inv as unknown as { charge?: { id: string } }).charge?.id ?? null);
+
+  const { error } = await supabaseAdmin.from("invoices").upsert(
+    {
+      stripe_invoice_id: inv.id,
+      reference: inv.number ?? inv.id ?? "—",
+      user_id: userId,
+      type: "card",
+      amount_gbp: toMajor(inv.amount_due || inv.total),
+      status,
+      due_at: inv.due_date ? new Date(inv.due_date * 1000).toISOString().slice(0, 10) : null,
+      paid_at: status === "paid" ? new Date().toISOString() : null,
+      method: describeInvoice(inv),
+      stripe_charge_id: chargeId,
+      attempt_count: inv.attempt_count ?? 0,
+      failure_reason:
+        status === "failed"
+          ? ((inv as unknown as { last_finalization_error?: { message?: string } })
+              .last_finalization_error?.message ?? "Payment failed")
+          : null,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "stripe_invoice_id" },
+  );
+
+  if (error) console.error("[stripe/webhook] invoice upsert failed", error);
+}
+
+/** Mark the originating invoice refunded when a charge is refunded. */
+async function syncRefund(charge: Stripe.Charge) {
+  if (!charge.refunded && (charge.amount_refunded ?? 0) === 0) return;
+
+  const { error } = await supabaseAdmin
+    .from("invoices")
+    .update({
+      status: "refunded",
+      updated_at: new Date().toISOString(),
+    })
+    .eq("stripe_charge_id", charge.id);
+
+  if (error) console.error("[stripe/webhook] refund sync failed", error);
+}
+
 export async function POST(req: NextRequest) {
   const signature = req.headers.get("stripe-signature");
   if (!signature || !process.env.STRIPE_WEBHOOK_SECRET) {
@@ -101,6 +292,10 @@ export async function POST(req: NextRequest) {
             sub.metadata = { ...sub.metadata, userId: session.client_reference_id };
           }
           await syncSubscription(sub);
+        } else if (session.mode === "payment" && session.metadata?.kind === "credit_topup") {
+          // One-off £1.50 AI credit. No subscription is involved, so this grants
+          // an allowance row rather than changing the plan.
+          await grantTopUpCredit(session);
         }
         break;
       }
@@ -110,6 +305,34 @@ export async function POST(req: NextRequest) {
         await syncSubscription(event.data.object as Stripe.Subscription);
         break;
       }
+
+      // ── Invoice mirroring ──────────────────────────────────────────────
+      // Access is never granted or revoked here — that stays with
+      // syncSubscription above. These only keep the local invoice list and the
+      // "failed payments" queue in step with Stripe.
+      case "invoice.created":
+      case "invoice.finalized": {
+        await syncInvoice(event.data.object as Stripe.Invoice, "sent");
+        break;
+      }
+      case "invoice.paid":
+      case "invoice.payment_succeeded": {
+        await syncInvoice(event.data.object as Stripe.Invoice, "paid");
+        break;
+      }
+      case "invoice.payment_failed": {
+        await syncInvoice(event.data.object as Stripe.Invoice, "failed");
+        break;
+      }
+      case "invoice.voided": {
+        await syncInvoice(event.data.object as Stripe.Invoice, "void");
+        break;
+      }
+      case "charge.refunded": {
+        await syncRefund(event.data.object as Stripe.Charge);
+        break;
+      }
+
       default:
         // Ignore the many event types we don't act on.
         break;

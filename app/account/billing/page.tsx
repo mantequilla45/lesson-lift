@@ -3,27 +3,41 @@ import { ArrowLeft } from "lucide-react";
 import { createClient } from "@/app/lib/auth/server";
 import { asPlanId, PLANS } from "@/app/lib/plans";
 import ManageButton from "./ManageButton";
+import AllowanceMeter from "./AllowanceMeter";
 
-// Billing dashboard: shows the signed-in user's current plan and (for paying
-// subscribers) a button into the Stripe portal to update or cancel. The proxy
-// guarantees a session by the time this renders.
+// Billing dashboard: shows the signed-in user's current plan, where they stand
+// against this month's allowance, and (for paying subscribers) a button into the
+// Stripe portal to update or cancel. The proxy guarantees a session by the time
+// this renders.
 export default async function BillingPage({
   searchParams,
 }: {
-  searchParams: Promise<{ checkout?: string }>;
+  searchParams: Promise<{ checkout?: string; topup?: string }>;
 }) {
-  const { checkout } = await searchParams;
+  const { checkout, topup } = await searchParams;
   const supabase = await createClient();
 
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("plan, subscription_status, current_period_end, stripe_customer_id")
-    .eq("id", user?.id ?? "")
-    .maybeSingle();
+  const [{ data: profile }, { data: usedMonth }, { data: usedToday }, { data: spend }] =
+    await Promise.all([
+      supabase
+        .from("profiles")
+        .select("plan, subscription_status, current_period_end, stripe_customer_id")
+        .eq("id", user?.id ?? "")
+        .maybeSingle(),
+      supabase.rpc("my_generation_count_this_month"),
+      supabase.rpc("my_generation_count_today"),
+      supabase.rpc("monthly_ai_spend", { uid: user?.id ?? "" }),
+    ]);
+
+  // monthly_ai_spend returns one row; supabase-js hands back an array.
+  const spendRow = (Array.isArray(spend) ? spend[0] : spend) as
+    | { spend_pence: number | string; credit_pence: number | string }
+    | null
+    | undefined;
 
   const plan = asPlanId(profile?.plan);
   const planName = PLANS[plan].name;
@@ -56,13 +70,35 @@ export default async function BillingPage({
           Manage your Jooma subscription.
         </p>
 
-        {checkout === "success" && (
+        {/* The plan is granted by the Stripe webhook, which lands a moment after
+            this redirect — so `plan` here is usually still the OLD one. Naming
+            it would congratulate the user on the plan they just paid to leave.
+            Report only what we know: the payment went through. */}
+        {checkout === "success" && plan === "free" && (
+          <div
+            className="rounded-xl px-4 py-3 mb-5 text-sm font-medium"
+            style={{ backgroundColor: "#FDF0D5", color: "#8a6d1f" }}
+          >
+            Payment received — activating your plan. This usually takes a few
+            seconds; refresh the page to check.
+          </div>
+        )}
+
+        {checkout === "success" && plan !== "free" && (
           <div
             className="rounded-xl px-4 py-3 mb-5 text-sm font-medium"
             style={{ backgroundColor: "#DDF0E2", color: "#1f6b3b" }}
           >
-            Payment received — welcome to {PLANS.pro.name}! Your plan may take a
-            few seconds to activate.
+            Payment received — welcome to {planName}!
+          </div>
+        )}
+
+        {topup === "success" && (
+          <div
+            className="rounded-xl px-4 py-3 mb-5 text-sm font-medium"
+            style={{ backgroundColor: "#DDF0E2", color: "#1f6b3b" }}
+          >
+            Payment received — £1.50 of AI credit has been added to this month.
           </div>
         )}
 
@@ -107,6 +143,15 @@ export default async function BillingPage({
             </Link>
           )}
         </div>
+
+        <AllowanceMeter
+          plan={plan}
+          usedToday={typeof usedToday === "number" ? usedToday : 0}
+          usedMonth={typeof usedMonth === "number" ? usedMonth : 0}
+          spendPence={Number(spendRow?.spend_pence ?? 0)}
+          creditPence={Number(spendRow?.credit_pence ?? 0)}
+          justToppedUp={topup === "success"}
+        />
       </div>
     </div>
   );

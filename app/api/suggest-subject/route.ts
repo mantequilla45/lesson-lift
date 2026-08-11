@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
         },
       },
     });
-    void recordUsage("suggest-subject", "gpt-4o-mini", completion.usage);
+    await recordUsage("suggest-subject", "gpt-4o-mini", completion.usage);
 
     const content = completion.choices[0]?.message?.content;
     if (!content) return NextResponse.json(empty);

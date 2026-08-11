@@ -9,7 +9,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getOpenAI } from "@/app/lib/openai";
 import { supabase } from "@/app/lib/supabase";
-import { recordUsage, recordAssetCost, type Usage } from "@/app/lib/usage";
+import { recordUsage, recordAssetCost, costUsd, type Usage } from "@/app/lib/usage";
+
+/** tts-1 is billed per character, not per token, so it has no entry in the
+ *  shared PRICING table. https://openai.com/api/pricing */
+const TTS_USD_PER_1M_CHARS = 15.0;
 
 export const maxDuration = 120;
 
@@ -239,14 +243,13 @@ The "script" must be plain spoken text only — no stage directions, sound effec
   }
   const { data: pub } = supabase.storage.from("audio").getPublicUrl(filename);
 
-  // Cost: gpt-4o script tokens + tts-1 characters. Pricing (USD):
-  // gpt-4o $2.5/1M in, $10/1M out · tts-1 $15/1M chars.
-  const scriptCost = scriptUsage
-    ? (scriptUsage.prompt_tokens / 1_000_000) * 2.5 +
-      (scriptUsage.completion_tokens / 1_000_000) * 10.0
-    : 0;
-  const ttsCost = (script.length / 1_000_000) * 15.0;
-  const costUsd = scriptCost + ttsCost;
+  // Cost: gpt-4o script tokens + tts-1 characters. The token half is priced
+  // through the shared table in lib/usage.ts so it can't drift from what
+  // recordUsage() writes (and so cached prompt tokens get their discount);
+  // tts-1 is per-character at $15/1M and has no shared table.
+  const scriptCost = scriptUsage ? costUsd("gpt-4o-2024-08-06", scriptUsage) : 0;
+  const ttsCost = (script.length / 1_000_000) * TTS_USD_PER_1M_CHARS;
+  const totalCostUsd = scriptCost + ttsCost;
 
   // Report telemetry: the script-writing call is token-billed (token_usage); the
   // tts-1 narration is per-character (asset_cost). When invoked by the slideshow
@@ -256,7 +259,9 @@ The "script" must be plain spoken text only — no stage directions, sound effec
   // the mp3 is already uploaded by this point.
   const parentTool = (body as { parentTool?: string }).parentTool;
   const audioSlug = parentTool ?? "generate-audio";
-  void Promise.allSettled([
+  // Awaited: see the note in find-youtube. A frozen instance suspends an
+  // in-flight write until its socket is dead, and these feed the spend ceiling.
+  await Promise.allSettled([
     recordUsage(audioSlug, "gpt-4o-2024-08-06", scriptUsage, parentTool ? "Audio script" : null),
     recordAssetCost(audioSlug, "audio", script.length, ttsCost, parentTool ? "Audio speech" : null),
   ]);
@@ -268,6 +273,8 @@ The "script" must be plain spoken text only — no stage directions, sound effec
     transcript: script,
     questions,
     answers,
-    costUsd,
+    // Field name is part of this route's contract — generate-slideshow reads it
+    // to fold audio into the deck total.
+    costUsd: totalCostUsd,
   });
 }

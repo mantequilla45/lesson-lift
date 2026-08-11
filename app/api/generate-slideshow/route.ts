@@ -4,7 +4,12 @@ import { getOpenAI } from "@/app/lib/openai";
 import { renderSlide, type SlideSpec, type SlideLayout } from "@/app/lib/slideshow-layouts";
 import { getTheme, DEFAULT_ART_STYLE, type ArtStyleId } from "@/app/lib/slideshowThemes";
 import { generateAIImage, type ImageStyle, type AIImageOrientation } from "@/app/lib/ai-image";
-import { recordUsage, recordAssetCost, recordSlideCosts } from "@/app/lib/usage";
+import { recordUsage, recordAssetCost, recordSlideCosts, costUsd } from "@/app/lib/usage";
+import {
+  checkAllGates,
+  quotaBlockBody,
+  QUOTA_BLOCK_HEADERS,
+} from "@/app/lib/generation-guard";
 import type { SlideJSON } from "@/app/lib/presentations";
 
 export const maxDuration = 120; // AI image gen can push past the default
@@ -745,6 +750,19 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  // Same reason: the proxy can't gate this route, so the quota check happens
+  // here. It MUST stay before the SSE stream opens — once we start streaming we
+  // can no longer return a status code the client can act on. A deck is the
+  // most expensive thing the product makes, so leaving it ungated would let a
+  // capped account spend freely.
+  const quota = await checkAllGates(supabase, { countsAsGeneration: true });
+  if (quota) {
+    return NextResponse.json(quotaBlockBody(quota), {
+      status: 402,
+      headers: QUOTA_BLOCK_HEADERS,
+    });
+  }
+
   let body: RequestBody;
   try {
     body = await req.json();
@@ -1238,18 +1256,24 @@ export async function POST(req: NextRequest) {
             slideTitles: [...allAi.map((s) => s.title), ...extraTitles],
           });
         }
-        // gpt-4o-2024-08-06 pricing (USD per 1M tokens). UPDATE if OpenAI
-        // changes pricing: https://openai.com/api/pricing/
-        const GPT4O_INPUT_PER_1M = 2.5;   // $/1M prompt tokens
-        const GPT4O_OUTPUT_PER_1M = 10.0; // $/1M completion tokens
-        const textCostUsd = chatUsage
-          ? (chatUsage.prompt_tokens / 1_000_000) * GPT4O_INPUT_PER_1M +
-            (chatUsage.completion_tokens / 1_000_000) * GPT4O_OUTPUT_PER_1M
-          : 0;
+        // Priced through the shared table in lib/usage.ts rather than local
+        // constants, so this figure can't drift from what recordUsage() writes
+        // to token_usage — and so cached prompt tokens get their discount
+        // instead of being billed at the full input rate.
+        const textCostUsd = chatUsage ? costUsd("gpt-4o-2024-08-06", chatUsage) : 0;
         // Persist the exact text-call usage to the report table (images/audio are
         // priced per-unit, not per-token, so they're excluded here). Fire-and-
         // forget — recordUsage never throws and lots of work still follows.
-        void recordUsage("generate-slideshow", "gpt-4o-2024-08-06", chatUsage, "Deck text");
+        // user.id is passed explicitly: these writes happen inside the SSE
+        // stream, after the response was handed off, where the request's cookie
+        // context is gone and the user can no longer be resolved.
+        //
+        // Started here so it overlaps the image/audio work, but awaited before
+        // the stream closes (below) — this is the row the free-plan gate counts,
+        // so losing it means an uncounted generation.
+        const deckTextUsageTask = recordUsage(
+          "generate-slideshow", "gpt-4o-2024-08-06", chatUsage, "Deck text", user.id,
+        );
 
         // Local aliases to keep the audio/video code below readable.
         const parsed = { title: parser.title ?? body.topic, slides: allAi };
@@ -1260,6 +1284,13 @@ export async function POST(req: NextRequest) {
         // settles. It used to run dead last, so a stream cut during the long
         // image wait left the video stuck on its pending placeholder. Starting
         // it here makes it persist early. Awaited again before "complete".
+        // Folded into the deck total below. The YouTube query-refinement call
+        // records its own token_usage row (attributed to this tool with
+        // step='YouTube'), but the per-deck slide_cost rollup is assembled from
+        // these local variables — so without capturing it here, every deck with
+        // a video under-reported its own cost.
+        let youtubeCostUsd = 0;
+
         const videoTask: Promise<void> = (async () => {
           if (!(body.includeYouTube && videoIndex !== undefined)) return;
           try {
@@ -1286,8 +1317,9 @@ export async function POST(req: NextRequest) {
             if (ytRes.ok) {
               const yt: {
                 videoId: string; title: string; channel: string; description: string;
-                slideHeading?: string; slideSubtitle?: string;
+                slideHeading?: string; slideSubtitle?: string; costUsd?: number;
               } = await ytRes.json();
+              youtubeCostUsd = yt.costUsd ?? 0;
               send("video", {
                 index: videoIndex,
                 headingColor: theme.palette.headingColor ?? theme.palette.accent,
@@ -1423,34 +1455,49 @@ export async function POST(req: NextRequest) {
         // summary + "complete": the image jobs and the early-started video task.
         await Promise.allSettled(imageJobs);
         await videoTask;
+        // The deck-text usage row started back when the text call finished; make
+        // sure it has actually landed before we let the stream close.
+        await deckTextUsageTask;
 
         // Persist AI-image cost to the report, one row per slide so the report
         // can break the deck down per slide. (Audio is recorded by the
         // generate-audio route itself, so it's not double-counted here.)
-        for (const [slideTitle, v] of Object.entries(imageCostBySlide)) {
-          void recordAssetCost("generate-slideshow", "image", v.count, v.usd, "Images", slideTitle);
-        }
+        // Awaited (in parallel): all the deck's work has settled by this point,
+        // so the only thing left is closing the stream. If these stayed
+        // fire-and-forget the instance could be frozen the moment it closes,
+        // suspending the writes until their sockets died.
+        await Promise.allSettled(
+          Object.entries(imageCostBySlide).map(([slideTitle, v]) =>
+            recordAssetCost("generate-slideshow", "image", v.count, v.usd, "Images", slideTitle, user.id),
+          ),
+        );
 
         // Per-slideshow cost lens: one row per generated deck (its title + all-in
         // cost + the component breakdown) so the report can list each slideshow,
         // what it cost, and where that cost came from (text / images / audio).
         {
           const deckTitle = parsed.title?.trim() || body.topic?.trim() || "Untitled slideshow";
-          const deckTotal = textCostUsd + imageCost.usd + audioCostUsd;
+          // text + audio + youtube + Σimages — every component of the deck, so
+          // the stored total reconciles exactly with its own breakdown.
+          const deckTotal = textCostUsd + imageCost.usd + audioCostUsd + youtubeCostUsd;
           const imageRows = Object.entries(imageCostBySlide)
             .map(([label, v]) => ({ label, cost_usd: Number(v.usd.toFixed(6)), count: v.count }))
             .sort((a, b) => b.cost_usd - a.cost_usd);
-          void recordSlideCosts([
-            {
-              slideLabel: deckTitle,
-              costUsd: deckTotal,
-              breakdown: {
-                text: Number(textCostUsd.toFixed(6)),
-                audio: Number(audioCostUsd.toFixed(6)),
-                images: imageRows,
+          await recordSlideCosts(
+            [
+              {
+                slideLabel: deckTitle,
+                costUsd: deckTotal,
+                breakdown: {
+                  text: Number(textCostUsd.toFixed(6)),
+                  audio: Number(audioCostUsd.toFixed(6)),
+                  youtube: Number(youtubeCostUsd.toFixed(6)),
+                  images: imageRows,
+                },
               },
-            },
-          ]);
+            ],
+            user.id,
+          );
         }
 
         // ── Full cost summary ─────────────────────────────────────────────
@@ -1461,7 +1508,7 @@ export async function POST(req: NextRequest) {
           const modelBreakdown = Object.entries(imageCost.byModel)
             .map(([k, n]) => `${n}×${k}`)
             .join(", ");
-          const total = textCostUsd + imageCost.usd + audioCostUsd;
+          const total = textCostUsd + imageCost.usd + audioCostUsd + youtubeCostUsd;
           console.log(
             `[generate-slideshow] COST topic="${body.topic}" | ` +
             (chatUsage
@@ -1469,6 +1516,7 @@ export async function POST(req: NextRequest) {
               : `gpt-4o usage n/a | `) +
             `images ${imageCost.count} (~$${imageCost.usd.toFixed(4)} est${modelBreakdown ? `: ${modelBreakdown}` : ""}) | ` +
             `audio $${audioCostUsd.toFixed(4)} | ` +
+            `youtube $${youtubeCostUsd.toFixed(4)} | ` +
             `TOTAL ~$${total.toFixed(4)}`,
           );
         }

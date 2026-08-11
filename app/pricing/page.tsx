@@ -6,51 +6,39 @@ import { useState } from "react";
 import { ArrowLeft } from "lucide-react";
 import { PLANS } from "@/app/lib/plans";
 
-const MONTHLY_PRO = PLANS.pro.priceMonthly ?? 149;
-const YEARLY_PRO = PLANS.pro.priceYearlyPerMonth ?? 119;
+const MONTHLY_PRO = PLANS.pro.priceMonthly ?? 7.99;
 
 const FREE_FEATURES = [
-  "5 AI generations per month",
+  "1 generation a day, 5 a month",
   "Basic lesson format",
   "Limited curriculum alignment",
   "Watermarked export",
 ];
 
+// NB: "unlimited" would be a promise we don't keep — Pro carries a monthly
+// fair-use allowance and blocks (with a top-up offer) when it runs out.
 const PRO_FEATURES = [
-  "Unlimited AI generations",
+  "Generate as you need, fair use",
+  "Top up any time if you run out",
   "Full curriculum alignment",
-  "Limited curriculum alignment",
   "Editable outputs",
   "PDF & DOC export",
   "Save library",
   "Priority support",
 ];
 
-const SCHOOL_FEATURES = [
-  "Multi-user accounts",
-  "Shared resource library",
-  "Admin dashboard",
-  "Usage analytics",
-  "School branding",
-  "Central billing",
-];
-
 export default function PricingPage() {
   const router = useRouter();
-  const [yearly, setYearly] = useState(true);
   const [upgrading, setUpgrading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const proPrice = yearly ? YEARLY_PRO : MONTHLY_PRO;
 
   async function handleUpgrade() {
     setUpgrading(true);
     setError(null);
     try {
-      const res = await fetch("/api/stripe/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ interval: yearly ? "yearly" : "monthly" }),
-      });
+      // Billing is monthly-only, and the route sells exactly one thing, so the
+      // request needs no body.
+      const res = await fetch("/api/stripe/checkout", { method: "POST" });
       if (res.status === 401) {
         router.push("/login?next=/pricing");
         return;
@@ -70,7 +58,7 @@ export default function PricingPage() {
 
   return (
     <div className="min-h-screen flex flex-col justify-center py-8 px-4" style={{ backgroundColor: "#F1EFE3" }}>
-      <div className="max-w-5xl mx-auto w-full">
+      <div className="max-w-6xl mx-auto w-full">
 
         {/* Brand wordmark */}
         <p className="text-center text-xl font-semibold mb-4" style={{ color: "#a8a39a" }}>
@@ -88,37 +76,8 @@ export default function PricingPage() {
           </p>
         </div>
 
-        {/* Toggle */}
-        <div className="flex justify-center mb-6">
-          <div
-            className="flex items-center gap-1 p-1 rounded-full"
-            style={{ backgroundColor: "#E8E5D8" }}
-          >
-            <button
-              onClick={() => setYearly(false)}
-              className="px-5 py-1.5 rounded-full text-sm font-medium transition-all"
-              style={{
-                backgroundColor: !yearly ? "#1a1a1a" : "transparent",
-                color: !yearly ? "#fff" : "#6b6055",
-              }}
-            >
-              Monthly
-            </button>
-            <button
-              onClick={() => setYearly(true)}
-              className="px-5 py-1.5 rounded-full text-sm font-medium transition-all"
-              style={{
-                backgroundColor: yearly ? "#1a1a1a" : "transparent",
-                color: yearly ? "#fff" : "#6b6055",
-              }}
-            >
-              Yearly -20%
-            </button>
-          </div>
-        </div>
-
         {/* Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-3xl mx-auto">
 
           {/* Free */}
           <PlanCard
@@ -144,11 +103,11 @@ export default function PricingPage() {
             badge="Pro Teacher"
             badgeBg="#FAD4C8"
             badgeInk="#c25034"
-            price={`£${proPrice}`}
+            price={`£${MONTHLY_PRO}`}
             priceSuffix="/month"
             cardBg="#FDE8E1"
             cardBorder="#F7D3C7"
-            cta={upgrading ? "Starting checkout…" : "Unlock Unlimited"}
+            cta={upgrading ? "Starting checkout…" : "Go Pro"}
             onCtaClick={handleUpgrade}
             ctaDisabled={upgrading}
             ctaBg="#E0463F"
@@ -159,30 +118,25 @@ export default function PricingPage() {
             bulletInk="#3a1a10"
           />
 
-          {/* School */}
-          <PlanCard
-            badge="School Plan"
-            badgeBg="#D2D9F7"
-            badgeInk="#3a50b8"
-            price="Custom pricing"
-            cardBg="#E5E9FB"
-            cardBorder="#C8D0F5"
-            cta="Contact Sales"
-            ctaHref="mailto:sales@jooma.ai"
-            ctaBg="#3B6FF5"
-            ctaInk="#fff"
-            features={SCHOOL_FEATURES}
-            featureInk="#1a2050"
-            includesInk="#1a1a1a"
-            bulletInk="#1a2050"
-          />
-
         </div>
 
         {/* Checkout error */}
         {error && (
           <p className="text-center text-sm mt-4" style={{ color: "#c2342b" }}>{error}</p>
         )}
+
+        {/* Schools are sold hands-on, not self-serve. */}
+        <p className="text-center text-sm mt-6" style={{ color: "#8a8078" }}>
+          Running a whole school?{" "}
+          <a
+            href="mailto:sales@jooma.ai"
+            className="font-semibold underline transition-opacity hover:opacity-70"
+            style={{ color: "#1a1a1a" }}
+          >
+            Talk to us
+          </a>{" "}
+          about school pricing.
+        </p>
 
         {/* Back */}
         <div className="flex justify-center mt-6">

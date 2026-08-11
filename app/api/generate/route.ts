@@ -61,7 +61,7 @@ ${ownText}`;
     ],
     stream: false,
   });
-  void recordUsage("generate", "gpt-4o", response.usage);
+  await recordUsage("generate", "gpt-4o", response.usage);
   const output = response.choices[0].message.content ?? "";
 
   return NextResponse.json({ output });

@@ -76,7 +76,7 @@ Keep it concise — this gets pasted into a slideshow generator as additional co
       ],
       response_format: { type: "json_schema", json_schema: outlineSchema },
     });
-    void recordUsage("generate-lesson-outline", "gpt-4o-2024-08-06", completion.usage);
+    await recordUsage("generate-lesson-outline", "gpt-4o-2024-08-06", completion.usage);
     const content = completion.choices[0]?.message?.content;
     if (!content) return NextResponse.json({ error: "Empty AI response" }, { status: 500 });
     const parsed: { outline: string } = JSON.parse(content);
