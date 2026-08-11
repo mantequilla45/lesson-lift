@@ -3,11 +3,14 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { FcGoogle } from "react-icons/fc";
 import { MdLock } from "react-icons/md";
 import { Eye, EyeOff } from "lucide-react";
 import { createClient } from "@/app/lib/auth/client";
+
+const SUSPENDED_MESSAGE =
+  "This account has been suspended. If you think that's a mistake, contact support and we'll take another look.";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -17,6 +20,20 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const canSubmit = email.trim().length > 0 && password.length > 0 && !loading;
+
+  // Google sign-in leaves the page entirely, so a suspended account can only be
+  // detected in /auth/callback — which redirects back here with ?error=. Without
+  // this the user lands on a blank login form with no idea why they bounced.
+  //
+  // Read from window rather than useSearchParams(): this page is otherwise
+  // fully static, and that hook forces a client-side bailout that needs a
+  // Suspense boundary around the whole form. One value on mount doesn't warrant
+  // it.
+  useEffect(() => {
+    const code = new URLSearchParams(window.location.search).get("error");
+    if (code === "suspended") setError(SUSPENDED_MESSAGE);
+    else if (code === "auth") setError("Could not sign you in. Please try again.");
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,7 +46,11 @@ export default function LoginPage() {
       password,
     });
     if (error) {
-      setError("Incorrect email or password.");
+      // A suspended account has to say so. Reporting "incorrect email or
+      // password" — which is what every failure used to say — sends someone
+      // whose credentials are perfectly correct into retrying them forever,
+      // and then to support to ask why their password stopped working.
+      setError(error.code === "user_banned" ? SUSPENDED_MESSAGE : "Incorrect email or password.");
       setLoading(false);
       return;
     }
@@ -140,9 +161,29 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              {error && (
-                <p className="mt-3 text-sm text-red-600 font-light">{error}</p>
-              )}
+              {error &&
+                (error === SUSPENDED_MESSAGE ? (
+                  // A suspension is not a typo — it's an account state the
+                  // teacher can do nothing about by retrying, so it gets a
+                  // banner rather than the same one-line hint as a wrong
+                  // password.
+                  <div
+                    role="alert"
+                    className="mt-4 rounded-xl border px-4 py-3"
+                    style={{ backgroundColor: "#FBECEB", borderColor: "#EDD3D1" }}
+                  >
+                    <p className="text-sm font-semibold" style={{ color: "#B3261E" }}>
+                      Account suspended
+                    </p>
+                    <p className="mt-0.5 text-sm font-light" style={{ color: "#8A3B34" }}>
+                      {error}
+                    </p>
+                  </div>
+                ) : (
+                  <p className="mt-3 text-sm text-red-600 font-light" role="alert">
+                    {error}
+                  </p>
+                ))}
 
               <div className="mt-8 flex justify-center">
                 <button
