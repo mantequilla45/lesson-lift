@@ -2851,10 +2851,41 @@ export default function Editor({ presentation, generationParams }: Props) {
 
     // One id for this generation, minted before the request so the same value
     // can be stamped on every cost row the server writes AND on the tool_runs
-    // row written below when the stream completes. That shared key is what lets
-    // the admin console total a deck exactly rather than inferring it from
-    // timestamps — which cannot separate two decks generated back to back.
+    // row recorded below. That shared key is what lets the admin console total
+    // a deck exactly rather than inferring it from timestamps — which cannot
+    // separate two decks generated back to back.
     const runId = crypto.randomUUID();
+
+    // Guards against double-recording: the run is logged either when the
+    // stream completes or when the user leaves mid-generation, whichever
+    // happens first, and never twice.
+    let runRecorded = false;
+
+    const recordRun = () => {
+      if (runRecorded) return;
+      runRecorded = true;
+      void saveToolRun({
+        toolSlug: "generate-slideshow",
+        title: titleRef.current || "Untitled deck",
+        input: {
+          presentationId: presentation.id,
+          slideCount: slidesRef.current.length,
+          ...generationParams,
+        },
+        output: `Generated a ${slidesRef.current.length}-slide deck.`,
+        // Same id the server stamped on this deck's cost rows.
+        runId,
+      }).catch((err: { code?: string }) => {
+        // 23505 = the unique index on run_id rejected a second insert for this
+        // generation. Expected: the in-memory guard above only holds within one
+        // mount, so a remount (navigating back, fast refresh, a second tab) can
+        // try again. The DB is the real guard; this is a no-op, not a failure.
+        if (err?.code === "23505") return;
+        // Anything else is worth seeing — a run that never lands is exactly the
+        // bug this whole mechanism exists to fix.
+        console.warn("[editor] could not record deck as a tool run:", err);
+      });
+    };
 
     (async () => {
       try {
@@ -3461,33 +3492,15 @@ export default function Editor({ presentation, generationParams }: Props) {
               // Decks are the most expensive thing the product does — more AI
               // spend than every text tool combined — but they used to write
               // only to `presentations`, never to `tool_runs`. That made them
-              // invisible in the teacher's activity log and, worse, left their
+              // invisible in the teacher's activity log and left their
               // token_usage/asset_cost rows with no run to attribute to: the
               // admin console showed the money but could not say which deck
               // spent it.
               //
-              // Fired on `complete` rather than at request time so a stream
-              // that fails half-way doesn't log a deck the teacher never got.
               // The output is deliberately a summary, not the slide JSON: a
               // full deck with inline media is megabytes, and nothing reads
               // this back — the deck itself lives in `presentations`.
-              void saveToolRun({
-                toolSlug: "generate-slideshow",
-                title: titleRef.current || "Untitled deck",
-                input: {
-                  presentationId: presentation.id,
-                  slideCount: slidesRef.current.length,
-                  ...generationParams,
-                },
-                output: `Generated a ${slidesRef.current.length}-slide deck.`,
-                // Same id the server stamped on this deck's cost rows.
-                runId,
-              }).catch((err) => {
-                // Non-fatal: the deck is saved and the spend is already
-                // recorded server-side. Log loudly rather than silently, since
-                // a run that never lands is exactly the bug this fixes.
-                console.warn("[editor] could not record deck as a tool run:", err);
-              });
+              recordRun();
             } else if (eventName === "error") {
               const p = payload as { message?: string };
               console.error("Stream error:", p.message);
@@ -3509,6 +3522,16 @@ export default function Editor({ presentation, generationParams }: Props) {
       cancelled = true;
       if (reveal.timer) clearTimeout(reveal.timer);
       controller.abort();
+      // Leaving mid-generation still spent the money — the server keeps
+      // streaming and keeps billing whether or not anyone is watching — so the
+      // run has to be recorded here too. Starting a second deck before the
+      // first finished unmounts this editor and aborts the stream, so
+      // "complete" never arrives; without this, that deck's cost rows would be
+      // orphaned and it would vanish from the activity log entirely.
+      //
+      // Guarded by runRecorded, so a deck that DID complete isn't logged twice
+      // when its editor later unmounts.
+      if (slidesRef.current.length > 0) recordRun();
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [generationParams]);
