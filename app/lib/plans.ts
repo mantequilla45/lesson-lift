@@ -203,6 +203,22 @@ export const PLANS: Record<PlanId, Plan> = {
 
 export const DEFAULT_PLAN: PlanId = "free";
 
+/**
+ * The plans an admin may actually put someone on, in display order.
+ *
+ * Excludes `max` (withdrawn from sale — no Stripe price exists) and `school`
+ * (not built — no seats, no pooled allowances, no central billing). Offering
+ * either in a dropdown would let an admin move a teacher onto a plan that
+ * cannot be billed and, for `school`, does not function.
+ *
+ * Both plans stay fully defined in PLANS: an account already holding one still
+ * resolves real limits and still renders the right badge. This is a
+ * presentation filter, not a removal.
+ */
+export const SELECTABLE_PLANS: Plan[] = Object.values(PLANS).filter(
+  (p) => !p.retired && !p.hidden,
+);
+
 // ── AI spend ceiling ─────────────────────────────────────────────────────────
 /**
  * Monthly ceiling on MEASURED provider AI spend, in pence. `null` = no ceiling.

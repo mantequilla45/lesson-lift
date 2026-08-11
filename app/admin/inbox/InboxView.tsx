@@ -80,14 +80,22 @@ export default function InboxView({
   canned,
   summary,
   currentUserId,
+  initialOpenId = null,
 }: {
   initialThreads: ThreadRow[];
   canned: CannedReply[];
   summary: SupportSummary | null;
   currentUserId: string;
+  /** Thread to open on mount, from ?thread= — used by the Teachers drawer's
+   *  "Open inbox". Falls back to the newest thread when absent or unknown. */
+  initialOpenId?: string | null;
 }) {
   const [threads, setThreads] = useState(initialThreads);
-  const [openId, setOpenId] = useState<string | null>(initialThreads[0]?.id ?? null);
+  const [openId, setOpenId] = useState<string | null>(
+    (initialOpenId && initialThreads.some((t) => t.id === initialOpenId) ? initialOpenId : null) ??
+      initialThreads[0]?.id ??
+      null,
+  );
   const [messages, setMessages] = useState<MessageRow[]>([]);
   const [allowance, setAllowance] = useState<Allowance | null>(null);
   const [context, setContext] = useState<TeacherContext | null>(null);

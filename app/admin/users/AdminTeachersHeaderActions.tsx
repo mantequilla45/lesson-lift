@@ -1,41 +1,21 @@
 "use client";
 
 import { useState } from "react";
-import { Download, UserPlus, Plus } from "lucide-react";
+import { UserPlus, Plus } from "lucide-react";
 import AddTeacherModal from "./AddTeacherModal";
 import InviteTeachersModal from "./InviteTeachersModal";
 
-// Export still needs backend work that doesn't exist yet (a CSV export
-// endpoint), so it stays an honest stub — clicking says so rather than
-// pretending to work. Add teacher and Invite teachers both open real modals;
-// see AddTeacherModal / InviteTeachersModal for why their submits are (or
-// aren't) wired up yet.
-const NOTES: Record<string, string> = {
-  export: "CSV export isn't wired up yet.",
-};
+// Export used to live here as a stub. It now sits in the table's own filter
+// bar instead: the filter state lives there, so the button can export exactly
+// the rows on screen rather than needing that state plumbed up to the header.
 
 export default function AdminTeachersHeaderActions() {
-  const [note, setNote] = useState<string | null>(null);
   const [showAdd, setShowAdd] = useState(false);
   const [showInvite, setShowInvite] = useState(false);
-
-  const fire = (key: keyof typeof NOTES) => {
-    setNote(NOTES[key]);
-    window.setTimeout(() => setNote((n) => (n === NOTES[key] ? null : n)), 3000);
-  };
 
   return (
     <div className="flex flex-col items-end gap-2">
       <div className="flex flex-wrap gap-2">
-        <button
-          type="button"
-          onClick={() => fire("export")}
-          className="inline-flex items-center gap-1.5 text-sm font-semibold rounded-xl border px-4 py-2 transition-colors hover:bg-black/5"
-          style={{ borderColor: "#DAD8D0", color: "#1a1a1a" }}
-        >
-          <Download className="w-4 h-4" />
-          Export
-        </button>
         <button
           type="button"
           onClick={() => setShowInvite(true)}
@@ -55,11 +35,6 @@ export default function AdminTeachersHeaderActions() {
           Add teacher
         </button>
       </div>
-      {note && (
-        <p className="text-xs" style={{ color: "#8a8078" }}>
-          {note}
-        </p>
-      )}
 
       {showAdd && <AddTeacherModal onClose={() => setShowAdd(false)} />}
       {showInvite && <InviteTeachersModal onClose={() => setShowInvite(false)} />}

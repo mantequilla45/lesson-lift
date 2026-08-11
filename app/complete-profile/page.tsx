@@ -60,6 +60,12 @@ export default function CompleteProfilePage() {
       setLoading(false);
       return;
     }
+    // An admin-invited teacher had their plan chosen before this row existed,
+    // so it was stashed on the auth user at invite time. Apply it here, on the
+    // insert, or they'd land on Free regardless of what the admin picked.
+    // Self-signups have no such metadata and fall through to the column default.
+    const invitedPlan = user.user_metadata?.invited_plan;
+
     const { error } = await supabase.from("profiles").upsert({
       id: user.id,
       first_name: firstName.trim(),
@@ -67,6 +73,7 @@ export default function CompleteProfilePage() {
       dial_code: dialCountry,
       phone: phone.trim(),
       country,
+      ...(invitedPlan === "pro" ? { plan: "pro" } : {}),
     });
     if (error) {
       setError("Could not save your profile. Please try again.");
