@@ -3,9 +3,10 @@ import { button, escapeHtml, DIVIDER, H1, P, SMALL, type RenderedEmail } from ".
 /**
  * Sent when an admin invites a teacher from the Teachers tab.
  *
- * The link is a one-time Supabase invite link (auth.admin.generateLink), so it
- * both proves the address and signs them in — they set a password on arrival
- * rather than being handed one in an email.
+ * The link carries an invite token to /signup, where they choose how to sign in
+ * — Google or a password. The token is matched to their address when they
+ * finish onboarding; it is not itself a sign-in, so it never grants access on
+ * its own.
  */
 export function teacherInviteTemplate(params: Record<string, string>): RenderedEmail {
   const inviteUrl = params.inviteUrl ?? "#";
@@ -20,16 +21,18 @@ export function teacherInviteTemplate(params: Record<string, string>): RenderedE
       lesson resources, quizzes and slide decks, generated in seconds and aligned
       to the curriculum.
     </p>
-    <p ${P}>Click below to set your password and finish setting up your account.</p>
+    <p ${P}>
+      Click below to set up your account. You can continue with Google or create a
+      password &mdash; whichever you prefer.
+    </p>
 
     ${button("Accept the invite", inviteUrl)}
 
     ${DIVIDER}
 
     <p ${SMALL}>
-      This link signs you in once and expires, so use it soon. If you weren&rsquo;t
-      expecting this invitation you can ignore this email &mdash; no account will
-      be set up until you follow the link.
+      This invitation expires in 7 days. If you weren&rsquo;t expecting it you can
+      ignore this email &mdash; no account will be set up until you follow the link.
     </p>
   `,
   };

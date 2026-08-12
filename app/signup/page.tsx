@@ -3,9 +3,10 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { FcGoogle } from "react-icons/fc";
 import { MdLock } from "react-icons/md";
+import { Mail } from "lucide-react";
 import { createClient } from "@/app/lib/auth/client";
 
 export default function SignupPage() {
@@ -13,7 +14,63 @@ export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [agreed, setAgreed] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const canSubmit = email.trim().length > 0 && agreed;
+  const [invite, setInvite] = useState<
+    { state: "none" } | { state: "loading" } | { state: "valid"; email: string } | { state: "invalid"; message: string }
+  >({ state: "none" });
+
+  // An admin-sent invite arrives as /signup?invite=<token>. It's stashed in
+  // sessionStorage rather than held in state because the page that needs it is
+  // /complete-profile, two navigations later — it hands the token to
+  // /api/invites/accept, which is the only place it's actually verified.
+  // Nothing here grants anything.
+  //
+  // Read from window rather than useSearchParams(): that hook forces a
+  // client-side bailout needing a Suspense boundary around the whole form, for
+  // a value this page only needs after mount. Same reasoning as the fragment
+  // read in app/login/page.tsx.
+  //
+  // An invited teacher must end up on the invited address — that's what
+  // /api/invites/accept matches on — so the field is prefilled and locked
+  // rather than left open for them to mistype a different one.
+  useEffect(() => {
+    const token = new URLSearchParams(window.location.search).get("invite");
+    if (!token) return;
+
+    let cancelled = false;
+
+    (async () => {
+      sessionStorage.setItem("jooma:invite-token", token);
+      setInvite({ state: "loading" });
+      const res = await fetch(`/api/invites/check?token=${encodeURIComponent(token)}`);
+      const json = await res.json().catch(() => ({}));
+      if (cancelled) return;
+
+      if (json?.valid) {
+        setInvite({ state: "valid", email: json.email });
+        setEmail(json.email);
+        return;
+      }
+      sessionStorage.removeItem("jooma:invite-token");
+      setInvite({
+        state: "invalid",
+        message:
+          json?.reason === "expired"
+            ? "That invitation has expired. Ask your administrator to send a new one."
+            : json?.reason === "accepted"
+            ? "That invitation has already been used. Try signing in instead."
+            : "That invitation link isn't valid. You can still sign up below.",
+      });
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+    // Mount only: the invite token comes from the URL, which can't change
+    // under this page.
+  }, []);
+
+  const emailLocked = invite.state === "valid";
+  const canSubmit = email.trim().length > 0 && agreed && invite.state !== "loading";
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,14 +119,57 @@ export default function SignupPage() {
 
             <div className="text-center mb-8">
               <h2 className="text-4xl font-medium leading-tight tracking-tight">
-                Save hours
-                <br />
-                of planning time
+                {invite.state === "valid" ? (
+                  <>
+                    You&rsquo;ve been
+                    <br />
+                    invited to Jooma
+                  </>
+                ) : (
+                  <>
+                    Save hours
+                    <br />
+                    of planning time
+                  </>
+                )}
               </h2>
               <p className="mt-3 text-sm text-muted font-light">
                 Create differentiated lessons instantly with AI.
               </p>
             </div>
+
+            {invite.state === "valid" && (
+              <div
+                className="mb-6 flex items-start gap-3 rounded-2xl border px-4 py-3"
+                style={{ backgroundColor: "#EEF4EC", borderColor: "#CFE0CA" }}
+              >
+                <Mail className="w-4 h-4 mt-0.5 shrink-0" style={{ color: "#3F6B37" }} />
+                <div>
+                  <p className="text-sm font-medium" style={{ color: "#2F5228" }}>
+                    Invitation for {invite.email}
+                  </p>
+                  <p className="mt-0.5 text-sm font-light" style={{ color: "#4A6B44" }}>
+                    Choose how you&rsquo;d like to sign in — continue with Google, or set a
+                    password below. Either way, use this address so we can match your
+                    invitation.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {invite.state === "invalid" && (
+              <div
+                className="mb-6 rounded-2xl border px-4 py-3"
+                style={{ backgroundColor: "#FBECEB", borderColor: "#EDD3D1" }}
+              >
+                <p className="text-sm font-semibold" style={{ color: "#B3261E" }}>
+                  Invitation problem
+                </p>
+                <p className="mt-0.5 text-sm font-light" style={{ color: "#8A3B34" }}>
+                  {invite.message}
+                </p>
+              </div>
+            )}
 
             <button
               type="button"
@@ -97,7 +197,14 @@ export default function SignupPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Enter your email"
-                  className="w-full px-4 py-3 border border-line rounded-xl bg-white text-sm  leading-tight tracking-tight font-medium placeholder-[#A5A5A5] focus:outline-none focus:border-dark transition-colors"
+                  // An invite is matched on the address it was sent to, so a
+                  // teacher who edits this here would only fail later, at
+                  // acceptance, with nothing to show for it.
+                  readOnly={emailLocked}
+                  aria-readonly={emailLocked}
+                  className={`w-full px-4 py-3 border border-line rounded-xl text-sm leading-tight tracking-tight font-medium placeholder-[#A5A5A5] focus:outline-none focus:border-dark transition-colors ${
+                    emailLocked ? "bg-[#F1EFE3] text-muted cursor-not-allowed" : "bg-white"
+                  }`}
                 />
               </div>
 

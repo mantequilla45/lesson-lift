@@ -12,6 +12,7 @@ export interface PendingInvite {
   email: string;
   invited_at: string;
   invited_plan: string | null;
+  expires_at: string;
 }
 
 /**
@@ -35,7 +36,7 @@ export default function PendingInvites({ invites }: { invites: PendingInvite[] }
     const res = await fetch("/api/admin/teachers/revoke-invite", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId: invite.id }),
+      body: JSON.stringify({ inviteId: invite.id }),
     });
     setRevoking(null);
     if (!res.ok) {
@@ -87,7 +88,15 @@ export default function PendingInvites({ invites }: { invites: PendingInvite[] }
                     {inv.invited_plan ?? "free"}
                   </td>
                   <td className="px-4 py-2.5 whitespace-nowrap" style={{ color: C.muted }}>
-                    Invited {fmtRelative(inv.invited_at)}
+                    {new Date(inv.expires_at).getTime() < Date.now() ? (
+                      // An expired link can't be accepted, so say so rather
+                      // than leaving the admin to wonder why nothing happened.
+                      <span style={{ color: C.danger }}>
+                        Expired — invited {fmtRelative(inv.invited_at)}
+                      </span>
+                    ) : (
+                      <>Invited {fmtRelative(inv.invited_at)}</>
+                    )}
                   </td>
                   <td className="px-4 py-2.5 text-right">
                     <button

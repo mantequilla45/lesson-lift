@@ -19,6 +19,12 @@ const PUBLIC_PATHS = [
   "/terms",
   "/privacy",
   "/pricing",
+  // An invited teacher has no account yet, so the invite lookup behind the
+  // /signup banner has to work while signed out. It only ever reveals the
+  // address a valid token was already emailed to, and grants nothing —
+  // /api/invites/accept does the granting, and that one requires a session
+  // and checks the address itself.
+  "/api/invites/check",
   // Stripe calls this server-to-server with no session; it verifies its own
   // signature, so it must bypass the auth redirect.
   "/api/stripe/webhook",

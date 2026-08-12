@@ -1,20 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdminRoute } from "@/app/lib/auth/admin-route";
-import { supabaseAdmin } from "@/app/lib/supabase-admin";
 import { sendTemplate, siteUrl } from "@/app/lib/email";
 import { SELECTABLE_PLANS } from "@/app/lib/plans";
+import { newInviteToken, hashInviteToken, inviteExpiry } from "@/app/lib/invites";
 
 // Invites teachers by email.
 //
-// Each invite is a Supabase invite link (generateLink) delivered through
-// SendGrid rather than Supabase's own mailer, so the copy lives in this repo
-// and bulk sends aren't subject to the auth mailer's rate limit. The link lands
-// on /auth/callback; since an invited user has no profiles row yet, that route
-// forwards them to /create-password and then /complete-profile.
+// An invite is a row in `pending_invites` plus an emailed link to
+// /signup?invite=<token>. The teacher then signs up normally — Google or email
+// — and /api/invites/accept matches, verifies and consumes the invite.
 //
-// Sequential, not Promise.all: 200 parallel calls would hit both Supabase's
-// admin API and SendGrid hard, and per-address results are more useful to the
-// admin than a single rejected promise.
+// This deliberately does NOT use auth.admin.generateLink, which the earlier
+// version did. That created the auth.users row up front, which broke the flow
+// twice over: the resulting user has no password, so /create-password's
+// signUp() failed with "already registered" and left the teacher stuck; and the
+// emailed verify link returns its session in the URL fragment, which never
+// reaches the server, so /auth/callback couldn't see it and bounced them to
+// /login with "Could not sign you in."
+//
+// Sequential, not Promise.all: 200 parallel calls would hit SendGrid hard, and
+// per-address results are more useful to the admin than a single rejected
+// promise.
 
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 const MAX_EMAILS = 200;
@@ -62,44 +68,58 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const redirectTo = `${siteUrl()}/auth/callback`;
   const results: Result[] = [];
 
-  for (const email of emails) {
-    const { data: link, error } = await supabaseAdmin.auth.admin.generateLink({
-      type: "invite",
-      email,
-      options: {
-        redirectTo,
-        // An invited user has no profiles row yet — that absence is what makes
-        // /auth/callback send them through onboarding — so the chosen plan has
-        // nowhere to live until they finish. Stash it on the auth user and let
-        // the profile pick it up when it's created.
-        data: { invited_plan: plan },
-      },
-    });
+  // Addresses that already belong to a fully onboarded teacher. One call for
+  // the whole batch rather than a lookup per address — see
+  // existing_member_emails() in 20260812000200_invite_tokens.sql.
+  //
+  // Inviting an existing member is reported as "exists" rather than sent: they
+  // have nothing to accept, and re-inviting would otherwise be a way to quietly
+  // change an established teacher's plan.
+  const { data: memberRows } = await gate.supabase.rpc("existing_member_emails", {
+    p_emails: emails,
+  });
+  const members = new Set(
+    (memberRows ?? []).map((r: { email: string }) => r.email.toLowerCase()),
+  );
 
-    if (error) {
-      // generateLink refuses an address that already has an auth user. That's
-      // the common "already invited / already a member" case, not a failure
-      // worth aborting the batch for.
-      const msg = error.message ?? "";
-      results.push(
-        /already|registered|exists/i.test(msg)
-          ? { email, status: "exists" }
-          : { email, status: "failed", error: msg || "Could not create the invite." },
-      );
+  for (const email of emails) {
+    if (members.has(email)) {
+      results.push({ email, status: "exists" });
       continue;
     }
 
-    const actionLink = link?.properties?.action_link;
-    if (!actionLink) {
-      results.push({ email, status: "failed", error: "No invite link was returned." });
+    const token = newInviteToken();
+
+    // Re-inviting an address replaces its open invite, so the newest link is
+    // the only one that works and an admin isn't blocked by a stale invite
+    // they've forgotten about. Delete-then-insert rather than upsert: the
+    // uniqueness is enforced by a PARTIAL index (lower(email) where accepted_at
+    // is null), which ON CONFLICT can't infer from a column name.
+    // One statement so the replace can't half-happen, and matched on
+    // lower(email) to mirror the partial unique index — a row stored with
+    // different casing would survive an exact-match delete and then collide on
+    // the insert. See upsert_invite() in 20260812000200_invite_tokens.sql.
+    //
+    // gate.supabase (the admin's own session), not supabaseAdmin: the function
+    // gates on is_admin(), which reads auth.uid() and is therefore false under
+    // the service-role key. requireAdminRoute above already proved the caller.
+    const { error } = await gate.supabase.rpc("upsert_invite", {
+      p_email: email,
+      p_plan: plan,
+      p_token_hash: hashInviteToken(token),
+      p_invited_by: gate.user.id,
+      p_expires_at: inviteExpiry(),
+    });
+
+    if (error) {
+      results.push({ email, status: "failed", error: "Could not create the invite." });
       continue;
     }
 
     const sent = await sendTemplate("teacher_invite", email, {
-      inviteUrl: actionLink,
+      inviteUrl: `${siteUrl()}/signup?invite=${encodeURIComponent(token)}`,
       inviterName: gate.user.email ?? "",
     });
 
