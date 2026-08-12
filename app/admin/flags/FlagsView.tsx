@@ -44,6 +44,10 @@ export interface FlagRow {
   reviewer: string | null;
   reviewed_at: string | null;
   created_at: string;
+  run_id: string | null;
+  /** Resolved from run_id when the teacher saved the generation; null if not. */
+  tool_run_id: string | null;
+  run_title: string | null;
 }
 
 export interface FlagSummary {
@@ -93,8 +97,39 @@ export default function FlagsView({
     <>
       <PageHead
         title="Safeguarding flags"
-        sub="Generations the filter caught. Schools will ask how you handle this — keep it clean and be able to show it."
+        sub="What teachers typed that looked like a pupil safeguarding disclosure. Review it, decide, and the decision is logged."
       />
+
+      {/* What this page is. Without this, the table is a list of accusations
+          with no stated basis — nobody can review a flag fairly if they don't
+          know what produced it. */}
+      <div className="mb-6 space-y-3">
+        <Note>
+          <b>What triggers a flag.</b> Jooma scans what a teacher <b>types into</b> a tool — not
+          what it generates — for language that looks like a real pupil safeguarding disclosure:
+          reported speech about self-harm, abuse or neglect, especially alongside a named child.
+          Writing a lesson, policy or assembly <i>about</i> those topics does not flag. A teacher
+          writing up what a child told them does.
+        </Note>
+        <Note>
+          <b>What the severities mean.</b>{" "}
+          <Tag tone="danger">high</Tag> looks like a genuine disclosure about an identifiable
+          child — review promptly. <Tag tone="warn">medium</Tag> is concerning language without a
+          clear disclosure shape. <Tag>low</Tag> is worth a glance; most of these turn out to be
+          legitimate curriculum work.
+        </Note>
+        <Note>
+          <b>What your decision does.</b> <b>Confirm</b> records that this was a genuine
+          safeguarding matter and that you saw it. <b>Clear</b> records it as a false positive.
+          Neither notifies the teacher, and both are written to the audit log with your name and
+          the time.
+        </Note>
+        <Note tone="warn">
+          <b>Nothing here blocked a generation.</b> This is a review trail, not a filter — the
+          teacher got their output either way. It covers the text tools; slideshow decks and
+          non-streaming tools are not scanned yet.
+        </Note>
+      </div>
 
       <div className="grid gap-3.5 mb-6 grid-cols-2 lg:grid-cols-4">
         <Stat
@@ -150,7 +185,7 @@ export default function FlagsView({
             title={rows.length === 0 ? "Nothing flagged" : "Nothing matches that"}
             body={
               rows.length === 0
-                ? "When the content filter catches a generation it appears here for review. An empty list is the healthy state — but it also means no filter has written to this table yet."
+                ? "Nothing a teacher has typed has looked like a pupil safeguarding disclosure. This is the healthy state, and the one you want to be able to show a school."
                 : "Try clearing a filter."
             }
           />
@@ -313,7 +348,7 @@ function ReviewModal({
       {flag.excerpt && (
         <Field
           label="Excerpt"
-          help="A short extract only — the full generation is never copied here."
+          help="A short extract of what the teacher typed, capped at 300 characters — the full prompt is never copied here."
         >
           <div
             className="rounded-lg border px-3 py-2 text-sm font-mono"
@@ -323,6 +358,21 @@ function ReviewModal({
           </div>
         </Field>
       )}
+
+      <Field label="The generation">
+        {flag.tool_run_id ? (
+          <p className="text-sm" style={{ color: C.ink }}>
+            Saved as{" "}
+            <span className="font-medium">{flag.run_title || "an untitled run"}</span> — open it
+            from the teacher&apos;s history to see the full context.
+          </p>
+        ) : (
+          <p className="text-sm" style={{ color: C.muted }}>
+            The teacher did not save this generation, so there is no output to open. The excerpt
+            above is what triggered the flag.
+          </p>
+        )}
+      </Field>
 
       <Field label="Review note" help="Recorded against the flag and in the audit log.">
         <textarea

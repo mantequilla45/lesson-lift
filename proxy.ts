@@ -5,8 +5,11 @@ import {
   isCostBearingRequest,
   checkAllGates,
   quotaBlockBody,
-  QUOTA_BLOCK_HEADERS,
+  quotaBlockHeaders,
+  quotaBlockStatus,
+  toolSlugFor,
 } from "@/app/lib/generation-guard";
+import { isToolEnabled } from "@/app/lib/tool-availability";
 
 // Routes reachable without a session. Everything else redirects to /login.
 const PUBLIC_PATHS = [
@@ -92,6 +95,39 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  // Tool availability. An admin turning a tool off in /admin/tools has to
+  // actually stop it — before this, tool_settings.enabled was written by the
+  // console and read by nothing.
+  //
+  // Checked here rather than in 35 route handlers so it cannot be forgotten
+  // when a tool is added, and so the page path and the API path (the one that
+  // spends money) are covered by the same code.
+  //
+  // Checked BEFORE the plan gates: there is no point spending a gate
+  // round-trip on a request that is about to be refused anyway.
+  //
+  // Fails OPEN, deliberately and for the same reason checkAllGates does — see
+  // the note in generation-guard.ts. isToolEnabled never throws; on any error
+  // it reports the tool as available.
+  //
+  // NOTE: 403, and without x-upgrade-required. An unavailable tool is not a
+  // quota problem, and UpgradeGate keys off 402 + that header — sending them
+  // here would offer an upgrade that fixes nothing.
+  if (user) {
+    const slug = toolSlugFor(request.method, pathname);
+    if (slug && !(await isToolEnabled(supabase, slug))) {
+      if (pathname.startsWith("/api/")) {
+        return NextResponse.json(
+          { error: "This tool is currently unavailable.", code: "tool_disabled" },
+          { status: 403 },
+        );
+      }
+      const url = request.nextUrl.clone();
+      url.pathname = "/tools";
+      return NextResponse.redirect(url);
+    }
+  }
+
   // Enforce the plan gates. Two things are checked here (see
   // generation-guard.ts): the Free daily/monthly generation caps, and the paid
   // plans' monthly AI-spend ceiling. The ceiling applies to sub-asset and
@@ -106,9 +142,11 @@ export async function proxy(request: NextRequest) {
       countsAsGeneration: isGenerationRequest(request.method, pathname),
     });
     if (quota) {
+      // Status and headers depend on WHY: 402 + x-upgrade-required for a quota
+      // that money fixes, 429 + Retry-After for a rate limit that time fixes.
       return NextResponse.json(quotaBlockBody(quota), {
-        status: 402,
-        headers: QUOTA_BLOCK_HEADERS,
+        status: quotaBlockStatus(quota),
+        headers: quotaBlockHeaders(quota),
       });
     }
   }

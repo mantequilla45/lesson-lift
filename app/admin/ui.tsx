@@ -10,7 +10,7 @@
 // hex, Tailwind for layout only. See the palette block below.
 
 import { useEffect, useRef, useState } from "react";
-import { X } from "lucide-react";
+import { ChevronDown, ChevronRight, X } from "lucide-react";
 import { nf } from "./format";
 
 // ── Palette ──────────────────────────────────────────────────────────────────
@@ -998,6 +998,68 @@ export function FilterBar({ children }: { children: React.ReactNode }) {
       style={{ borderColor: C.divider }}
     >
       {children}
+    </div>
+  );
+}
+
+// ── Collapsible section ──────────────────────────────────────────────────────
+/**
+ * A heading that hides a heavy section until it is asked for.
+ *
+ * Collapsed by default, deliberately: the point is that the page above it
+ * should be readable and decidable on its own. The "Every tool" table on
+ * /admin/usage is 35 rows of detail that answers a question you only ask after
+ * the summary has told you where to look — expanded by default it just pushed
+ * the summary off the screen.
+ *
+ * The chevron convention matches the per-row expansion in AdminUsageTable so
+ * the two read as the same gesture at different scales.
+ */
+export function Disclosure({
+  title,
+  sub,
+  count,
+  defaultOpen = false,
+  children,
+}: {
+  title: string;
+  sub?: string;
+  /** Shown beside the title so the section can be sized without opening it. */
+  count?: string;
+  defaultOpen?: boolean;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        className="flex items-start gap-2 text-left w-full"
+      >
+        <span className="mt-0.5 shrink-0" style={{ color: C.muted }}>
+          {open ? (
+            <ChevronDown className="w-4 h-4" />
+          ) : (
+            <ChevronRight className="w-4 h-4" />
+          )}
+        </span>
+        <span className="min-w-0">
+          <span className="flex items-center gap-2">
+            <span className="text-sm font-bold" style={{ color: C.ink }}>
+              {title}
+            </span>
+            {count && <Tag>{count}</Tag>}
+          </span>
+          {sub && (
+            <span className="block text-xs mt-0.5" style={{ color: C.muted }}>
+              {sub}
+            </span>
+          )}
+        </span>
+      </button>
+      {open && <div className="mt-3">{children}</div>}
     </div>
   );
 }

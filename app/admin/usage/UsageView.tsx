@@ -6,6 +6,7 @@ import { createClient } from "@/app/lib/auth/client";
 import { COST } from "@/app/lib/costs";
 import { marginTone } from "@/app/lib/costs";
 import { gbp, gbpFromUsd, nf, penceFromUsd } from "../format";
+import ModelRoutingCard, { type ModelRow } from "../ModelRoutingCard";
 import {
   BypassTag,
   C,
@@ -14,6 +15,7 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
+  Disclosure,
   EmptyState,
   Note,
   PageHead,
@@ -56,7 +58,10 @@ export interface MarginRow {
   email: string | null;
   plan: string;
   is_admin: boolean;
+  /** Plan price + top-ups bought this month. */
   revenue_gbp: number;
+  plan_revenue_gbp: number;
+  topup_revenue_gbp: number;
   cost_usd: number;
   ai_images: number;
   generations: number;
@@ -64,14 +69,7 @@ export interface MarginRow {
   margin_pct: number | null;
 }
 
-export interface ModelRow {
-  model: string;
-  runs: number;
-  total_tokens: number;
-  cost_usd: number;
-  cost_per_run: number;
-  tools: number;
-}
+export type { ModelRow };
 
 export interface FairUseRule {
   key: string;
@@ -89,6 +87,7 @@ export default function UsageView({
   models,
   fairUse,
   toolTable,
+  toolCount,
 }: {
   summary: UsageSummary | null;
   topTools: TopTool[];
@@ -97,6 +96,9 @@ export default function UsageView({
   fairUse: FairUseRule[];
   /** The full per-tool table, kept as the detail section beneath the summary. */
   toolTable: React.ReactNode;
+  /** Row count for the collapsed header, so the section can be sized without
+   *  rendering the table. */
+  toolCount: number;
 }) {
   const router = useRouter();
   const [toastNode, fire] = useToast();
@@ -117,6 +119,11 @@ export default function UsageView({
   ).length;
 
   const maxToolCost = Math.max(...topTools.map((t) => t.cost_usd), 0.0001);
+
+  // Drives the warning banner above. Defaults to on when the setting is absent:
+  // a missing row should not silently hide a margin problem.
+  const alertNegativeMargin =
+    fairUse.find((s) => s.key === "alert_negative_margin")?.value !== false;
 
   const saveSetting = async (key: string, value: boolean | number, label: string) => {
     const supabase = createClient();
@@ -171,6 +178,23 @@ export default function UsageView({
           }
         />
       </div>
+
+      {/* ── Negative-margin warning ──────────────────────────────────── */}
+      {/* Gated on the alert_negative_margin setting below, which is what makes
+          that toggle do something real. In-console only — there is no
+          scheduler, so nothing can email about this. */}
+      {alertNegativeMargin && underwater > 0 && (
+        <div className="mb-4">
+          <Note tone="danger">
+            <b>
+              {nf.format(underwater)} paying teacher{underwater === 1 ? "" : "s"} cost more than
+              they pay.
+            </b>{" "}
+            They are in <i>Thinnest margins</i> below. Offer a higher plan or an AI top-up —
+            leaving it alone is the one thing that reliably makes it worse.
+          </Note>
+        </div>
+      )}
 
       {/* ── The lever that matters ───────────────────────────────────── */}
       {imageShare > 25 ? (
@@ -321,8 +345,19 @@ export default function UsageView({
                       <Td>
                         <Tag tone={r.plan === "free" ? "plain" : "brand"}>{r.plan}</Tag>
                       </Td>
-                      <Td align="right" mono>
-                        {gbp(Number(r.revenue_gbp))}
+                      <Td align="right">
+                        <div className="tabular-nums" style={{ color: C.ink }}>
+                          {gbp(Number(r.revenue_gbp))}
+                        </div>
+                        {/* A top-up is revenue AND an allowance increase, so
+                            showing only the total would leave an unexplained
+                            figure that matches no price on the Plans page. */}
+                        {Number(r.topup_revenue_gbp) > 0 && (
+                          <div className="text-xs tabular-nums" style={{ color: C.ok }}>
+                            {gbp(Number(r.plan_revenue_gbp))} +{" "}
+                            {gbp(Number(r.topup_revenue_gbp))} top-up
+                          </div>
+                        )}
                       </Td>
                       <Td align="right" mono>
                         {gbpFromUsd(Number(r.cost_usd))}
@@ -344,68 +379,16 @@ export default function UsageView({
           )}
           <CardFooter>
             Anyone red should be offered a higher plan or an AI top-up, not left alone. Free
-            teachers show cost only — they are acquisition spend, not a margin problem.
+            teachers who have never paid show cost only — they are acquisition spend, not a
+            margin problem. A free teacher who has bought a top-up has real revenue and a real
+            margin, and appears here like anyone else.
           </CardFooter>
         </Card>
       </div>
 
       {/* ── Model routing ────────────────────────────────────────────── */}
       <div className="mt-3.5">
-        <Card>
-          <CardHeader>
-            <CardTitle>Model routing</CardTitle>
-            {models.length > 0 && (
-              <Tag tone="ai">
-                {models.length} model{models.length === 1 ? "" : "s"} in use
-              </Tag>
-            )}
-          </CardHeader>
-          {models.length === 0 ? (
-            <EmptyState title="No generations recorded this month" />
-          ) : (
-            <Table>
-              <thead>
-                <tr className="text-left">
-                  <Th>Model</Th>
-                  <Th align="right">Runs</Th>
-                  <Th align="right">Tokens</Th>
-                  <Th align="right">Cost / run</Th>
-                  <Th align="right">Cost this month</Th>
-                  <Th align="right">Tools</Th>
-                </tr>
-              </thead>
-              <tbody>
-                {models.map((m) => (
-                  <Tr key={m.model}>
-                    <Td>
-                      <Tag tone={m.model.includes("mini") ? "ok" : "plain"}>{m.model}</Tag>
-                    </Td>
-                    <Td align="right" mono>
-                      {nf.format(Number(m.runs))}
-                    </Td>
-                    <Td align="right" mono>
-                      {nf.format(Number(m.total_tokens))}
-                    </Td>
-                    <Td align="right" mono>
-                      {penceFromUsd(Number(m.cost_per_run))}
-                    </Td>
-                    <Td align="right" mono>
-                      {gbpFromUsd(Number(m.cost_usd))}
-                    </Td>
-                    <Td align="right" mono>
-                      {nf.format(Number(m.tools))}
-                    </Td>
-                  </Tr>
-                ))}
-              </tbody>
-            </Table>
-          )}
-          <CardFooter>
-            Routing is decided in each tool&apos;s API route, not here. Test quality on a
-            handful before switching anything — a cheaper lesson plan a teacher doesn&apos;t
-            trust costs far more than the saving.
-          </CardFooter>
-        </Card>
+        <ModelRoutingCard models={models} />
       </div>
 
       {/* ── Fair use ─────────────────────────────────────────────────── */}
@@ -452,23 +435,26 @@ export default function UsageView({
               })}
             </CardBody>
             <CardFooter>
-              These are recorded here but not yet enforced by the app — see issue #26.
+              Both of these are live. The rate limit is checked on every generation (0 means no
+              limit); the margin warning is the red banner at the top of this page. There is no
+              email alerting yet — nothing here will reach an inbox.
             </CardFooter>
           </Card>
         </div>
       )}
 
       {/* ── Full per-tool detail ─────────────────────────────────────── */}
+      {/* Collapsed by default. This is 35 rows of detail that answers a
+          question you only ask once the summary above has told you where to
+          look — expanded, it pushed that summary off the screen. */}
       <div className="mt-6">
-        <h2 className="text-sm font-bold mb-1" style={{ color: C.ink }}>
-          Every tool
-        </h2>
-        <p className="text-xs mb-3" style={{ color: C.muted }}>
-          All tools including unused ones, with per-generation cost and 10× / 100× volume
-          projections. Expand a row to see its step breakdown; use Select to reset a
-          tool&apos;s recorded usage.
-        </p>
-        {toolTable}
+        <Disclosure
+          title="Every tool"
+          count={`${nf.format(toolCount)} tools`}
+          sub="All tools including unused ones, with per-generation cost and 10× / 100× volume projections. Expand a row to see its step breakdown; use Select to reset a tool's recorded usage."
+        >
+          {toolTable}
+        </Disclosure>
       </div>
 
       {toastNode}

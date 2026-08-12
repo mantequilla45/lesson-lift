@@ -65,6 +65,51 @@ const GENERATION_PATHS: ReadonlySet<string> = new Set([
   "/api/worksheet-generator",
 ]);
 
+// Slug lists that must agree, checked where they are declared rather than in a
+// test suite the repo does not have a runner for.
+//
+// GENERATION_PATHS and the TOOLS catalogue drift silently and expensively: a
+// tool added to the grid but missing here is UNCAPPED, so a free account can
+// run it without limit. A tool here but missing from the grid is unreachable
+// but still burns quota (which is exactly what lesson-slideshow is).
+//
+// Dev-only and non-fatal: this warns while you are working, and never risks
+// taking production down over a naming mismatch.
+if (process.env.NODE_ENV !== "production") {
+  // Imported lazily so the catalogue is not pulled into the request path.
+  import("./tools")
+    .then(({ TOOLS }) => {
+      const catalogue = new Set(TOOLS.map((t) => t.href.replace("/tools/", "")));
+      const gated = new Set([...GENERATION_PATHS].map((p) => p.slice("/api/".length)));
+
+      // Known and deliberate: the Slideshow Generator's endpoint is
+      // /api/generate-slideshow, which is excluded as a sub-asset route and
+      // self-gates in its own handler instead.
+      const EXPECTED_UNGATED = new Set(["slideshow"]);
+
+      const uncapped = [...catalogue].filter(
+        (s) => !gated.has(s) && !EXPECTED_UNGATED.has(s),
+      );
+      const unlisted = [...gated].filter((s) => !catalogue.has(s));
+
+      if (uncapped.length) {
+        console.warn(
+          `[generation-guard] UNCAPPED: in the tool grid but not GENERATION_PATHS — ${uncapped.join(", ")}. ` +
+            "Free accounts can run these without limit.",
+        );
+      }
+      if (unlisted.length) {
+        console.warn(
+          `[generation-guard] unlisted: gated but absent from the tool grid — ${unlisted.join(", ")}. ` +
+            "Unreachable from the UI, but still spends money and burns quota.",
+        );
+      }
+    })
+    .catch(() => {
+      /* Diagnostic only — never let it break a request. */
+    });
+}
+
 /** True when this request is an AI generation subject to the Free count caps. */
 export function isGenerationRequest(method: string, pathname: string): boolean {
   return method === "POST" && GENERATION_PATHS.has(pathname);
@@ -97,20 +142,54 @@ export function isCostBearingRequest(method: string, pathname: string): boolean 
   );
 }
 
-export type QuotaBlockReason = "free_daily" | "free_monthly" | "credit_exhausted";
+/**
+ * The tool slug this request belongs to, or null if it isn't a tool request.
+ *
+ * Used to decide whether an admin has switched the tool off (see
+ * tool-availability.ts). Two shapes count:
+ *
+ *   POST /api/<slug>   — the endpoint that spends money
+ *   GET  /tools/<slug> — the page a teacher would land on
+ *
+ * The API side is deliberately restricted to paths already known to be tool
+ * endpoints rather than treating any /api/* segment as a slug: otherwise a
+ * tool_settings row named `stripe` or `auth` could take out checkout or login.
+ */
+export function toolSlugFor(method: string, pathname: string): string | null {
+  if (method === "POST" && (GENERATION_PATHS.has(pathname) || COST_BEARING_PATHS.has(pathname))) {
+    return pathname.slice("/api/".length);
+  }
+  if (method === "GET" && pathname.startsWith("/tools/")) {
+    const rest = pathname.slice("/tools/".length);
+    // Only the tool's own page — never its nested routes (e.g. an editor at
+    // /tools/slideshow/<id>), which have their own access rules.
+    if (!rest || rest.includes("/")) return null;
+    return rest;
+  }
+  return null;
+}
+
+export type QuotaBlockReason =
+  | "free_daily"
+  | "free_monthly"
+  | "credit_exhausted"
+  | "rate_limited";
 
 export interface QuotaResult {
   blocked: true;
   reason: QuotaBlockReason;
   /** Human-readable copy, safe to render directly. */
   message: string;
-  /** Which CTA the client should offer. */
-  action: "upgrade" | "topup";
+  /** Which CTA the client should offer. `wait` offers none — the limit clears
+   *  on its own, and there is nothing to sell. */
+  action: "upgrade" | "topup" | "wait";
   // Count gates only:
   used?: number;
   limit?: number;
   /** ISO timestamp when the daily allowance resets (next UTC midnight). */
   resetsAt?: string;
+  /** Seconds until it is worth trying again. Rate limit only. */
+  retryAfter?: number;
   // Cost gate only (pence):
   spendPence?: number;
   ceilingPence?: number;
@@ -121,6 +200,8 @@ interface GateRow {
   is_admin: boolean | null;
   used_today: number | null;
   used_month: number | null;
+  used_hour: number | null;
+  rate_limit_hour: number | null;
   spend_pence: number | string | null;
   credit_pence: number | string | null;
 }
@@ -162,7 +243,36 @@ export async function checkAllGates(
 
   const plan = asPlanId(row.plan);
 
-  // ── 1. Cost ceiling (path-agnostic) ──
+  // ── 1. Fair-use rate limit (generations only) ──
+  // Checked FIRST, before the cost ceiling: someone generating too fast should
+  // be told to slow down, not sold credit. Offering an upgrade to a Pro user
+  // who was merely quick would be insulting and would not fix anything.
+  //
+  // 0 (or a missing setting) means unlimited — see the migration note. The
+  // limit only applies to real generations, so sub-asset and refinement calls
+  // made while assembling one output do not compound against it.
+  if (opts.countsAsGeneration) {
+    const hourLimit = Number(row.rate_limit_hour ?? 0);
+    const usedHour = Number(row.used_hour ?? 0);
+    if (hourLimit > 0 && usedHour >= hourLimit) {
+      return {
+        blocked: true,
+        reason: "rate_limited",
+        action: "wait",
+        message:
+          `You've generated ${hourLimit} times in the last hour. That's a fair-use limit ` +
+          "to keep Jooma quick for everyone — try again shortly.",
+        used: usedHour,
+        limit: hourLimit,
+        // The window is rolling, so the true wait is until the oldest run ages
+        // out. Without querying for that timestamp, a conservative few minutes
+        // is a better prompt than a precise number that needs another round-trip.
+        retryAfter: 300,
+      };
+    }
+  }
+
+  // ── 2. Cost ceiling (path-agnostic) ──
   // Checked first: it is the margin guard, and on plans that have one there is
   // no count cap to fall through to anyway.
   const ceiling = AI_SPEND_CEILING_PENCE[plan];
@@ -188,7 +298,7 @@ export async function checkAllGates(
     }
   }
 
-  // ── 2. Free count caps (generations only) ──
+  // ── 3. Free count caps (generations only) ──
   if (opts.countsAsGeneration) {
     const gate = generationGate(
       plan,
@@ -226,7 +336,7 @@ export async function checkAllGates(
   return null;
 }
 
-/** The 402 body every gate returns. Shared so the proxy and any route that
+/** The body every gate returns. Shared so the proxy and any route that
  *  self-gates (see /api/generate-slideshow) can't drift apart. */
 export function quotaBlockBody(q: QuotaResult) {
   return {
@@ -236,17 +346,43 @@ export function quotaBlockBody(q: QuotaResult) {
     code:
       q.reason === "credit_exhausted"
         ? "ai_credit_exhausted"
-        : "generation_limit_reached",
+        : q.reason === "rate_limited"
+          ? "rate_limited"
+          : "generation_limit_reached",
     reason: q.reason,
     action: q.action,
     ...(q.used !== undefined ? { used: q.used } : {}),
     ...(q.limit !== undefined ? { limit: q.limit } : {}),
     ...(q.resetsAt ? { resetsAt: q.resetsAt } : {}),
+    ...(q.retryAfter !== undefined ? { retryAfter: q.retryAfter } : {}),
     ...(q.spendPence !== undefined ? { spendPence: q.spendPence } : {}),
     ...(q.ceilingPence !== undefined ? { ceilingPence: q.ceilingPence } : {}),
   };
 }
 
-/** Standard headers for a quota block. `x-upgrade-required` is retained because
- *  UpgradeGate keys off it — an unmodified client still shows something. */
-export const QUOTA_BLOCK_HEADERS = { "x-upgrade-required": "1" } as const;
+/**
+ * HTTP status for a block.
+ *
+ * A rate limit is 429, not 402: nothing is owed, and 402 would be a lie about
+ * why the request failed. It also keeps UpgradeGate out of the way — see
+ * quotaBlockHeaders below.
+ */
+export function quotaBlockStatus(q: QuotaResult): number {
+  return q.reason === "rate_limited" ? 429 : 402;
+}
+
+/**
+ * Headers for a block.
+ *
+ * `x-upgrade-required` is what UpgradeGate keys off (with a 402) to show the
+ * upgrade modal, so it must NOT be sent for a rate limit — a Pro user who
+ * generated too fast has nothing to upgrade to, and offering it would be both
+ * wrong and annoying. Rate limits send Retry-After instead.
+ */
+export function quotaBlockHeaders(q: QuotaResult): Record<string, string> {
+  if (q.reason === "rate_limited") {
+    return q.retryAfter !== undefined ? { "retry-after": String(q.retryAfter) } : {};
+  }
+  return { "x-upgrade-required": "1" };
+}
+

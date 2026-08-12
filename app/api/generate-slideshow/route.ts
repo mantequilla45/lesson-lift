@@ -5,10 +5,12 @@ import { renderSlide, type SlideSpec, type SlideLayout } from "@/app/lib/slidesh
 import { getTheme, DEFAULT_ART_STYLE, type ArtStyleId } from "@/app/lib/slideshowThemes";
 import { generateAIImage, type ImageStyle, type AIImageOrientation } from "@/app/lib/ai-image";
 import { recordUsage, recordAssetCost, recordSlideCosts, costUsd } from "@/app/lib/usage";
+import { isToolEnabled } from "@/app/lib/tool-availability";
 import {
   checkAllGates,
   quotaBlockBody,
-  QUOTA_BLOCK_HEADERS,
+  quotaBlockHeaders,
+  quotaBlockStatus,
 } from "@/app/lib/generation-guard";
 import type { SlideJSON } from "@/app/lib/presentations";
 
@@ -753,6 +755,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  // Same reason again: the proxy enforces tool_settings.enabled for every other
+  // tool, but it never sees this route. Without this check, switching the
+  // Slideshow Generator off in /admin/tools would stop the tool page and leave
+  // the single most expensive endpoint in the product still serving.
+  //
+  // Keyed to "slideshow" — the tool_settings slug for the teacher-facing tool —
+  // not to this endpoint's name.
+  if (!(await isToolEnabled(supabase, "slideshow"))) {
+    return NextResponse.json(
+      { error: "This tool is currently unavailable.", code: "tool_disabled" },
+      { status: 403 },
+    );
+  }
+
   // Same reason: the proxy can't gate this route, so the quota check happens
   // here. It MUST stay before the SSE stream opens — once we start streaming we
   // can no longer return a status code the client can act on. A deck is the
@@ -761,8 +777,8 @@ export async function POST(req: NextRequest) {
   const quota = await checkAllGates(supabase, { countsAsGeneration: true });
   if (quota) {
     return NextResponse.json(quotaBlockBody(quota), {
-      status: 402,
-      headers: QUOTA_BLOCK_HEADERS,
+      status: quotaBlockStatus(quota),
+      headers: quotaBlockHeaders(quota),
     });
   }
 

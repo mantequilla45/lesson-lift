@@ -12,6 +12,7 @@ import OpenAI from "openai";
 import { getOpenAI } from "@/app/lib/openai";
 import { createClient } from "@/app/lib/auth/server";
 import { supabaseAdmin } from "@/app/lib/supabase-admin";
+import { scanForSafeguarding, EXCERPT_MAX } from "@/app/lib/safeguarding";
 
 // USD per 1M tokens. `cachedInput` is the discounted rate for prompt tokens that
 // hit OpenAI's prompt cache (half price on gpt-4o). Keep this in sync with
@@ -241,20 +242,100 @@ export async function recordSlideCosts(
   }
 }
 
+/**
+ * Scan a prompt for apparent pupil safeguarding content and record a flag.
+ *
+ * Never throws, by the same contract as recordUsage: a safeguarding detector
+ * that can break a lesson plan is a worse product than no detector at all.
+ *
+ * WRITES WITH THE SERVICE ROLE, and `userId` is required — for exactly the
+ * reason recordUsage does (see its note above). This runs in the stream's
+ * `finally`, after the response has been handed off, where the request's
+ * cookies are gone. Calling the record_safeguarding_flag() RPC on the caller's
+ * own client would hit `auth.uid() is null` and raise 'not authenticated',
+ * losing precisely the flags that matter with only a log line to show for it.
+ *
+ * The RPC still exists and is still the right path for any caller that runs
+ * inside a live request; this one cannot.
+ */
+export async function recordSafeguardingScan(
+  toolSlug: string,
+  text: string,
+  userId: string | null,
+  runId?: string | null,
+): Promise<void> {
+  try {
+    const hit = scanForSafeguarding(text);
+    if (!hit) return;
+
+    if (!userId) {
+      console.warn(`[safeguarding] no user for ${toolSlug} — flag dropped`);
+      return;
+    }
+
+    await insertWithRetry(
+      "safeguarding_flags",
+      {
+        user_id: userId,
+        tool_slug: toolSlug,
+        reason: hit.reason,
+        // Capped here as well as in the database. Belt and braces on the one
+        // field that could otherwise duplicate sensitive pupil content.
+        excerpt: hit.excerpt.slice(0, EXCERPT_MAX),
+        severity: hit.severity,
+        status: "review",
+        run_id: runId ?? null,
+      },
+      toolSlug,
+    );
+  } catch (err) {
+    console.error(`[safeguarding] scan threw for ${toolSlug}:`, err);
+  }
+}
+
 type StreamParams = Omit<
   OpenAI.Chat.Completions.ChatCompletionCreateParamsStreaming,
   "stream" | "stream_options"
-> & { toolSlug: string };
+> & {
+  toolSlug: string;
+  /** Ties this generation's telemetry (and any safeguarding flag) to one run. */
+  runId?: string | null;
+  /**
+   * The teacher's own words, for safeguarding scanning.
+   *
+   * Prefer passing this explicitly. Most routes assemble one large user prompt
+   * that mixes the teacher's free text with our own boilerplate — and that
+   * boilerplate mentions "SEND", "safeguarding" and similar, which is a real
+   * false-positive source. When omitted, the scan falls back to the user
+   * messages, which is better than nothing but noisier.
+   */
+  safeguardingText?: string;
+};
 
 /** Run a streaming chat completion and return a plain-text streaming Response,
  *  recording exact token usage when the stream closes. Replaces the hand-rolled
  *  ReadableStream boilerplate every text tool used to carry. `toolSlug` is the
  *  key the usage report groups by — pass the tool's API slug. */
-export async function streamChat({ toolSlug, ...params }: StreamParams): Promise<Response> {
+export async function streamChat({
+  toolSlug,
+  runId,
+  safeguardingText,
+  ...params
+}: StreamParams): Promise<Response> {
   // Resolve the user NOW, while the request context (and therefore its cookies)
   // is still alive. recordUsage runs in the stream's `finally`, long after the
   // response has been handed off, where the session is no longer readable.
   const userId = await currentUserId();
+
+  // Capture the text to scan while we still have the request. Falls back to the
+  // user turns — never the system prompt, which is ours and full of our own
+  // vocabulary ("safeguarding", "SEND", "Teachers' Standards").
+  const scanText =
+    safeguardingText ??
+    params.messages
+      .filter((m) => m.role === "user")
+      .map((m) => (typeof m.content === "string" ? m.content : ""))
+      .join("\n");
 
   const client = getOpenAI();
   const openaiStream = await client.chat.completions.create({
@@ -288,7 +369,13 @@ export async function streamChat({ toolSlug, ...params }: StreamParams): Promise
         //
         // The user has already received every token by this point, so the extra
         // few ms before close costs them nothing.
-        await recordUsage(toolSlug, params.model, usage, null, userId);
+        await recordUsage(toolSlug, params.model, usage, null, userId, runId);
+        // Safeguarding runs here for exactly the same reason and under the same
+        // constraint: after close() the instance may be frozen and the insert
+        // would simply never happen. The scan itself is a synchronous regex
+        // pass over the prompt — microseconds — and it writes nothing at all
+        // for the overwhelming majority of generations.
+        await recordSafeguardingScan(toolSlug, scanText, userId, runId);
         controller.close();
       }
     },

@@ -24,13 +24,13 @@ const SLIDESHOW_SUBTOOLS = [
 
 // The fair-use settings live in app_settings; this page shows the subset that
 // governs generation limits and abuse.
-const FAIR_USE_KEYS = [
-  "rate_limit_per_hour",
-  "alert_negative_margin",
-  "flag_concurrent_sessions",
-  "block_disposable_email",
-  "log_generation_cost",
-];
+//
+// Only two, deliberately. Three more used to sit here and were read by nothing:
+// flag_concurrent_sessions and log_generation_cost were deleted outright, and
+// block_disposable_email moved to the access section beside signups_open, since
+// it belongs to the signup path rather than the generation path. See
+// 20260812130049_fair_use_honesty.sql for the reasoning.
+const FAIR_USE_KEYS = ["rate_limit_per_hour", "alert_negative_margin"];
 
 export const dynamic = "force-dynamic";
 
@@ -165,6 +165,7 @@ export default async function AdminUsagePage() {
       models={(modelData ?? []) as ModelRow[]}
       fairUse={settings.filter((s) => FAIR_USE_KEYS.includes(s.key))}
       toolTable={<AdminUsageTable rows={rows} />}
+      toolCount={rows.length}
     />
   );
 }
