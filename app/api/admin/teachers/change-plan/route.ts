@@ -89,7 +89,7 @@ export async function POST(req: NextRequest) {
         // customer; Stripe rejects it otherwise, which surfaces below.
         const sub = await stripe.subscriptions.create({
           customer: profile.stripe_customer_id,
-          items: [{ price: priceIdFor("pro") }],
+          items: [{ price: await priceIdFor("pro") }],
           metadata: { userId, admin_action: "change_plan" },
         });
         method = "stripe";

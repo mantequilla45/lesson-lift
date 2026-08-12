@@ -15,7 +15,7 @@
 // round-trip.
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { AI_SPEND_CEILING_PENCE, asPlanId, generationGate } from "./plans";
+import { AI_SPEND_CEILING_PENCE, PLAN_CREDITS, asPlanId, generationGate } from "./plans";
 
 // The API routes that count as one generation against the cap. Each is a tool's
 // primary endpoint and produces exactly one saved tool_run, so counting these
@@ -175,9 +175,13 @@ export async function checkAllGates(
         blocked: true,
         reason: "credit_exhausted",
         action: "topup",
+        // Credits, not pence: the internal meter is model spend, but naming a
+        // pound figure for the ALLOWANCE next to the subscription price reads as
+        // poor value. The £1.50 top-up PRICE is fine to state — they pay it.
         message:
-          "You've used this month's AI allowance. Add £1.50 of credit to keep " +
-          "going — it lasts until the end of the month.",
+          `You've used this month's ${PLAN_CREDITS.toLocaleString("en-GB")} credits. ` +
+          `Add ${PLAN_CREDITS.toLocaleString("en-GB")} more for £1.50 — they last ` +
+          `until the end of the month.`,
         spendPence,
         ceilingPence: allowance,
       };

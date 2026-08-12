@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Sparkles, Zap, X } from "lucide-react";
+import { PLAN_CREDITS } from "@/app/lib/plans";
 
 // Centralised quota prompt. Rather than editing every tool form, this patches
 // window.fetch once and watches for the 402 the server returns when a gate
@@ -62,6 +63,9 @@ export default function UpgradeGate() {
   if (!block) return null;
 
   const isTopUp = block.action === "topup";
+  // Derived, not hardcoded, so changing the credit rate can't leave stale copy
+  // promising an amount the top-up no longer grants.
+  const topUpCredits = PLAN_CREDITS.toLocaleString("en-GB");
   const close = () => setBlock(null);
 
   const title = isTopUp
@@ -75,7 +79,7 @@ export default function UpgradeGate() {
   const message =
     block.error ??
     (isTopUp
-      ? "Add £1.50 of credit to keep going — it lasts until the end of the month."
+      ? `Add ${topUpCredits} credits for £1.50 to keep going — they last until the end of the month.`
       : "Upgrade to Pro Teacher for £7.99 a month.");
 
   return (
@@ -126,7 +130,7 @@ export default function UpgradeGate() {
               className="flex-1 text-center py-2.5 rounded-xl text-sm font-semibold transition-opacity hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
               style={{ backgroundColor: "#E0463F", color: "#fff" }}
             >
-              {buying ? "Starting checkout…" : "Add £1.50 credit"}
+              {buying ? "Starting checkout…" : `Add ${topUpCredits} credits · £1.50`}
             </button>
           ) : (
             <Link

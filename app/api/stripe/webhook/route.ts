@@ -47,7 +47,10 @@ async function syncSubscription(sub: Stripe.Subscription) {
   }
 
   const priceId = sub.items.data[0]?.price?.id;
-  const paidPlan = planForPriceId(priceId);
+  // Resolves superseded prices too, via plan_price_history — a subscriber who
+  // signed up on an older price must not be read as "no subscription" and
+  // dropped to Free just because the plan's price has since changed.
+  const paidPlan = await planForPriceId(priceId);
   const isActive = ACTIVE_STATUSES.has(sub.status);
   const plan = isActive && paidPlan ? paidPlan : DEFAULT_PLAN;
 
@@ -110,12 +113,27 @@ async function grantTopUpCredit(session: Stripe.Checkout.Session) {
 
   const amountPence = session.amount_total ?? TOPUP_PENCE;
 
+  // Attribute the sale to the credit pack so the admin console's per-pack sold
+  // and revenue figures are real. Best-effort by design: pack_id is nullable and
+  // the purchase row must never fail to insert just because this lookup did —
+  // the customer has paid, and the credit matters more than the reporting.
+  const { data: creditPack, error: packErr } = await supabaseAdmin
+    .from("topup_packs")
+    .select("id")
+    .eq("kind", "credit_gbp")
+    .eq("active", true)
+    .order("sort")
+    .limit(1)
+    .maybeSingle();
+
+  if (packErr) {
+    console.error("[stripe/webhook] credit pack lookup failed", packErr);
+  }
+
   // 1. Idempotency gate.
   const { error: purchaseErr } = await supabaseAdmin.from("topup_purchases").insert({
     user_id: userId,
-    // Not a topup_packs purchase — packs are unit-denominated (N resources,
-    // N images) and a GBP credit doesn't fit that shape. pack_id is nullable.
-    pack_id: null,
+    pack_id: creditPack?.id ?? null,
     kind: "credit_gbp",
     units: amountPence, // pence, matching allowance_grants.amount for this kind
     price_gbp: toMajor(amountPence),

@@ -1,4 +1,10 @@
-import { AI_SPEND_CEILING_PENCE, PLANS, type PlanId } from "@/app/lib/plans";
+import {
+  AI_SPEND_CEILING_PENCE,
+  PLANS,
+  creditsRemaining,
+  toCredits,
+  type PlanId,
+} from "@/app/lib/plans";
 import TopUpButton from "./TopUpButton";
 
 // Where a user stands this month. Two different shapes, because the two plans
@@ -13,9 +19,7 @@ import TopUpButton from "./TopUpButton";
 
 const PROMINENT_AT = 0.8;
 
-function gbp(pence: number): string {
-  return `£${(pence / 100).toFixed(2)}`;
-}
+const nf = new Intl.NumberFormat("en-GB");
 
 /** First of next month, in the user's locale — when everything resets. */
 function resetsOn(): string {
@@ -70,13 +74,17 @@ export default function AllowanceMeter({
         className="rounded-2xl p-6 border mt-5"
         style={{ backgroundColor: "#FAF9F5", borderColor: "#DAD8D0" }}
       >
+        {/* Shown in credits, never pounds. The underlying meter is pence of
+            model spend, but surfacing that next to the subscription price reads
+            as "I paid £7.99 and only got £1.50", which is not what the plan is.
+            See toCredits() in lib/plans.ts. */}
         <p className="text-xs font-semibold mb-1" style={{ color: "#8a8078" }}>
-          AI allowance this month
+          Credits this month
         </p>
         <p className="text-xl font-bold mb-3" style={{ color: "#1a1a1a" }}>
-          {gbp(spendPence)}{" "}
+          {nf.format(creditsRemaining(spendPence, allowance))}{" "}
           <span className="text-sm font-medium" style={{ color: "#8a8078" }}>
-            of {gbp(allowance)} used
+            of {nf.format(toCredits(allowance))} left
           </span>
         </p>
 
@@ -84,12 +92,12 @@ export default function AllowanceMeter({
 
         {creditPence > 0 && (
           <p className="text-sm mb-1" style={{ color: "#6b6055" }}>
-            Includes {gbp(creditPence)} of purchased credit.
+            Includes {nf.format(toCredits(creditPence))} top-up credits.
           </p>
         )}
 
         <p className="text-sm" style={{ color: "#8a8078" }}>
-          Resets on {resetsOn()}. Unused credit doesn&apos;t carry over.
+          Resets on {resetsOn()}. Unused credits don&apos;t carry over.
         </p>
 
         {justToppedUp && creditPence === 0 && (

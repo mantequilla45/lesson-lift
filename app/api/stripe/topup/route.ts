@@ -27,9 +27,12 @@ export async function POST(req: NextRequest) {
   const origin = process.env.NEXT_PUBLIC_SITE_URL || req.nextUrl.origin;
 
   try {
+    // Resolved from the active credit pack (falling back to the env var).
+    const priceId = await topUpPriceId();
+
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
-      line_items: [{ price: topUpPriceId(), quantity: 1 }],
+      line_items: [{ price: priceId, quantity: 1 }],
       client_reference_id: user.id,
       // `mode: "payment"` has no subscription_data, so the webhook identifies
       // the buyer from metadata instead. Stamped in both places: the session

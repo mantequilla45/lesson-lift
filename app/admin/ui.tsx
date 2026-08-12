@@ -471,7 +471,9 @@ export function ToggleRow({
   desc,
   children,
 }: {
-  title: string;
+  // A node rather than a string so a row can carry an inline badge — e.g. the
+  // "Not wired up" pill on pricing rules nothing reads yet.
+  title: React.ReactNode;
   desc?: string;
   children: React.ReactNode;
 }) {

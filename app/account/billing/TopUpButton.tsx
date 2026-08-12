@@ -1,10 +1,15 @@
 "use client";
 
 import { useState } from "react";
+import { PLAN_CREDITS } from "@/app/lib/plans";
 
-// Buys £1.50 of AI credit. Server creates the one-off Checkout session; we
-// redirect. The credit is granted by the webhook once Stripe confirms payment,
-// never here. Repeatable — each purchase is an independent session.
+// Buys a block of credits for £1.50. Server creates the one-off Checkout
+// session; we redirect. The credit is granted by the webhook once Stripe
+// confirms payment, never here. Repeatable — each purchase is an independent
+// session.
+//
+// The PRICE is stated in pounds (they pay it); the ALLOWANCE is stated in
+// credits. See toCredits() in lib/plans.ts for why.
 export default function TopUpButton() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -36,7 +41,9 @@ export default function TopUpButton() {
         className="inline-block py-2.5 px-5 rounded-xl text-sm font-semibold transition-opacity hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
         style={{ backgroundColor: "#E0463F", color: "#fff" }}
       >
-        {loading ? "Starting checkout…" : "Add £1.50 credit"}
+        {loading
+          ? "Starting checkout…"
+          : `Add ${PLAN_CREDITS.toLocaleString("en-GB")} credits · £1.50`}
       </button>
       {error && <p className="text-sm mt-2" style={{ color: "#c2342b" }}>{error}</p>}
     </div>

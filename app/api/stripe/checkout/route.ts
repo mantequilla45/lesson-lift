@@ -30,9 +30,14 @@ export async function POST(req: NextRequest) {
     process.env.NEXT_PUBLIC_SITE_URL || req.nextUrl.origin;
 
   try {
+    // Resolved from plan_config (falling back to the env var), so a price
+    // changed in the admin console takes effect on the next checkout without a
+    // redeploy.
+    const priceId = await priceIdFor("pro");
+
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
-      line_items: [{ price: priceIdFor("pro"), quantity: 1 }],
+      line_items: [{ price: priceId, quantity: 1 }],
       // Lets the webhook tie the resulting subscription back to our user.
       client_reference_id: user.id,
       subscription_data: { metadata: { userId: user.id } },
