@@ -2,12 +2,16 @@ import { requireAdmin } from "@/app/lib/auth/admin";
 import { nf } from "../format";
 import AdminTeachersTable, { type TeacherRow } from "./AdminTeachersTable";
 import AdminTeachersHeaderActions from "./AdminTeachersHeaderActions";
+import PendingInvites, { type PendingInvite } from "./PendingInvites";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminUsersPage() {
   const { supabase } = await requireAdmin();
-  const { data } = await supabase.rpc("admin_users");
+  const [{ data }, { data: invites }] = await Promise.all([
+    supabase.rpc("admin_users"),
+    supabase.rpc("admin_pending_invites"),
+  ]);
   const rows = (data ?? []) as TeacherRow[];
 
   return (
@@ -25,6 +29,7 @@ export default async function AdminUsersPage() {
         <AdminTeachersHeaderActions />
       </div>
 
+      <PendingInvites invites={(invites ?? []) as PendingInvite[]} />
       <AdminTeachersTable rows={rows} />
     </>
   );
