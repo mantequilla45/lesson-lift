@@ -10,7 +10,9 @@ import {
   toCredits,
   type PlanId,
 } from "@/app/lib/plans";
-import { gbp, nf, pence } from "../format";
+// From fx-shared, not fx: this is a client component and fx.ts is server-only.
+import { FX_REVIEW_AFTER_DAYS, type FxRate } from "@/app/lib/fx-shared";
+import { FX_USD_TO_GBP, gbp, nf, pence } from "../format";
 import {
   Btn,
   C,
@@ -66,9 +68,11 @@ const PRICEABLE = new Set(["pro"]);
 export default function PlansView({
   plans,
   rules,
+  fx,
 }: {
   plans: PlanRow[];
   rules: PricingRule[];
+  fx: FxRate;
 }) {
   const router = useRouter();
   const [editing, setEditing] = useState<PlanRow | null>(null);
@@ -97,16 +101,27 @@ export default function PlansView({
       <div className="grid gap-3.5 grid-cols-1 md:grid-cols-2 xl:grid-cols-4">
         {plans.map((p) => {
           const price = Number(p.price_monthly ?? 0);
-          // "If a teacher used every resource and every AI image on this plan,
-          // what's left?" The AI-image allowance dominates it.
+
+          // The enforced monthly AI-spend ceiling, in pence. This — not the
+          // resource count — is what actually stops a Pro teacher, so the card
+          // has to show it. Hardcoded in TypeScript rather than plan_config, so
+          // it can't be edited from here; see AI_SPEND_CEILING_PENCE.
+          const ceiling = AI_SPEND_CEILING_PENCE[p.plan_id as PlanId] ?? null;
+
+          // "If a teacher used everything they're allowed to, what's left?"
+          // The ceiling is passed in because it, not the allowance, is what
+          // binds on a paid plan — without it Pro models at £6.00 of AI, which
+          // the gate makes unreachable.
           const wc = worstCase({
             priceMonthly: price,
-            // Unlimited plans have no worst case to model against; use the
-            // school per-seat pool or a nominal heavy-use figure.
+            // Plans with no resource cap have no allowance to model against;
+            // use the school per-seat pool or a nominal heavy-use figure. On a
+            // plan with a ceiling this is only the upper bound of the two.
             monthlyResources: p.monthly_resources ?? 300,
             aiImageSlideshows: p.ai_image_slideshows,
             cardFees: p.audience !== "school",
             chargeOverheads: p.plan_id !== "free",
+            spendCeilingPence: ceiling,
           });
 
           // School is not a shippable plan yet: seats, pooled allowances and
@@ -115,12 +130,6 @@ export default function PlansView({
           // non-editable so it can't be mistaken for part of the live product
           // or edited into a false sense of being configured.
           const notShipped = p.plan_id === "school";
-
-          // The enforced monthly AI-spend ceiling, in pence. This — not the
-          // resource count — is what actually stops a Pro teacher, so the card
-          // has to show it. Hardcoded in TypeScript rather than plan_config, so
-          // it can't be edited from here; see AI_SPEND_CEILING_PENCE.
-          const ceiling = AI_SPEND_CEILING_PENCE[p.plan_id as PlanId] ?? null;
 
           return (
             <Card key={p.plan_id}>
@@ -240,16 +249,55 @@ export default function PlansView({
 
                 <div className="h-px my-3" style={{ backgroundColor: C.divider }} />
 
+                {/* Every deduction, itemised. Contribution is not price minus
+                    AI cost — card fees and per-user overheads come out too, and
+                    showing only the total leaves the reader to reverse-engineer
+                    the difference. */}
+                {price > 0 && (
+                  <div className="flex justify-between mb-1.5">
+                    <span className="text-xs" style={{ color: C.muted }}>
+                      Price
+                    </span>
+                    <b className="text-xs tabular-nums" style={{ color: C.ink }}>
+                      {gbp(price)}
+                    </b>
+                  </div>
+                )}
                 <div className="flex justify-between mb-1.5">
                   <span className="text-xs" style={{ color: C.muted }}>
-                    Cost if fully used
+                    {/* Naming what does the capping: on a plan with a ceiling
+                        the allowance is never the binding constraint. */}
+                    {wc.cappedByCeiling ? "− Max AI cost (capped)" : "− AI if fully used"}
                   </span>
                   <b className="text-xs tabular-nums" style={{ color: C.ink }}>
                     {gbp(wc.aiCost)}
                   </b>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-xs" style={{ color: C.muted }}>
+                {wc.cardFee > 0 && (
+                  <div className="flex justify-between mb-1.5">
+                    <span className="text-xs" style={{ color: C.muted }}>
+                      − Card fee
+                    </span>
+                    <b className="text-xs tabular-nums" style={{ color: C.ink2 }}>
+                      {gbp(wc.cardFee)}
+                    </b>
+                  </div>
+                )}
+                {wc.overheads > 0 && (
+                  <div className="flex justify-between mb-1.5">
+                    <span className="text-xs" style={{ color: C.muted }}>
+                      − Infra &amp; support
+                    </span>
+                    <b className="text-xs tabular-nums" style={{ color: C.ink2 }}>
+                      {gbp(wc.overheads)}
+                    </b>
+                  </div>
+                )}
+                <div
+                  className="flex justify-between pt-1.5"
+                  style={{ borderTop: `1px solid ${C.divider}` }}
+                >
+                  <span className="text-xs font-semibold" style={{ color: C.ink }}>
                     Worst-case contribution
                   </span>
                   <b
@@ -263,7 +311,19 @@ export default function PlansView({
                             : C.ok,
                     }}
                   >
-                    {price ? gbp(wc.contribution) : "—"}
+                    {price ? (
+                      <>
+                        {gbp(wc.contribution)}
+                        {wc.marginPct != null && (
+                          <span style={{ color: C.muted }}>
+                            {" "}
+                            · {Math.round(wc.marginPct * 100)}%
+                          </span>
+                        )}
+                      </>
+                    ) : (
+                      "—"
+                    )}
                   </b>
                 </div>
               </CardBody>
@@ -382,6 +442,31 @@ export default function PlansView({
           wait for the month to roll over. Say &ldquo;no set limit&rdquo;, never
           &ldquo;unlimited&rdquo;, anywhere a teacher can read it.
         </Note>
+        {/* Every cost on this page is a USD provider cost converted at this
+            rate. Surfaced so a stale rate is visible rather than silently
+            skewing every margin figure. `drifted` catches the case the DB and
+            the compiled-in fallback disagree — which would mean the enforcement
+            gate and this console are using different numbers. */}
+        {fx.drifted ? (
+          <Note tone="danger">
+            <b>FX rate mismatch.</b> The database says {fx.usdToGbp} USD→GBP but the app was
+            built with {FX_USD_TO_GBP}. The spend ceiling is enforced against the database
+            value, so these cost figures and the actual gate currently disagree. Align
+            FX_USD_TO_GBP in <code>app/admin/format.ts</code> and redeploy.
+          </Note>
+        ) : fx.ageDays > FX_REVIEW_AFTER_DAYS ? (
+          <Note tone="warn">
+            <b>FX rate is {fx.ageDays} days old.</b> Costs convert at {fx.usdToGbp} USD→GBP,
+            last checked {fx.reviewedAt}. Providers bill in USD, so drift skews every cost
+            and margin here — worth a review. It never affects what a customer is charged.
+          </Note>
+        ) : (
+          <Note>
+            <b>Costs convert at {fx.usdToGbp} USD→GBP</b>, last reviewed {fx.reviewedAt}.
+            Providers bill in USD; Jooma charges GBP through Stripe, so this rate affects
+            these figures and the spend ceiling only, never anyone&apos;s bill.
+          </Note>
+        )}
         <Note>
           <b>Language check.</b> Nothing teacher-facing should say &ldquo;tokens&rdquo; — the
           words are <b>resources</b> and <b>AI-image slideshows</b>. Nor should it show the
@@ -599,7 +684,13 @@ function EditPlanModal({
 
       <Field
         label="AI-image slideshows / month"
-        help={`Each costs about ${pence(COST.deckAI)} — roughly 33x a text resource. This is the number that decides whether the plan makes money.`}
+        help={
+          AI_SPEND_CEILING_PENCE[plan.plan_id as PlanId] != null
+            ? `Each costs about ${pence(COST.deckAI)} — roughly 33x a text resource. The ${gbp(
+                AI_SPEND_CEILING_PENCE[plan.plan_id as PlanId]! / 100,
+              )} spend ceiling stops them before this number does, so it's an upper bound rather than the real cost driver.`
+            : `Each costs about ${pence(COST.deckAI)} — roughly 33x a text resource. With no spend ceiling on this plan, this is the number that decides whether it makes money.`
+        }
       >
         <input
           type="number"
