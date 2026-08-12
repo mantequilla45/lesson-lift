@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, FileText, Trash2, Loader2, Sparkles, Clock, Wrench, CalendarDays } from "lucide-react";
 import SideNav from "@/app/components/layout/SideNav";
+import SupportLauncher from "@/app/components/SupportLauncher";
 import TopBar from "@/app/components/layout/TopBar";
 import Card from "@/app/components/ui/Card";
 import { minutesSavedFor } from "@/app/lib/tools";
@@ -68,6 +69,7 @@ export default function AnalyticsPage() {
   return (
     <div className="min-h-screen flex" style={{ backgroundColor: "#F1EFE3" }}>
       <SideNav />
+      <SupportLauncher />
       <main className="grow flex flex-col overflow-y-auto">
         <TopBar title="Analytics" />
 

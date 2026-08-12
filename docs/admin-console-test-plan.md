@@ -536,21 +536,28 @@ Refresh, click the row, add a note, click **Clear — false positive**.
 **Expect:** Three-pane layout; left pane says tickets appear when a teacher gets
 in touch.
 
-#### 5A.2 Create a ticket
+#### 5A.2 Create a ticket — as a teacher, not by hand
 
-**Do:** In Supabase SQL editor:
+This step used to be a raw `admin_create_thread` call in the SQL editor, because
+until teachers had `/help` there was genuinely no other way to get a ticket into
+the inbox.
 
-```sql
-select admin_create_thread(
-  (select id from profiles where not is_admin limit 1),
-  'ZZ TEST — ran out of resources mid-lesson',
-  'Hi, I can add 100 resources to keep you going.', 'high');
-```
+**Do:** Sign in as a **non-admin** teacher in another browser profile. Click
+**Help** in the sidebar (or the bubble bottom-right) → **New conversation** →
+subject and message → **Send**.
 
-Refresh `/admin/inbox`.
+Then open `/admin/inbox` as an admin.
 
-**Expect:** Ticket appears with a red high-priority dot. Sidebar **Inbox** now
-carries a badge.
+**Expect:**
+- The ticket is there, unread, with reference `TK-####`.
+- Sidebar **Inbox** carries a badge.
+- Priority is **high** for a `pro`/`max`/`school` teacher and **normal** for a
+  `free` one — this is the `prioritySupport` plan entitlement being read for the
+  first time.
+
+**Also check the reference is not `count(*)`-derived:** open two conversations in
+quick succession and confirm you get two distinct references. The old generator
+collided under concurrency against a `unique` column.
 
 #### 5A.3 Internal notes — the most important test here
 
@@ -595,6 +602,92 @@ leaving the thread.
 history**.
 
 **Expect:** The ticket is listed — not a "Coming soon" placeholder.
+
+---
+
+### 5B · Teacher side (`/help`)
+
+Everything here is from the **teacher's** browser profile, not an admin's.
+
+#### 5B.1 The leak test — the most important test in the whole plan
+
+**Why it matters:** `support_messages` stores internal notes in the same table
+as teacher-visible replies. RLS on that table is admin-only for exactly this
+reason, and every teacher-facing RPC filters `direction <> 'note'`. If one of
+those filters is ever dropped, an internal note reaches the customer.
+
+**Do:** As admin, on a teacher's ticket, send a **reply** and then add an
+**internal note** — note *last*, so a missing filter would surface it as the
+newest message.
+
+As the teacher, reload `/help` and open that conversation.
+
+**Expect:**
+- The note is **absent from the message list**.
+- The note is **absent from the conversation list preview** — check this
+  separately; the preview is a different query and its own chance to leak.
+- The message count does not include the note.
+- Authors read **Jooma** / **You**, never an admin's email address.
+
+**Check the wire, not the screen.** Open devtools → Network → the
+`my_thread_messages` response. A note filtered only in React is still a leak.
+
+#### 5B.2 Teachers cannot read the table directly
+
+**Do:** In the Supabase SQL editor:
+
+```sql
+select count(*) from support_messages;  -- as a teacher's JWT: 0 rows
+```
+
+**Expect:** `0`. The `my_*` RPCs are the only route in, and RLS is what makes
+that true rather than convention.
+
+#### 5B.3 Round trip and the unread bell
+
+**Do:** Teacher sends a message → admin replies → teacher returns to the app.
+
+**Expect:**
+- The **Bell** in the top bar shows a count, and the sidebar **Help** entry
+  shows a dot.
+- Opening the conversation clears both.
+- The admin-side unread does **not** clear when the teacher reads — that flag
+  means "we owe them a reply", which is the opposite direction.
+- Teacher replies to a **resolved** ticket → it reopens as **Open**.
+
+#### 5B.4 Email
+
+SendGrid is configured (`SENDGRID_API_KEY` + `SENDGRID_FROM_EMAIL`), so this
+sends for real — **use a mailbox you own.**
+
+**Do:** As admin, reply to the teacher's ticket.
+
+**Expect:**
+- The toast says **"Reply sent and emailed."**
+- The email arrives from `noreply@jooma.ai`, quotes the reply, and its button
+  deep-links to `/help?thread=…`.
+
+**Expect always:** an **internal note never sends an email** — add one and
+confirm no mail arrives. This is gated in `/api/support/reply`, not in the
+database, and it is the one failure here that reaches a customer.
+
+**If the keys are ever unset,** the reply still saves and the toast says so
+honestly ("email isn't configured, so it wasn't sent") instead of claiming
+delivery.
+
+#### 5B.5 `/admin/emails` tells the truth
+
+**Expect:** a banner confirming **SendGrid is configured** — this page used to
+claim no provider was configured, which was wrong the whole time.
+
+**Expect:** `support_reply` is listed, and the 11 templates with no renderer in
+code carry a **No renderer** tag rather than looking sendable.
+
+#### 5B.6 Placement
+
+**Expect:** the launcher bubble does not appear on `/editor/*` (it would sit on
+the zoom controls), nor on `/admin` or the marketing pages. `/help` works with
+the sidebar collapsed.
 
 ---
 
@@ -903,7 +996,7 @@ Don't raise these; they're tracked:
 | Area | Limitation | Issue |
 |---|---|---|
 | Safeguarding | No filter writes flags | [#28](https://github.com/work-whale/jooma/issues/28) |
-| Email | No provider; nothing sends | [#24](https://github.com/work-whale/jooma/issues/24) |
+| Email | SendGrid **is** configured and the 4 templates with renderers send for real. The other 11 `email_templates` rows have no renderer in code and cannot send — flagged **No renderer** in `/admin/emails`. No engagement data until the SendGrid event webhook is wired | [#24](https://github.com/work-whale/jooma/issues/24) |
 | Announcements | No teacher-facing banner | [#25](https://github.com/work-whale/jooma/issues/25) |
 | Settings | Recorded but not enforced | [#26](https://github.com/work-whale/jooma/issues/26) |
 | Dashboard | No acquisition/UTM data | [#28](https://github.com/work-whale/jooma/issues/28) |

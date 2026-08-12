@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { MoreVertical } from "lucide-react";
 import ToolIcon from "@/app/components/ToolIcon";
 import SideNav from "@/app/components/layout/SideNav";
+import SupportLauncher from "@/app/components/SupportLauncher";
 import TopBar from "@/app/components/layout/TopBar";
 import Card from "@/app/components/ui/Card";
 import { minutesSavedFor } from "@/app/lib/tools";
@@ -41,6 +42,7 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen flex" style={{ backgroundColor: "#F1EFE3" }}>
       <SideNav />
+      <SupportLauncher />
       <main className="grow flex flex-col overflow-y-auto">
         <TopBar title="Dashboard" />
 

@@ -1,7 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/app/lib/auth/client";
+import GrantModal, { type GrantKind } from "../users/GrantModal";
 import { PLANS, asPlanId } from "@/app/lib/plans";
 import { fmtDateTime, fmtRelative, gbpFromUsd, nf } from "../format";
 import {
@@ -106,6 +108,14 @@ export default function InboxView({
   const [q, setQ] = useState("");
   const [toastNode, fire] = useToast();
   const msgEndRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
+  // Same modal the Teachers drawer uses — it already carries the live cost
+  // estimate and the grant caps, and support should not get a second, laxer
+  // way to hand out AI images.
+  const [grantKind, setGrantKind] = useState<GrantKind | null>(null);
+  const [portalBusy, setPortalBusy] = useState(false);
+  // Bumped after a grant to re-run the context rail's allowance fetch.
+  const [railKey, setRailKey] = useState(0);
 
   const thread = useMemo(() => threads.find((t) => t.id === openId) ?? null, [threads, openId]);
 
@@ -117,7 +127,10 @@ export default function InboxView({
       q: q || null,
     });
     setThreads((data ?? []) as ThreadRow[]);
-  }, [statusFilter, scopeFilter, q]);
+    // The sidebar badge is computed in the server layout, so without this it
+    // stays stale for the rest of the session after a reply or a resolve.
+    router.refresh();
+  }, [statusFilter, scopeFilter, q, router]);
 
   // Debounced so typing in search doesn't fire a query per keystroke.
   useEffect(() => {
@@ -153,35 +166,107 @@ export default function InboxView({
         | { cost_usd: number; generations: number }
         | undefined;
       setContext(d ? { cost_usd: d.cost_usd, generations: d.generations } : null);
+
+      // Reading a ticket is what marks it read. admin_set_thread has always
+      // accepted { read: true } and nothing ever sent it, so the unread dot and
+      // the sidebar badge used to persist until someone replied.
+      if (thread.unread) {
+        await supabase.rpc("admin_set_thread", {
+          tid: thread.id,
+          payload: { read: true },
+        });
+        if (cancelled) return;
+        setThreads((prev) =>
+          prev.map((t) => (t.id === thread.id ? { ...t, unread: false } : t)),
+        );
+        router.refresh();
+      }
     })();
     return () => {
       cancelled = true;
     };
-  }, [thread]);
+    // Keyed on the thread's identity, not the object: reloadThreads() replaces
+    // every row on each poll, and depending on `thread` itself would re-run
+    // this whole effect — and re-mark it read — on every refresh.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [thread?.id, thread?.user_id, railKey]);
 
   useEffect(() => {
     msgEndRef.current?.scrollIntoView({ block: "end" });
   }, [messages]);
 
+  // Goes through the route rather than calling admin_reply directly, because a
+  // reply also has to be emailed and a database function cannot send mail.
   const send = async (isNote: boolean) => {
     if (!thread || !draft.trim()) return;
     setSending(true);
-    const supabase = createClient();
-    const { error } = await supabase.rpc("admin_reply", {
-      tid: thread.id,
-      p_body: draft,
-      is_note: isNote,
-    });
-    setSending(false);
-    if (error) {
-      fire(error.message);
+    let res: Response;
+    try {
+      res = await fetch("/api/support/reply", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ threadId: thread.id, body: draft, isNote }),
+      });
+    } catch {
+      setSending(false);
+      fire("Couldn't reach the server — your reply wasn't sent.");
       return;
     }
+    setSending(false);
+
+    const result = (await res.json().catch(() => ({}))) as {
+      error?: string;
+      emailed?: boolean;
+    };
+    if (!res.ok) {
+      fire(result.error ?? "Couldn't send that reply.");
+      return;
+    }
+
     setDraft("");
+    const supabase = createClient();
     const { data } = await supabase.rpc("admin_thread_messages", { tid: thread.id });
     setMessages((data ?? []) as MessageRow[]);
     void reloadThreads();
-    fire(isNote ? "Internal note added — the teacher can't see it." : "Reply sent.");
+    // Says what actually happened. Email is only configured in some
+    // environments, and claiming "emailed" when nothing left is the habit this
+    // whole change is meant to break.
+    fire(
+      isNote
+        ? "Internal note added — the teacher can't see it."
+        : result.emailed
+          ? "Reply sent and emailed."
+          : "Reply saved — email isn't configured, so it wasn't sent.",
+    );
+  };
+
+  // Mints a real Stripe billing-portal URL and copies it, so the "Card failed"
+  // reply has something to paste where its [link] placeholder used to be.
+  const copyPortalLink = async () => {
+    if (!thread?.user_id || portalBusy) return;
+    setPortalBusy(true);
+    const res = await fetch("/api/admin/teachers/billing-portal", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId: thread.user_id }),
+    });
+    const json = await res.json().catch(() => ({}));
+    setPortalBusy(false);
+    if (!res.ok || !json.url) {
+      fire(json.error ?? "Could not create a portal link.");
+      return;
+    }
+    // Appended rather than replacing the draft: the canned reply is usually
+    // already sitting in the composer and the link belongs at the end of it.
+    setDraft((d) => (d.trim() ? `${d.trimEnd()}\n\n${json.url}` : json.url));
+    try {
+      await navigator.clipboard.writeText(json.url);
+    } catch {
+      // Clipboard can be refused; the link is in the draft either way.
+    }
+    // Said plainly because it matters: this link is a bearer credential to
+    // their billing details, and it expires.
+    fire("Billing link added to your reply. It expires shortly and lets anyone holding it edit their billing.");
   };
 
   const setThread = async (payload: Record<string, unknown>, msg: string) => {
@@ -206,11 +291,20 @@ export default function InboxView({
             <Tag tone={Number(summary.open_count) > 0 ? "warn" : "plain"}>
               {nf.format(Number(summary.open_count))} open
             </Tag>
+            {Number(summary.unread) > 0 && (
+              <Tag tone="warn">{nf.format(Number(summary.unread))} awaiting reply</Tag>
+            )}
             {Number(summary.high_priority) > 0 && (
               <Tag tone="danger">{nf.format(Number(summary.high_priority))} high priority</Tag>
             )}
             {Number(summary.unassigned) > 0 && (
               <Tag>{nf.format(Number(summary.unassigned))} unassigned</Tag>
+            )}
+            {Number(summary.pending_count) > 0 && (
+              <Tag>{nf.format(Number(summary.pending_count))} pending</Tag>
+            )}
+            {Number(summary.closed_this_week) > 0 && (
+              <Tag tone="ok">{nf.format(Number(summary.closed_this_week))} closed this week</Tag>
             )}
           </div>
         )}
@@ -271,7 +365,7 @@ export default function InboxView({
                 body={
                   q || statusFilter || scopeFilter
                     ? "Try clearing a filter."
-                    : "Tickets appear here when a teacher gets in touch, or when you open one from their account."
+                    : "Tickets appear here when a teacher gets in touch from Help in the app, or when you open one from their account."
                 }
               />
             ) : (
@@ -313,13 +407,29 @@ export default function InboxView({
                         {fmtRelative(t.updated_at)}
                       </span>
                     </div>
-                    <div className="text-xs mt-0.5 line-clamp-2" style={{ color: C.ink2 }}>
+                    <div className="text-xs mt-0.5 line-clamp-2 wrap-break-word" style={{ color: C.ink2 }}>
                       <b>{t.subject}</b>
-                      {t.preview && ` — ${t.preview.slice(0, 60)}`}
+                      {t.preview && (
+                        <>
+                          {" — "}
+                          {t.last_direction === "outbound" && (
+                            <span style={{ color: C.muted }}>You: </span>
+                          )}
+                          {t.last_direction === "note" && (
+                            <span style={{ color: C.warn }}>Note: </span>
+                          )}
+                          {t.preview.slice(0, 60)}
+                        </>
+                      )}
                     </div>
                     <div className="flex items-center gap-1 mt-1.5">
                       <StatusTag status={t.status} />
                       <Tag tone={t.plan === "free" ? "plain" : "brand"}>{t.plan}</Tag>
+                      {/* Who the ball is with. The list is sorted by triage need,
+                          so this is the fastest read of "does this need me?". */}
+                      {t.status !== "closed" && t.last_direction === "inbound" && (
+                        <Tag tone="warn">Waiting on us</Tag>
+                      )}
                     </div>
                   </button>
                 );
@@ -393,7 +503,7 @@ export default function InboxView({
                     return (
                       <div
                         key={m.id}
-                        className="flex flex-col gap-1 max-w-[74%]"
+                        className="flex flex-col gap-1 max-w-[50%] min-w-0"
                         style={{ alignSelf: isUs ? "flex-end" : "flex-start" }}
                       >
                         <div
@@ -411,7 +521,10 @@ export default function InboxView({
                               Internal note — not visible to the teacher
                             </div>
                           )}
-                          <div className="whitespace-pre-wrap">{m.body}</div>
+                          {/* wrap-break-word because whitespace-pre-wrap only
+                              wraps at existing whitespace — a pasted URL or
+                              stack trace would otherwise overflow the bubble. */}
+                          <div className="whitespace-pre-wrap wrap-break-word">{m.body}</div>
                         </div>
                         <div
                           className="text-[10px] font-mono"
@@ -431,6 +544,29 @@ export default function InboxView({
                 className="border-t px-4 py-3 shrink-0"
                 style={{ borderColor: C.border, backgroundColor: C.surface }}
               >
+                {/* Actions, not scripts. The canned replies below say what we
+                    did; these are what actually does it, so support can fix the
+                    problem in the thread instead of opening the Teachers page
+                    in another tab and losing the conversation. */}
+                {thread.user_id && (
+                  <div className="flex flex-wrap items-center gap-1.5 mb-2">
+                    <span className="text-[11px] font-semibold" style={{ color: C.muted }}>
+                      Fix it
+                    </span>
+                    <Btn size="sm" onClick={() => setGrantKind("resource")}>
+                      Grant resources
+                    </Btn>
+                    <Btn size="sm" onClick={() => setGrantKind("ai_image")}>
+                      Grant AI images
+                    </Btn>
+                    <Btn size="sm" onClick={() => setGrantKind("credit_gbp")}>
+                      Grant AI credit
+                    </Btn>
+                    <Btn size="sm" onClick={copyPortalLink} disabled={portalBusy}>
+                      {portalBusy ? "Creating…" : "Copy billing link"}
+                    </Btn>
+                  </div>
+                )}
                 {canned.length > 0 && (
                   <div className="flex flex-wrap gap-1.5 mb-2">
                     {canned.map((c) => (
@@ -576,6 +712,22 @@ export default function InboxView({
           )}
         </div>
       </div>
+
+      {grantKind && thread?.user_id && (
+        <GrantModal
+          userId={thread.user_id}
+          name={thread.teacher}
+          kind={grantKind}
+          onClose={() => setGrantKind(null)}
+          onGranted={(msg) => {
+            setGrantKind(null);
+            fire(msg);
+            // The context rail reads the allowance, so refresh it — otherwise
+            // you grant resources and the meter beside you still says empty.
+            setRailKey((k) => k + 1);
+          }}
+        />
+      )}
 
       {toastNode}
     </>

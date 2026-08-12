@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import SideNav from "@/app/components/layout/SideNav";
+import SupportLauncher from "@/app/components/SupportLauncher";
 import TopBar from "@/app/components/layout/TopBar";
 import UpgradeGate from "@/app/components/UpgradeGate";
 
@@ -60,6 +61,7 @@ export default function ToolsLayout({ children }: { children: React.ReactNode })
     <div className="min-h-screen flex" style={{ backgroundColor: "#F1EFE3" }}>
       <UpgradeGate />
       <SideNav />
+      <SupportLauncher />
       <main className="grow flex flex-col min-h-screen">
         <TopBar title={label} />
         <div className="px-10 pb-4 shrink-0">

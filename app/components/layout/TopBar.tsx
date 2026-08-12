@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { ChevronDown, Bell, UserCircle, LogOut } from "lucide-react";
 import { CiSearch } from "react-icons/ci";
 import { TOOLS } from "@/app/lib/tools";
@@ -33,7 +33,9 @@ export default function TopBar({ title, onSearchChange }: TopBarProps) {
 
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [supportUnread, setSupportUnread] = useState(0);
   const profileRef = useRef<HTMLDivElement>(null);
+  const pathname = usePathname();
 
   useEffect(() => {
     const supabase = createClient();
@@ -41,6 +43,20 @@ export default function TopBar({ title, onSearchChange }: TopBarProps) {
       setUserEmail(data.user?.email ?? null);
     });
   }, []);
+
+  // Unread support replies. Keyed on pathname so it re-checks on navigation and
+  // clears once the teacher has opened the conversation.
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const supabase = createClient();
+      const { data } = await supabase.rpc("my_support_unread");
+      if (!cancelled) setSupportUnread(Number(data ?? 0));
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [pathname]);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -178,13 +194,33 @@ export default function TopBar({ title, onSearchChange }: TopBarProps) {
             Coming soon
           </span>
         </div>
+        {/* Support replies. Was a disabled "Coming soon" placeholder until
+            teachers had a way to be replied to in the first place. */}
         <div className="relative group/bell">
-          <button disabled className="w-9 h-9 flex items-center justify-center rounded-2xl border border-line bg-white opacity-50 cursor-not-allowed">
+          <button
+            onClick={() => router.push("/help")}
+            aria-label={
+              supportUnread > 0
+                ? `${supportUnread} unread support ${supportUnread === 1 ? "reply" : "replies"}`
+                : "Help and support"
+            }
+            className="relative w-9 h-9 flex items-center justify-center rounded-2xl border border-line bg-white hover:border-gray-400 transition-colors cursor-pointer"
+          >
             <Bell className="w-4 h-4 text-muted" />
+            {supportUnread > 0 && (
+              <span
+                className="absolute -top-1 -right-1 min-w-4.5 h-4.5 px-1 rounded-full text-[10px] font-bold text-white flex items-center justify-center"
+                style={{ backgroundColor: "#B3261E" }}
+              >
+                {supportUnread}
+              </span>
+            )}
           </button>
-          <span className="pointer-events-none absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-gray-800 px-2 py-1 text-xs text-white opacity-0 group-hover/bell:opacity-100 transition-opacity">
-            Coming soon
-          </span>
+          {supportUnread === 0 && (
+            <span className="pointer-events-none absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-gray-800 px-2 py-1 text-xs text-white opacity-0 group-hover/bell:opacity-100 transition-opacity">
+              Help &amp; support
+            </span>
+          )}
         </div>
         <div className="relative" ref={profileRef}>
           <button

@@ -5,8 +5,13 @@ import type { RenderedEmail } from "./shared";
 import { teacherInviteTemplate } from "./teacherInvite";
 import { passwordResetTemplate } from "./passwordReset";
 import { accountSuspendedTemplate } from "./accountSuspended";
+import { supportReplyTemplate } from "./supportReply";
 
-export type EmailTemplateKey = "teacher_invite" | "password_reset" | "account_suspended";
+export type EmailTemplateKey =
+  | "teacher_invite"
+  | "password_reset"
+  | "account_suspended"
+  | "support_reply";
 
 export const TEMPLATES: Record<
   EmailTemplateKey,
@@ -15,4 +20,5 @@ export const TEMPLATES: Record<
   teacher_invite: teacherInviteTemplate,
   password_reset: passwordResetTemplate,
   account_suspended: accountSuspendedTemplate,
+  support_reply: supportReplyTemplate,
 };
