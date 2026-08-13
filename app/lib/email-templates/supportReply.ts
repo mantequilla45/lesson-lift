@@ -1,4 +1,4 @@
-import { button, escapeHtml, siteUrl, DIVIDER, H1, P, SMALL, type RenderedEmail } from "./shared";
+import { button, escapeHtml, prose, siteUrl, DIVIDER, H1, P, SMALL, type RenderedEmail } from "./shared";
 
 /**
  * Sent when support replies to a teacher's conversation.
@@ -12,7 +12,10 @@ import { button, escapeHtml, siteUrl, DIVIDER, H1, P, SMALL, type RenderedEmail 
  * there, and the header of 20260805001500_support.sql for why the distinction
  * is load-bearing.
  */
-export function supportReplyTemplate(params: Record<string, string>): RenderedEmail {
+export function supportReplyTemplate(
+  params: Record<string, string>,
+  bodyOverride?: string | null,
+): RenderedEmail {
   const subject = escapeHtml(params.subject);
   const body = escapeHtml(params.body);
   const reference = escapeHtml(params.reference);
@@ -27,9 +30,15 @@ export function supportReplyTemplate(params: Record<string, string>): RenderedEm
     subject: `Re: ${params.subject || "your message"}`,
     html: `
     <h1 ${H1}>We&rsquo;ve replied to your message</h1>
-    <p ${P}>
+    ${
+      // Only the lead-in is overridable. The block below carries the support
+      // agent's actual answer — the reason this email exists — and must never
+      // be replaceable by a template setting.
+      prose(bodyOverride) ??
+      `<p ${P}>
       About <strong style="color:#1a1a1a;">${subject}</strong>:
-    </p>
+    </p>`
+    }
 
     <table cellpadding="0" cellspacing="0" style="width:100%;margin:0 0 8px 0;background-color:#F1EFE9;border-radius:12px;">
       <tr><td style="padding:16px 18px;">

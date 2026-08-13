@@ -28,6 +28,15 @@ import {
   inputStyle,
   useToast,
 } from "../ui";
+import CopyPreview from "./CopyPreview";
+
+/** Tell Next to drop its cached copy read so a publish shows up on the site in
+ *  seconds rather than at the end of the 5-minute TTL. Fire-and-forget: if it
+ *  fails the TTL still expires, and there is nothing useful an admin could do
+ *  about it anyway. */
+function pingRevalidate() {
+  void fetch("/api/admin/copy/revalidate", { method: "POST" }).catch(() => {});
+}
 
 export interface CopyBlock {
   key: string;
@@ -77,9 +86,10 @@ export default function CopyView({
       const { error } = await supabase.rpc("admin_publish_copy", { p_key: r.key });
       if (!error) ok += 1;
     }
+    if (ok > 0) pingRevalidate();
     fire(
       ok === pending.length
-        ? `${ok} change${ok === 1 ? "" : "s"} published.`
+        ? `${ok} change${ok === 1 ? "" : "s"} published — live within a minute.`
         : `${ok} of ${pending.length} published — the rest failed.`,
     );
     router.refresh();
@@ -89,7 +99,7 @@ export default function CopyView({
     <>
       <PageHead
         title="Website & app copy"
-        sub="Every bit of text on jooma.ai and in the teacher dashboard, editable without touching code."
+        sub="The strings on jooma.ai and in the app that can be changed without a deploy. Everything else lives in code."
       >
         {canEdit && drafts > 0 && (
           <Btn variant="primary" onClick={publishAll}>
@@ -208,8 +218,8 @@ export default function CopyView({
         )}
 
         <CardFooter>
-          Anything in {"{curly braces}"} is filled in automatically — leave it alone. Teacher
-          and marketing surfaces read published values only.
+          Plain text — the pages handle their own line breaks and formatting. Only
+          published values reach the site; drafts stay here.
         </CardFooter>
       </Card>
 
@@ -282,8 +292,12 @@ function EditCopyModal({
       }
     }
 
+    if (publish) pingRevalidate();
+
     setSaving(false);
-    onSaved(publish ? "Published to jooma.ai." : "Saved as a draft.");
+    // Not "Published to jooma.ai" — the dashboard keys aren't on jooma.ai, and
+    // the cache means "live" is a few seconds away rather than instant.
+    onSaved(publish ? "Published — live within a minute." : "Saved as a draft.");
     onClose();
   };
 
@@ -293,6 +307,8 @@ function EditCopyModal({
     <Modal
       title="Edit copy"
       onClose={onClose}
+      // Wider than the default so the before/after preview fits side by side.
+      width="max-w-3xl"
       footer={
         canEdit ? (
           <>
@@ -317,7 +333,7 @@ function EditCopyModal({
 
       <Field
         label="Text"
-        help="Anything in {curly braces} is filled in automatically — leave it alone."
+        help="Plain text — just write the sentence. The page handles line breaks."
       >
         <textarea
           rows={4}
@@ -328,6 +344,8 @@ function EditCopyModal({
           style={fieldStyle}
         />
       </Field>
+
+      <CopyPreview copyKey={block.key} value={text} liveValue={block.value} />
 
       {block.has_draft && (
         <Note tone="warn">

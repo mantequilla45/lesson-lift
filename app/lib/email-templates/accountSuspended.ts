@@ -1,4 +1,4 @@
-import { escapeHtml, DIVIDER, H1, P, SMALL, type RenderedEmail } from "./shared";
+import { escapeHtml, prose, DIVIDER, H1, P, SMALL, type RenderedEmail } from "./shared";
 import { siteUrl } from "./shared";
 
 /**
@@ -11,18 +11,29 @@ import { siteUrl } from "./shared";
  * admin gave one, since "your account is suspended" with no explanation is a
  * support ticket by design.
  */
-export function accountSuspendedTemplate(params: Record<string, string>): RenderedEmail {
+export function accountSuspendedTemplate(
+  params: Record<string, string>,
+  bodyOverride?: string | null,
+): RenderedEmail {
   const reason = escapeHtml(params.reason);
   const base = siteUrl();
+
+  // Override replaces the opening explanation. The reason block below is not
+  // editable: it renders admin-entered free text and needs to keep its own
+  // escaping and pre-wrap handling.
+  const intro =
+    prose(bodyOverride) ??
+    `
+    <p ${P}>
+      Your Jooma account has been suspended, so you won&rsquo;t be able to sign in
+      for now. Your saved resources have not been deleted.
+    </p>`;
 
   return {
     subject: "Your Jooma account has been suspended",
     html: `
     <h1 ${H1}>Your account has been suspended</h1>
-    <p ${P}>
-      Your Jooma account has been suspended, so you won&rsquo;t be able to sign in
-      for now. Your saved resources have not been deleted.
-    </p>
+    ${intro}
     ${
       reason
         ? `<table cellpadding="0" cellspacing="0" style="width:100%;margin:0 0 16px 0;background-color:#F1EFE9;border-radius:12px;">

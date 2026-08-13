@@ -1,7 +1,7 @@
 // Registry mapping an email_templates.key to the function that renders it.
 // The keys here must exist in the email_templates table, which is what supplies
 // the admin-editable subject line and the live/paused switch.
-import type { RenderedEmail } from "./shared";
+import type { EmailRenderer } from "./shared";
 import { teacherInviteTemplate } from "./teacherInvite";
 import { passwordResetTemplate } from "./passwordReset";
 import { accountSuspendedTemplate } from "./accountSuspended";
@@ -13,10 +13,7 @@ export type EmailTemplateKey =
   | "account_suspended"
   | "support_reply";
 
-export const TEMPLATES: Record<
-  EmailTemplateKey,
-  (params: Record<string, string>) => RenderedEmail
-> = {
+export const TEMPLATES: Record<EmailTemplateKey, EmailRenderer> = {
   teacher_invite: teacherInviteTemplate,
   password_reset: passwordResetTemplate,
   account_suspended: accountSuspendedTemplate,

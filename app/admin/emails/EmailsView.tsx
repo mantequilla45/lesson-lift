@@ -24,6 +24,20 @@ import {
   fieldStyle,
   useToast,
 } from "../ui";
+import EmailPreview from "./EmailPreview";
+import { SAMPLE_PARAMS } from "@/app/lib/email-templates/samples";
+import type { EmailTemplateKey } from "@/app/lib/email-templates";
+
+/** The {{placeholders}} this template can use, taken from the values its real
+ *  trigger passes. Listing the actual names beats a generic sentence about
+ *  curly braces. */
+function placeholderHint(key: string): string {
+  const params = SAMPLE_PARAMS[key as EmailTemplateKey];
+  if (!params) return "";
+  return Object.keys(params)
+    .map((p) => `{{${p}}}`)
+    .join(", ");
+}
 
 export interface EmailTemplate {
   key: string;
@@ -98,11 +112,11 @@ export default function EmailsView({
         {orphans.length > 0 && (
           <Note tone="warn">
             <b>
-              {orphans.length} of these {rows.length} have no renderer in the code
+              {orphans.length} of these {rows.length} have nothing to trigger them yet
             </b>{" "}
-            and cannot send whatever their status says — they are wording records waiting
-            on the feature that would trigger them. They are marked <b>No renderer</b>{" "}
-            below.
+            — {orphans.map((o) => o.name).join(", ")}. Their wording is saved for
+            whenever the feature that sends them gets built, and they are marked{" "}
+            <b>Not sending</b> below.
           </Note>
         )}
       </div>
@@ -136,8 +150,11 @@ export default function EmailsView({
                         {t.name}
                       </span>
                       {!renderable.has(t.key) && (
-                        <Tag tone="warn" title="No renderer in the code — this cannot send">
-                          No renderer
+                        <Tag
+                          tone="warn"
+                          title="Nothing in the code triggers this yet, so it cannot send whatever the Live switch says"
+                        >
+                          Not sending
                         </Tag>
                       )}
                     </div>
@@ -194,6 +211,7 @@ export default function EmailsView({
         <EditEmailModal
           template={editing}
           sends={mailerReady && renderable.has(editing.key)}
+          renderable={renderable.has(editing.key)}
           onClose={() => setEditing(null)}
           onSaved={(msg) => {
             fire(msg);
@@ -209,12 +227,15 @@ export default function EmailsView({
 function EditEmailModal({
   template,
   sends,
+  renderable,
   onClose,
   onSaved,
 }: {
   template: EmailTemplate;
   /** Provider configured AND this template has a renderer. */
   sends: boolean;
+  /** Whether a renderer exists — drives whether a preview is possible at all. */
+  renderable: boolean;
   onClose: () => void;
   onSaved: (msg: string) => void;
 }) {
@@ -244,6 +265,8 @@ function EditEmailModal({
     <Modal
       title={`Edit ${template.name}`}
       onClose={onClose}
+      // Wide enough for the two email frames side by side.
+      width="max-w-4xl"
       footer={
         <>
           <Btn onClick={onClose}>Cancel</Btn>
@@ -259,7 +282,14 @@ function EditEmailModal({
         </p>
       </Field>
 
-      <Field label="Subject">
+      <Field
+        label="Subject"
+        help={
+          placeholderHint(template.key)
+            ? `Placeholders: ${placeholderHint(template.key)}`
+            : undefined
+        }
+      >
         <input
           value={subject}
           onChange={(e) => setSubject(e.target.value)}
@@ -270,23 +300,38 @@ function EditEmailModal({
 
       <Field
         label="Body"
-        help="Plain text for now. {curly braces} mark values filled in at send time."
+        help={`Replaces the opening paragraphs only — the heading, button and footer stay as designed. Leave blank to use the wording in the code.${
+          placeholderHint(template.key)
+            ? ` Placeholders: ${placeholderHint(template.key)}`
+            : ""
+        }`}
       >
         <textarea
-          rows={8}
+          rows={6}
           value={body}
           onChange={(e) => setBody(e.target.value)}
-          placeholder="Hi {first_name},"
+          placeholder="Leave blank to keep the built-in wording."
           className={`${fieldClass} resize-none`}
           style={fieldStyle}
         />
       </Field>
 
-      <Note tone={sends ? "warn" : "brand"}>
-        {sends
-          ? "This template sends for real. Saving changes the wording of the next one that goes out."
-          : "Saving records the wording. This template has nothing to trigger it yet, so it won't send."}
-      </Note>
+      <EmailPreview
+        templateKey={template.key}
+        subject={subject}
+        body={body}
+        savedSubject={template.subject}
+        savedBody={template.body}
+        renderable={renderable}
+      />
+
+      <div className="mt-3">
+        <Note tone={sends ? "warn" : "brand"}>
+          {sends
+            ? "This template sends for real. Saving changes the wording of the next one that goes out."
+            : "Saving records the wording. This template has nothing to trigger it yet, so it won't send."}
+        </Note>
+      </div>
 
       {error && (
         <p className="text-sm mt-2" style={{ color: C.danger }}>

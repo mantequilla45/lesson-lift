@@ -33,7 +33,7 @@ export default function TopBar({ title, onSearchChange }: TopBarProps) {
 
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [profileOpen, setProfileOpen] = useState(false);
-  const [supportUnread, setSupportUnread] = useState(0);
+  const [announceUnread, setAnnounceUnread] = useState(0);
   const profileRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
 
@@ -44,14 +44,19 @@ export default function TopBar({ title, onSearchChange }: TopBarProps) {
     });
   }, []);
 
-  // Unread support replies. Keyed on pathname so it re-checks on navigation and
-  // clears once the teacher has opened the conversation.
+  // Unread announcements. Keyed on pathname so it re-checks on navigation and
+  // clears once the teacher has been shown them.
+  //
+  // Support replies deliberately don't feed this any more: the bell used to
+  // count them and route to /help, which is not what a bell looks like it does.
+  // Support keeps its own badge on the Help item in the sidebar, next to the
+  // conversations it refers to.
   useEffect(() => {
     let cancelled = false;
     void (async () => {
       const supabase = createClient();
-      const { data } = await supabase.rpc("my_support_unread");
-      if (!cancelled) setSupportUnread(Number(data ?? 0));
+      const { data } = await supabase.rpc("my_announcements_unread");
+      if (!cancelled) setAnnounceUnread(Number(data ?? 0));
     })();
     return () => {
       cancelled = true;
@@ -194,31 +199,32 @@ export default function TopBar({ title, onSearchChange }: TopBarProps) {
             Coming soon
           </span>
         </div>
-        {/* Support replies. Was a disabled "Coming soon" placeholder until
-            teachers had a way to be replied to in the first place. */}
+        {/* Announcements. A bell reads as "news for you", so it goes where the
+            announcements are; support replies badge the Help item in the
+            sidebar instead, alongside the conversations themselves. */}
         <div className="relative group/bell">
           <button
-            onClick={() => router.push("/help")}
+            onClick={() => router.push("/announcements")}
             aria-label={
-              supportUnread > 0
-                ? `${supportUnread} unread support ${supportUnread === 1 ? "reply" : "replies"}`
-                : "Help and support"
+              announceUnread > 0
+                ? `${announceUnread} new ${announceUnread === 1 ? "announcement" : "announcements"}`
+                : "Announcements"
             }
             className="relative w-9 h-9 flex items-center justify-center rounded-2xl border border-line bg-white hover:border-gray-400 transition-colors cursor-pointer"
           >
             <Bell className="w-4 h-4 text-muted" />
-            {supportUnread > 0 && (
+            {announceUnread > 0 && (
               <span
                 className="absolute -top-1 -right-1 min-w-4.5 h-4.5 px-1 rounded-full text-[10px] font-bold text-white flex items-center justify-center"
                 style={{ backgroundColor: "#B3261E" }}
               >
-                {supportUnread}
+                {announceUnread}
               </span>
             )}
           </button>
-          {supportUnread === 0 && (
+          {announceUnread === 0 && (
             <span className="pointer-events-none absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-gray-800 px-2 py-1 text-xs text-white opacity-0 group-hover/bell:opacity-100 transition-opacity">
-              Help &amp; support
+              Announcements
             </span>
           )}
         </div>

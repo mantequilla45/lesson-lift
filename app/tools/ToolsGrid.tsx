@@ -11,6 +11,7 @@ import Card from "@/app/components/ui/Card";
 import ToolIcon from "@/app/components/ToolIcon";
 import { TOOLS } from "@/app/lib/tools";
 import { usePinnedTools, togglePin } from "@/app/lib/usePinnedTools";
+import AnnouncementBanner from "@/app/components/AnnouncementBanner";
 
 export default function ToolsGrid({ disabledSlugs }: { disabledSlugs: string[] }) {
   const [query, setQuery] = useState("");
@@ -43,6 +44,8 @@ export default function ToolsGrid({ disabledSlugs }: { disabledSlugs: string[] }
       <SupportLauncher />
       <main className="grow flex flex-col overflow-y-auto">
         <TopBar title="Tools" />
+        {/* Team announcements. Renders nothing when there are none. */}
+        <AnnouncementBanner />
 
         <div className="px-10 pb-16 space-y-4">
 

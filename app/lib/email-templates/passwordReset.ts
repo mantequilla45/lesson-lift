@@ -1,4 +1,4 @@
-import { button, escapeHtml, DIVIDER, H1, P, SMALL, type RenderedEmail } from "./shared";
+import { button, escapeHtml, prose, DIVIDER, H1, P, SMALL, type RenderedEmail } from "./shared";
 
 /**
  * Sent when an admin triggers a password reset from the Teachers drawer.
@@ -6,19 +6,30 @@ import { button, escapeHtml, DIVIDER, H1, P, SMALL, type RenderedEmail } from ".
  * Worth being explicit in the copy that a person did this: a reset email the
  * recipient didn't request reads as a breach attempt otherwise.
  */
-export function passwordResetTemplate(params: Record<string, string>): RenderedEmail {
+export function passwordResetTemplate(
+  params: Record<string, string>,
+  bodyOverride?: string | null,
+): RenderedEmail {
   const resetUrl = params.resetUrl ?? "#";
   const firstName = escapeHtml(params.firstName);
+
+  // Override replaces the explanation only. The footnote below the button
+  // stays: "if you didn't ask for this, nothing has changed" is a security
+  // notice, not marketing copy, and it should not be editable away.
+  const intro =
+    prose(bodyOverride) ??
+    `
+    <p ${P}>
+      ${firstName ? `Hi ${firstName} &mdash; s` : "S"}omeone on the Jooma team started
+      a password reset for your account, usually because you asked us to. Click
+      below to choose a new password.
+    </p>`;
 
   return {
     subject: "Reset your Jooma password",
     html: `
     <h1 ${H1}>Reset your password</h1>
-    <p ${P}>
-      ${firstName ? `Hi ${firstName} &mdash; s` : "S"}omeone on the Jooma team started
-      a password reset for your account, usually because you asked us to. Click
-      below to choose a new password.
-    </p>
+    ${intro}
 
     ${button("Choose a new password", resetUrl)}
 

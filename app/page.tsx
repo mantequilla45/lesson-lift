@@ -11,6 +11,7 @@ import WhyJooma from "@/app/components/landing/WhyJooma";
 import Faq from "@/app/components/landing/Faq";
 import NavAuth from "@/app/components/landing/NavAuth";
 import { createClient } from "@/app/lib/auth/server";
+import { getCopy } from "@/app/lib/copy";
 
 const FEATURED = [
   { icon: "/icons/tool-lesson-plans.svg", label: "Lesson Planner", desc: "Structured plans from a topic and objective in seconds." },
@@ -60,6 +61,10 @@ export default async function LandingPage({
     data: { user },
   } = await supabase.auth.getUser();
 
+  // Hero wording from /admin/copy, with the previously-hardcoded strings as the
+  // fallback — see app/lib/copy.ts.
+  const copy = await getCopy();
+
   let firstName: string | null = null;
   let isAdmin = false;
   if (user) {
@@ -104,24 +109,30 @@ export default async function LandingPage({
               style={{ backgroundColor: "#EAEFF7", color: "#3B6FF5", borderColor: "#D6DEF2" }}
             >
               <Sparkles className="w-3.5 h-3.5" />
-              AI-Powered Lesson Creation
+              {copy["home.hero.eyebrow"]}
             </span>
-            <h1 className="text-5xl md:text-6xl font-bold tracking-tight mb-6 leading-[1.04]" style={{ color: "#030303" }}>
-              Create personalised lessons<br />in minutes, not hours.
+            {/* text-balance replaces the hard <br /> this heading used to carry:
+                the break is typographic, and keeping it in the copy would mean
+                an admin editing HTML. Falls back to normal wrapping on older
+                browsers. */}
+            <h1
+              className="text-5xl md:text-6xl font-bold tracking-tight mb-6 leading-[1.04] text-balance max-w-3xl mx-auto"
+              style={{ color: "#030303" }}
+            >
+              {copy["home.hero.h1"]}
             </h1>
             <p className="max-w-2xl mx-auto mb-8 leading-normal">
-              Jooma helps teachers generate personalised, curriculum-aligned lessons
-              in minutes — reducing planning time while improving classroom engagement.
+              {copy["home.hero.sub"]}
             </p>
             <Link
               href="/signup"
               className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl text-sm font-semibold text-white transition-opacity hover:opacity-90"
               style={{ backgroundColor: "#030303" }}
             >
-              Get Started
+              {copy["home.hero.cta"]}
             </Link>
             <p className="text-xs mt-5" style={{ color: "#9a8f85" }}>
-              No card required · 5 free generations every month
+              {copy["home.hero.reassure"]}
             </p>
           </div>
 

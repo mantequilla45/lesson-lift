@@ -5,10 +5,13 @@
 // a bulk invite. Supabase still mints the auth tokens (generateLink), so no
 // token or session logic lives here — only delivery.
 //
-// Subject lines and the live/paused switch come from the email_templates table
-// so an admin can reword or pause an email without a deploy. The HTML bodies
-// stay in code: they compose layout()/button(), they're reviewable in a diff,
-// and hand-editing transactional HTML in a textarea is a footgun.
+// Subject lines, the live/paused switch and the body prose come from the
+// email_templates table so an admin can reword or pause an email without a
+// deploy. The *structure* stays in code: layout(), the CTA buttons, the reason
+// and reply blocks, the security footnotes and every bit of escaping. An admin
+// edits sentences, and the override runs through prose() in email-templates/
+// shared.ts, which escapes before it wraps — so nothing typed into that
+// textarea can inject markup into a teacher's inbox or break the email.
 import "server-only";
 import sgMail from "@sendgrid/mail";
 import { supabaseAdmin } from "./supabase-admin";
@@ -106,8 +109,15 @@ async function send(to: string, subject: string, html: string): Promise<boolean>
   }
 }
 
-/** Fill {{placeholders}} in an admin-edited subject line. */
-function interpolate(template: string, params: Record<string, string>): string {
+/**
+ * Fill {{placeholders}} in admin-edited wording. Double braces, not single —
+ * /admin/emails shows the available names per template.
+ *
+ * Exported so the admin preview route renders through exactly this function
+ * rather than its own copy of the regex; a preview that interpolates
+ * differently from the sender is worse than no preview.
+ */
+export function interpolate(template: string, params: Record<string, string>): string {
   return template.replace(/\{\{(\w+)\}\}/g, (_, k) => params[k] ?? "");
 }
 
@@ -118,24 +128,31 @@ function interpolate(template: string, params: Record<string, string>): string {
  */
 async function templateSettings(
   key: EmailTemplateKey,
-): Promise<{ live: boolean; subject: string | null }> {
+): Promise<{ live: boolean; subject: string | null; body: string | null }> {
   const { data, error } = await supabaseAdmin
     .from("email_templates")
-    .select("live, subject")
+    .select("live, subject, body")
     .eq("key", key)
     .maybeSingle();
-  if (error || !data) return { live: true, subject: null };
-  return { live: data.live, subject: data.subject };
+  if (error || !data) return { live: true, subject: null, body: null };
+  return { live: data.live, subject: data.subject, body: data.body };
 }
 
-/** Render a template without sending — powers the /admin/emails preview. */
+/**
+ * Render a template without sending — powers the /admin/emails preview.
+ *
+ * `bodyOverride` is passed in rather than read from the database so the preview
+ * can show wording the admin is still typing, before they save it.
+ */
 export function generateEmailHtml(
   key: EmailTemplateKey,
   params: Record<string, string>,
+  bodyOverride?: string | null,
 ): { subject: string; html: string } | null {
   const render = TEMPLATES[key];
   if (!render) return null;
-  const { subject, html } = render(params);
+  const override = bodyOverride ? interpolate(bodyOverride, params) : null;
+  const { subject, html } = render(params, override);
   return { subject, html: layout(html) };
 }
 
@@ -161,7 +178,12 @@ export async function sendTemplate(
     return false;
   }
 
-  const { subject: defaultSubject, html } = render(params);
+  // Interpolate the override before it reaches the template, so {{firstName}}
+  // works in a body exactly as it does in a subject. prose() escapes afterwards,
+  // so a parameter carrying markup still cannot inject any.
+  const override = settings.body ? interpolate(settings.body, params) : null;
+
+  const { subject: defaultSubject, html } = render(params, override);
   const subject = settings.subject ? interpolate(settings.subject, params) : defaultSubject;
   return send(to, subject, layout(html));
 }

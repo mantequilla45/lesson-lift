@@ -9,6 +9,7 @@ import TopBar from "@/app/components/layout/TopBar";
 import Card from "@/app/components/ui/Card";
 import { listToolRuns, deleteToolRun, type ToolRun } from "@/app/lib/toolRuns";
 import { toolForSlug, typeLabel, formatDate, TAG_COLORS } from "@/app/lib/toolRunDisplay";
+import AnnouncementBanner from "@/app/components/AnnouncementBanner";
 
 export default function FolderDetailPage() {
   const params = useParams<{ slug: string }>();
@@ -44,6 +45,8 @@ export default function FolderDetailPage() {
       <SupportLauncher />
       <main className="grow flex flex-col overflow-y-auto">
         <TopBar title="Folders" />
+        {/* Team announcements. Renders nothing when there are none. */}
+        <AnnouncementBanner />
 
         <div className="px-10 pb-16 space-y-4">
           <Card className="p-10">

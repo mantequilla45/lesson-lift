@@ -1,4 +1,4 @@
-import { button, escapeHtml, DIVIDER, H1, P, SMALL, type RenderedEmail } from "./shared";
+import { button, escapeHtml, prose, DIVIDER, H1, P, SMALL, type RenderedEmail } from "./shared";
 
 /**
  * Sent when an admin invites a teacher from the Teachers tab.
@@ -8,14 +8,20 @@ import { button, escapeHtml, DIVIDER, H1, P, SMALL, type RenderedEmail } from ".
  * finish onboarding; it is not itself a sign-in, so it never grants access on
  * its own.
  */
-export function teacherInviteTemplate(params: Record<string, string>): RenderedEmail {
+export function teacherInviteTemplate(
+  params: Record<string, string>,
+  bodyOverride?: string | null,
+): RenderedEmail {
   const inviteUrl = params.inviteUrl ?? "#";
   const inviter = escapeHtml(params.inviterName);
 
-  return {
-    subject: "You have been invited to Jooma",
-    html: `
-    <h1 ${H1}>You&rsquo;ve been invited to Jooma</h1>
+  // The override replaces the two intro paragraphs. The button and the expiry
+  // note below it are not editable: one carries the token, the other is the
+  // "you can ignore this" line that stops an unexpected invite reading as an
+  // attack.
+  const intro =
+    prose(bodyOverride) ??
+    `
     <p ${P}>
       ${inviter ? `${inviter} has invited you` : "You have been invited"} to Jooma &mdash;
       lesson resources, quizzes and slide decks, generated in seconds and aligned
@@ -24,7 +30,13 @@ export function teacherInviteTemplate(params: Record<string, string>): RenderedE
     <p ${P}>
       Click below to set up your account. You can continue with Google or create a
       password &mdash; whichever you prefer.
-    </p>
+    </p>`;
+
+  return {
+    subject: "You have been invited to Jooma",
+    html: `
+    <h1 ${H1}>You&rsquo;ve been invited to Jooma</h1>
+    ${intro}
 
     ${button("Accept the invite", inviteUrl)}
 

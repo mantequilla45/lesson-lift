@@ -83,6 +83,10 @@ export default function HelpView({
       <SideNav />
       <main className="grow flex flex-col min-h-screen min-w-0">
         <TopBar title="Help" />
+        {/* No <AnnouncementBanner /> here, unlike the other app pages: the panel
+            below is sized with a viewport calc, so a banner would push its
+            bottom edge off screen rather than compressing it. Teachers still see
+            announcements everywhere else and at /announcements. */}
 
         <div className="px-10 pb-10 grow min-h-0">
           <div

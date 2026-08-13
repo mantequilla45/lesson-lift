@@ -9,7 +9,6 @@ import {
   C,
   Card,
   CardBody,
-  CardFooter,
   CardHeader,
   CardTitle,
   EmptyState,
@@ -59,6 +58,7 @@ const TYPE_TONE: Record<string, "brand" | "warn" | "danger"> = {
 export default function AnnounceView({ rows }: { rows: AnnouncementRow[] }) {
   const router = useRouter();
   const [composing, setComposing] = useState(false);
+  const [editing, setEditing] = useState<AnnouncementRow | null>(null);
   const [toastNode, fire] = useToast();
 
   const current = rows.filter((r) => r.is_current);
@@ -92,16 +92,29 @@ export default function AnnounceView({ rows }: { rows: AnnouncementRow[] }) {
       <p className="text-sm mb-2" style={{ color: C.ink }}>
         {r.message}
       </p>
+      {/* click_count is deliberately not shown. An announcement is a plain
+          sentence with no link in it, so there is nothing for a teacher to
+          click and the number would sit at zero forever. Add a link_url column
+          and a CTA in the banner if that ever needs to mean something. */}
       <div className="text-xs mb-2" style={{ color: C.muted }}>
         {fmtDate(r.starts_at)}
         {r.ends_at ? ` — ${fmtDate(r.ends_at)}` : " — no end date"}
         {" · "}
-        seen {nf.format(Number(r.seen_count))} · dismissed{" "}
+        seen by {nf.format(Number(r.seen_count))} · dismissed by{" "}
         {nf.format(Number(r.dismissed_count))}
       </div>
-      <Btn size="sm" variant={r.live ? "danger" : "primary"} onClick={() => setLive(r.id, !r.live)}>
-        {r.live ? "Take down" : "Publish"}
-      </Btn>
+      <div className="flex gap-2">
+        <Btn size="sm" onClick={() => setEditing(r)}>
+          Edit
+        </Btn>
+        <Btn
+          size="sm"
+          variant={r.live ? "danger" : "primary"}
+          onClick={() => setLive(r.id, !r.live)}
+        >
+          {r.live ? "Take down" : "Publish"}
+        </Btn>
+      </div>
     </div>
   );
 
@@ -117,10 +130,11 @@ export default function AnnounceView({ rows }: { rows: AnnouncementRow[] }) {
       </PageHead>
 
       <div className="mb-4">
-        <Note tone="warn">
-          Announcements are stored and can be published here, but the teacher dashboard
-          doesn&apos;t render them yet — the banner component is separate work. Counts stay at
-          zero until it does.
+        <Note>
+          Banners appear at the top of the teacher&apos;s dashboard, tools, folders and
+          analytics pages, and everything live is listed at{" "}
+          <b>/announcements</b>. Seen and dismissed are counts of distinct teachers,
+          not page views.
         </Note>
       </div>
 
@@ -172,9 +186,13 @@ export default function AnnounceView({ rows }: { rows: AnnouncementRow[] }) {
         </div>
       )}
 
-      {composing && (
+      {(composing || editing) && (
         <ComposeModal
-          onClose={() => setComposing(false)}
+          existing={editing}
+          onClose={() => {
+            setComposing(false);
+            setEditing(null);
+          }}
           onSaved={(msg) => {
             fire(msg);
             router.refresh();
@@ -186,19 +204,31 @@ export default function AnnounceView({ rows }: { rows: AnnouncementRow[] }) {
   );
 }
 
+/** A timestamptz from the API rendered for <input type="date">. */
+function dateInputValue(iso: string | null): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toISOString().slice(0, 10);
+}
+
 function ComposeModal({
+  existing,
   onClose,
   onSaved,
 }: {
+  /** Null when composing; a row when editing one that already exists. */
+  existing: AnnouncementRow | null;
   onClose: () => void;
   onSaved: (msg: string) => void;
 }) {
-  const [message, setMessage] = useState("");
-  const [type, setType] = useState("info");
-  const [audience, setAudience] = useState("everyone");
-  const [endsAt, setEndsAt] = useState("");
-  const [dismissible, setDismissible] = useState(true);
-  const [live, setLive] = useState(false);
+  const [message, setMessage] = useState(existing?.message ?? "");
+  const [type, setType] = useState(existing?.type ?? "info");
+  const [audience, setAudience] = useState(existing?.audience ?? "everyone");
+  const [startsAt, setStartsAt] = useState(dateInputValue(existing?.starts_at ?? null));
+  const [endsAt, setEndsAt] = useState(dateInputValue(existing?.ends_at ?? null));
+  const [dismissible, setDismissible] = useState(existing?.dismissible ?? true);
+  const [live, setLive] = useState(existing?.live ?? false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -207,26 +237,49 @@ function ComposeModal({
     setError(null);
     const supabase = createClient();
     const { error: e } = await supabase.rpc("admin_upsert_announcement", {
-      payload: { message, type, audience, ends_at: endsAt || null, dismissible, live },
+      payload: {
+        ...(existing ? { id: existing.id } : {}),
+        message,
+        type,
+        audience,
+        // Both dates are sent even when blank: the RPC reads `payload ? 'key'`,
+        // so an empty string clears the value rather than leaving the old one.
+        starts_at: startsAt || null,
+        ends_at: endsAt || null,
+        dismissible,
+        live,
+      },
     });
     setSaving(false);
     if (e) {
       setError(e.message);
       return;
     }
-    onSaved(live ? "Announcement published." : "Saved as a draft.");
+    onSaved(
+      existing
+        ? "Announcement updated."
+        : live
+          ? "Announcement published."
+          : "Saved as a draft.",
+    );
     onClose();
   };
 
   return (
     <Modal
-      title="New announcement"
+      title={existing ? "Edit announcement" : "New announcement"}
       onClose={onClose}
       footer={
         <>
           <Btn onClick={onClose}>Cancel</Btn>
           <Btn variant="primary" onClick={submit} disabled={saving || !message.trim()}>
-            {saving ? "Saving…" : live ? "Publish" : "Save draft"}
+            {saving
+              ? "Saving…"
+              : existing
+                ? "Save changes"
+                : live
+                  ? "Publish"
+                  : "Save draft"}
           </Btn>
         </>
       }
@@ -270,15 +323,26 @@ function ComposeModal({
           </select>
         </Field>
       </div>
-      <Field label="Until" help="Leave blank to show it until you take it down.">
-        <input
-          type="date"
-          value={endsAt}
-          onChange={(e) => setEndsAt(e.target.value)}
-          className={fieldClass}
-          style={fieldStyle}
-        />
-      </Field>
+      <div className="grid gap-x-4 sm:grid-cols-2">
+        <Field label="Starts" help="Leave blank to start as soon as it's published.">
+          <input
+            type="date"
+            value={startsAt}
+            onChange={(e) => setStartsAt(e.target.value)}
+            className={fieldClass}
+            style={fieldStyle}
+          />
+        </Field>
+        <Field label="Until" help="Leave blank to show it until you take it down.">
+          <input
+            type="date"
+            value={endsAt}
+            onChange={(e) => setEndsAt(e.target.value)}
+            className={fieldClass}
+            style={fieldStyle}
+          />
+        </Field>
+      </div>
 
       <ToggleRow
         title="Teachers can dismiss it"
@@ -286,7 +350,14 @@ function ComposeModal({
       >
         <Toggle on={dismissible} onChange={setDismissible} label="Dismissible" />
       </ToggleRow>
-      <ToggleRow title="Publish immediately" desc="Off saves it as a draft.">
+      <ToggleRow
+        title={existing ? "Live" : "Publish immediately"}
+        desc={
+          existing
+            ? "Turn off to take it down without deleting it."
+            : "Off saves it as a draft."
+        }
+      >
         <Toggle on={live} onChange={setLive} label="Publish" />
       </ToggleRow>
 

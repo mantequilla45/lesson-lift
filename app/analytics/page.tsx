@@ -10,6 +10,7 @@ import Card from "@/app/components/ui/Card";
 import { minutesSavedFor } from "@/app/lib/tools";
 import { listRecentRuns, deleteToolRun, type ToolRun } from "@/app/lib/toolRuns";
 import { toolForSlug, typeLabel, formatDate, TAG_COLORS } from "@/app/lib/toolRunDisplay";
+import AnnouncementBanner from "@/app/components/AnnouncementBanner";
 
 function formatHours(minutes: number) {
   if (minutes < 60) return `${minutes} min`;
@@ -72,6 +73,8 @@ export default function AnalyticsPage() {
       <SupportLauncher />
       <main className="grow flex flex-col overflow-y-auto">
         <TopBar title="Analytics" />
+        {/* Team announcements. Renders nothing when there are none. */}
+        <AnnouncementBanner />
 
         <div className="px-10 pb-16 space-y-4">
           {/* Summary */}
