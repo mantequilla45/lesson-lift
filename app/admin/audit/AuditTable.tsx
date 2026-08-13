@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/app/lib/auth/client";
+import { downloadCsv, toCsv } from "@/app/lib/csv";
 import { fmtDateTime, nf } from "../format";
 import {
+  Btn,
   C,
   Card,
   CardFooter,
@@ -17,8 +19,13 @@ import {
   Tr,
   inputClass,
   inputStyle,
+  useToast,
 } from "../ui";
 
+// `ip` is deliberately absent: admin_log() is a security-definer function with
+// no access to the request, so the column has been null on every row ever
+// written. A column of dashes on the page you show a DPO is worse than no
+// column at all.
 export interface AuditRow {
   id: string;
   actor_email: string | null;
@@ -28,7 +35,6 @@ export interface AuditRow {
   object_id: string | null;
   object_label: string | null;
   detail: Record<string, unknown>;
-  ip: string | null;
   created_at: string;
   total_count: number;
 }
@@ -48,6 +54,22 @@ const TYPES = [
 ];
 
 const PAGE = 100;
+/** Rows per request when building an export. Larger than PAGE because nobody
+ *  is waiting on a render, and it keeps a year of activity to a few calls. */
+const EXPORT_PAGE = 1000;
+/** Ceiling on an export, so a filter that matches everything can't try to pull
+ *  an unbounded table into the browser. */
+const EXPORT_MAX = 10_000;
+
+const EXPORT_HEADERS = [
+  "When",
+  "Who",
+  "Action",
+  "Type",
+  "Object",
+  "Object ID",
+  "Detail",
+];
 
 export default function AuditTable({
   initialRows,
@@ -61,6 +83,9 @@ export default function AuditTable({
   const [actor, setActor] = useState("");
   const [type, setType] = useState("");
   const [loading, setLoading] = useState(false);
+  const [more, setMore] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [toastNode, fire] = useToast();
 
   // Filtering happens in Postgres rather than in the browser: the audit log is
   // append-only and unbounded, so it can't be pulled down wholesale the way the
@@ -90,12 +115,87 @@ export default function AuditTable({
 
   const total = rows[0]?.total_count ?? 0;
 
+  const loadMore = async () => {
+    setMore(true);
+    const supabase = createClient();
+    const { data, error } = await supabase.rpc("admin_audit_log_list", {
+      q: q || null,
+      actor: actor || null,
+      p_type: type || null,
+      lim: PAGE,
+      off: rows.length,
+    });
+    setMore(false);
+    if (error) {
+      fire(error.message);
+      return;
+    }
+    setRows((prev) => [...prev, ...((data ?? []) as AuditRow[])]);
+  };
+
+  // Exports everything the current filters match, not just what's been loaded
+  // — an export that silently stopped at the first 100 would be worse than
+  // none on a page whose whole promise is completeness. Pages server-side
+  // because the log is append-only and unbounded.
+  const exportCsv = async () => {
+    setExporting(true);
+    const supabase = createClient();
+    const all: AuditRow[] = [];
+
+    while (all.length < EXPORT_MAX) {
+      const { data, error } = await supabase.rpc("admin_audit_log_list", {
+        q: q || null,
+        actor: actor || null,
+        p_type: type || null,
+        lim: EXPORT_PAGE,
+        off: all.length,
+      });
+      if (error) {
+        setExporting(false);
+        fire(error.message);
+        return;
+      }
+      const page = (data ?? []) as AuditRow[];
+      all.push(...page);
+      if (page.length < EXPORT_PAGE) break;
+    }
+
+    downloadCsv(
+      toCsv(
+        EXPORT_HEADERS,
+        all.map((r) => [
+          fmtDateTime(r.created_at),
+          r.actor_email ?? "system",
+          r.action,
+          r.action_type,
+          r.object_label ?? "",
+          r.object_id ?? "",
+          // The field that actually answers "what changed" — fetched and
+          // thrown away by the table, but the reason a DPO asked for a file.
+          Object.keys(r.detail ?? {}).length ? JSON.stringify(r.detail) : "",
+        ]),
+      ),
+      `jooma-audit-${new Date().toISOString().slice(0, 10)}.csv`,
+    );
+
+    setExporting(false);
+    fire(
+      all.length >= EXPORT_MAX
+        ? `Exported the most recent ${nf.format(EXPORT_MAX)} entries — narrow the filters for the rest.`
+        : `Exported ${nf.format(all.length)} ${all.length === 1 ? "entry" : "entries"}.`,
+    );
+  };
+
   return (
     <>
       <PageHead
         title="Audit log"
         sub="Every admin action, permanently. This is what you show a school's data protection officer when they ask."
-      />
+      >
+        <Btn onClick={exportCsv} disabled={exporting || total === 0}>
+          {exporting ? "Exporting…" : "Export"}
+        </Btn>
+      </PageHead>
 
       <Card>
         <FilterBar>
@@ -157,7 +257,6 @@ export default function AuditTable({
                 <Th width="180px">Who</Th>
                 <Th>Action</Th>
                 <Th>Object</Th>
-                <Th width="120px">IP</Th>
               </tr>
             </thead>
             <tbody>
@@ -190,11 +289,6 @@ export default function AuditTable({
                       <span style={{ color: C.muted }}>—</span>
                     )}
                   </Td>
-                  <Td>
-                    <span className="font-mono text-xs" style={{ color: C.muted }}>
-                      {r.ip ?? "—"}
-                    </span>
-                  </Td>
                 </Tr>
               ))}
             </tbody>
@@ -202,10 +296,23 @@ export default function AuditTable({
         )}
 
         <CardFooter>
-          Append-only. Not editable by anyone, including super admins.
-          {rows.length >= PAGE && ` Showing the most recent ${nf.format(PAGE)}.`}
+          <div className="flex items-center gap-3 flex-wrap">
+            <span>Append-only. Not editable by anyone, including super admins.</span>
+            {rows.length < total && (
+              <>
+                <span>
+                  Showing {nf.format(rows.length)} of {nf.format(total)}.
+                </span>
+                <Btn size="sm" onClick={loadMore} disabled={more}>
+                  {more ? "Loading…" : "Load more"}
+                </Btn>
+              </>
+            )}
+          </div>
         </CardFooter>
       </Card>
+
+      {toastNode}
     </>
   );
 }

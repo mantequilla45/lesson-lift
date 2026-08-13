@@ -8,9 +8,11 @@ import { FcGoogle } from "react-icons/fc";
 import { MdLock } from "react-icons/md";
 import { Mail } from "lucide-react";
 import { createClient } from "@/app/lib/auth/client";
+import { usePublicSettings } from "@/app/lib/usePublicSettings";
 
 export default function SignupPage() {
   const router = useRouter();
+  const settings = usePublicSettings();
   const [email, setEmail] = useState("");
   const [agreed, setAgreed] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -70,7 +72,15 @@ export default function SignupPage() {
   }, []);
 
   const emailLocked = invite.state === "valid";
-  const canSubmit = email.trim().length > 0 && agreed && invite.state !== "loading";
+
+  // Closed signups don't apply to someone holding a valid invite — the profiles
+  // INSERT policy makes the same exception, so blocking them here would refuse
+  // a signup the database would have allowed.
+  const signupsClosed =
+    settings.loaded && !settings.signupsOpen && invite.state !== "valid";
+
+  const canSubmit =
+    email.trim().length > 0 && agreed && invite.state !== "loading" && !signupsClosed;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -171,20 +181,39 @@ export default function SignupPage() {
               </div>
             )}
 
-            <button
-              type="button"
-              onClick={handleGoogle}
-              className="w-full flex items-center justify-center gap-3 py-3 rounded-xl bg-white border border-line text-sm font-medium hover:border-dark transition-colors mb-6"
-            >
-              <FcGoogle className="w-5 h-5" />
-              Continue with Google
-            </button>
+            {signupsClosed && (
+              <div
+                className="mb-6 rounded-2xl border px-4 py-3"
+                style={{ backgroundColor: "#FBF3E6", borderColor: "#E8D9BC" }}
+              >
+                <p className="text-sm font-semibold" style={{ color: "#7A5A1E" }}>
+                  Signups are closed right now
+                </p>
+                <p className="mt-0.5 text-sm font-light" style={{ color: "#8A6E36" }}>
+                  Jooma isn&rsquo;t open to new accounts at the moment. If you were sent an
+                  invitation, open the link in that email instead — it will still work.
+                </p>
+              </div>
+            )}
 
-            <div className="flex items-center gap-3 mb-6">
-              <div className="h-px bg-line flex-1" />
-              <span className="text-xs text-muted">or</span>
-              <div className="h-px bg-line flex-1" />
-            </div>
+            {settings.googleSignin && !signupsClosed && (
+              <>
+                <button
+                  type="button"
+                  onClick={handleGoogle}
+                  className="w-full flex items-center justify-center gap-3 py-3 rounded-xl bg-white border border-line text-sm font-medium hover:border-dark transition-colors mb-6"
+                >
+                  <FcGoogle className="w-5 h-5" />
+                  Continue with Google
+                </button>
+
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="h-px bg-line flex-1" />
+                  <span className="text-xs text-muted">or</span>
+                  <div className="h-px bg-line flex-1" />
+                </div>
+              </>
+            )}
 
             <form onSubmit={handleSubmit}>
               <div>

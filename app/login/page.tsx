@@ -8,12 +8,14 @@ import { FcGoogle } from "react-icons/fc";
 import { MdLock } from "react-icons/md";
 import { Eye, EyeOff } from "lucide-react";
 import { createClient } from "@/app/lib/auth/client";
+import { usePublicSettings } from "@/app/lib/usePublicSettings";
 
 const SUSPENDED_MESSAGE =
   "This account has been suspended. If you think that's a mistake, contact support and we'll take another look.";
 
 export default function LoginPage() {
   const router = useRouter();
+  const settings = usePublicSettings();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -135,20 +137,27 @@ export default function LoginPage() {
               </p>
             </div>
 
-            <button
-              type="button"
-              onClick={handleGoogle}
-              className="w-full flex items-center justify-center gap-3 py-3 rounded-xl bg-white border border-line text-sm font-medium hover:border-dark transition-colors mb-6"
-            >
-              <FcGoogle className="w-5 h-5" />
-              Continue with Google
-            </button>
+            {/* Only the Google button is gated here. Signing IN is never
+                blocked by signups_open — closing signups stops new accounts,
+                it doesn't lock out the teachers who already have one. */}
+            {settings.googleSignin && (
+              <>
+                <button
+                  type="button"
+                  onClick={handleGoogle}
+                  className="w-full flex items-center justify-center gap-3 py-3 rounded-xl bg-white border border-line text-sm font-medium hover:border-dark transition-colors mb-6"
+                >
+                  <FcGoogle className="w-5 h-5" />
+                  Continue with Google
+                </button>
 
-            <div className="flex items-center gap-3 mb-6">
-              <div className="h-px bg-line flex-1" />
-              <span className="text-xs text-muted">or</span>
-              <div className="h-px bg-line flex-1" />
-            </div>
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="h-px bg-line flex-1" />
+                  <span className="text-xs text-muted">or</span>
+                  <div className="h-px bg-line flex-1" />
+                </div>
+              </>
+            )}
 
             <form onSubmit={handleSubmit}>
               <div>

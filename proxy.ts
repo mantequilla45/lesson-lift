@@ -10,11 +10,28 @@ import {
   toolSlugFor,
 } from "@/app/lib/generation-guard";
 import { isToolEnabled } from "@/app/lib/tool-availability";
+import { publicSettings } from "@/app/lib/settings";
+
+// Reachable while maintenance mode is on. /maintenance itself, obviously, plus
+// the auth routes — an admin has to be able to sign in to turn it back off,
+// and they can't do that if the login page is behind the holding page.
+const MAINTENANCE_ALLOWED = [
+  "/maintenance",
+  "/login",
+  "/auth",
+  "/admin",
+  "/api/admin",
+  "/terms",
+  "/privacy",
+];
 
 // Routes reachable without a session. Everything else redirects to /login.
 const PUBLIC_PATHS = [
   "/login",
   "/signup",
+  // The maintenance holding page is shown to signed-out visitors too, so it
+  // must not bounce to /login — which is itself behind the holding page.
+  "/maintenance",
   "/verify",
   "/create-password",
   "/complete-profile",
@@ -93,6 +110,37 @@ export async function proxy(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = "/tools";
     return NextResponse.redirect(url);
+  }
+
+  // Maintenance mode. Checked here rather than in a layout because the teacher
+  // app isn't under one route group — /tools, /dashboard, /folders, /editor and
+  // the rest are siblings, so a layout check would have to be repeated in each
+  // and would miss the API routes entirely.
+  //
+  // Fails OPEN: publicSettings() never throws, and any failure reports
+  // maintenance as off. A database blip must not be able to invent an outage.
+  if (!MAINTENANCE_ALLOWED.some((p) => pathname === p || pathname.startsWith(`${p}/`))) {
+    const { maintenanceMode } = await publicSettings(supabase);
+    if (maintenanceMode) {
+      // Admins work through it — that is the whole point of being able to turn
+      // it on. Read directly rather than via is_admin() because this is the one
+      // place that runs before any admin gate.
+      const { data: profile } = user
+        ? await supabase.from("profiles").select("is_admin").eq("id", user.id).maybeSingle()
+        : { data: null };
+
+      if (!profile?.is_admin) {
+        if (pathname.startsWith("/api/")) {
+          return NextResponse.json(
+            { error: "Jooma is down for maintenance.", code: "maintenance" },
+            { status: 503 },
+          );
+        }
+        const url = request.nextUrl.clone();
+        url.pathname = "/maintenance";
+        return NextResponse.rewrite(url);
+      }
+    }
   }
 
   // Tool availability. An admin turning a tool off in /admin/tools has to
