@@ -73,6 +73,38 @@ export default function CompleteProfilePage() {
       setLoading(false);
       return;
     }
+
+    // An admin-invited teacher had their plan chosen before this row existed.
+    // Applying it is the server's job: /api/invites/accept re-verifies the
+    // token and checks it was issued to THIS address before touching `plan`,
+    // which teachers can't self-update anyway (see
+    // 20260811000400_lock_down_profile_self_update.sql). Sending the plan from
+    // here instead would let anyone hand themselves Pro.
+    //
+    // Runs after the upsert because the invite grants a plan to a profile that
+    // has to already exist. A self-signup has no token and skips it.
+    const inviteToken = sessionStorage.getItem("jooma:invite-token");
+    if (inviteToken) {
+      const res = await fetch("/api/invites/accept", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: inviteToken }),
+      });
+      if (!res.ok) {
+        // The profile is saved either way — this only decides the plan — so
+        // report it and let them continue on Free rather than stranding them
+        // on a form they can't get past. The admin can re-invite.
+        const json = await res.json().catch(() => ({}));
+        setError(
+          `${json.error ?? "Your invitation couldn't be applied."} Your account is set up — continuing on the Free plan.`,
+        );
+        sessionStorage.removeItem("jooma:invite-token");
+        setLoading(false);
+        return;
+      }
+      sessionStorage.removeItem("jooma:invite-token");
+    }
+
     sessionStorage.removeItem("jooma:auth-email");
     sessionStorage.removeItem("jooma:auth-token");
     sessionStorage.removeItem("jooma:auth-refresh");

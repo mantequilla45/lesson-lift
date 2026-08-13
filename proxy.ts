@@ -5,13 +5,33 @@ import {
   isCostBearingRequest,
   checkAllGates,
   quotaBlockBody,
-  QUOTA_BLOCK_HEADERS,
+  quotaBlockHeaders,
+  quotaBlockStatus,
+  toolSlugFor,
 } from "@/app/lib/generation-guard";
+import { isToolEnabled } from "@/app/lib/tool-availability";
+import { publicSettings } from "@/app/lib/settings";
+
+// Reachable while maintenance mode is on. /maintenance itself, obviously, plus
+// the auth routes — an admin has to be able to sign in to turn it back off,
+// and they can't do that if the login page is behind the holding page.
+const MAINTENANCE_ALLOWED = [
+  "/maintenance",
+  "/login",
+  "/auth",
+  "/admin",
+  "/api/admin",
+  "/terms",
+  "/privacy",
+];
 
 // Routes reachable without a session. Everything else redirects to /login.
 const PUBLIC_PATHS = [
   "/login",
   "/signup",
+  // The maintenance holding page is shown to signed-out visitors too, so it
+  // must not bounce to /login — which is itself behind the holding page.
+  "/maintenance",
   "/verify",
   "/create-password",
   "/complete-profile",
@@ -19,6 +39,12 @@ const PUBLIC_PATHS = [
   "/terms",
   "/privacy",
   "/pricing",
+  // An invited teacher has no account yet, so the invite lookup behind the
+  // /signup banner has to work while signed out. It only ever reveals the
+  // address a valid token was already emailed to, and grants nothing —
+  // /api/invites/accept does the granting, and that one requires a session
+  // and checks the address itself.
+  "/api/invites/check",
   // Stripe calls this server-to-server with no session; it verifies its own
   // signature, so it must bypass the auth redirect.
   "/api/stripe/webhook",
@@ -86,6 +112,70 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  // Maintenance mode. Checked here rather than in a layout because the teacher
+  // app isn't under one route group — /tools, /dashboard, /folders, /editor and
+  // the rest are siblings, so a layout check would have to be repeated in each
+  // and would miss the API routes entirely.
+  //
+  // Fails OPEN: publicSettings() never throws, and any failure reports
+  // maintenance as off. A database blip must not be able to invent an outage.
+  if (!MAINTENANCE_ALLOWED.some((p) => pathname === p || pathname.startsWith(`${p}/`))) {
+    const { maintenanceMode } = await publicSettings(supabase);
+    if (maintenanceMode) {
+      // Admins work through it — that is the whole point of being able to turn
+      // it on. Read directly rather than via is_admin() because this is the one
+      // place that runs before any admin gate.
+      const { data: profile } = user
+        ? await supabase.from("profiles").select("is_admin").eq("id", user.id).maybeSingle()
+        : { data: null };
+
+      if (!profile?.is_admin) {
+        if (pathname.startsWith("/api/")) {
+          return NextResponse.json(
+            { error: "Jooma is down for maintenance.", code: "maintenance" },
+            { status: 503 },
+          );
+        }
+        const url = request.nextUrl.clone();
+        url.pathname = "/maintenance";
+        return NextResponse.rewrite(url);
+      }
+    }
+  }
+
+  // Tool availability. An admin turning a tool off in /admin/tools has to
+  // actually stop it — before this, tool_settings.enabled was written by the
+  // console and read by nothing.
+  //
+  // Checked here rather than in 35 route handlers so it cannot be forgotten
+  // when a tool is added, and so the page path and the API path (the one that
+  // spends money) are covered by the same code.
+  //
+  // Checked BEFORE the plan gates: there is no point spending a gate
+  // round-trip on a request that is about to be refused anyway.
+  //
+  // Fails OPEN, deliberately and for the same reason checkAllGates does — see
+  // the note in generation-guard.ts. isToolEnabled never throws; on any error
+  // it reports the tool as available.
+  //
+  // NOTE: 403, and without x-upgrade-required. An unavailable tool is not a
+  // quota problem, and UpgradeGate keys off 402 + that header — sending them
+  // here would offer an upgrade that fixes nothing.
+  if (user) {
+    const slug = toolSlugFor(request.method, pathname);
+    if (slug && !(await isToolEnabled(supabase, slug))) {
+      if (pathname.startsWith("/api/")) {
+        return NextResponse.json(
+          { error: "This tool is currently unavailable.", code: "tool_disabled" },
+          { status: 403 },
+        );
+      }
+      const url = request.nextUrl.clone();
+      url.pathname = "/tools";
+      return NextResponse.redirect(url);
+    }
+  }
+
   // Enforce the plan gates. Two things are checked here (see
   // generation-guard.ts): the Free daily/monthly generation caps, and the paid
   // plans' monthly AI-spend ceiling. The ceiling applies to sub-asset and
@@ -100,9 +190,11 @@ export async function proxy(request: NextRequest) {
       countsAsGeneration: isGenerationRequest(request.method, pathname),
     });
     if (quota) {
+      // Status and headers depend on WHY: 402 + x-upgrade-required for a quota
+      // that money fixes, 429 + Retry-After for a rate limit that time fixes.
       return NextResponse.json(quotaBlockBody(quota), {
-        status: 402,
-        headers: QUOTA_BLOCK_HEADERS,
+        status: quotaBlockStatus(quota),
+        headers: quotaBlockHeaders(quota),
       });
     }
   }

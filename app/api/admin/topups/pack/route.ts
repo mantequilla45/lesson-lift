@@ -1,0 +1,133 @@
+import { NextRequest, NextResponse } from "next/server";
+import { requireAdminRoute } from "@/app/lib/auth/admin-route";
+import { supabaseAdmin } from "@/app/lib/supabase-admin";
+import { replacePrice, assertPriceUsable, assertSaneAmount } from "@/app/lib/stripe-prices";
+
+// Create or edit a top-up pack, keeping Stripe in step.
+//
+// Same immutability rule as plans: a price change means a new Stripe Price, the
+// old one archived, and the pack repointed. Top-up prices must be ONE-TIME —
+// Checkout's `mode: "payment"` rejects a recurring price at the moment a teacher
+// tries to pay, which is the worst possible time to find out.
+//
+// Runs through the service role, so requireAdminRoute IS the security boundary.
+
+/** Pools a pack can grant. Only credit_gbp has a live purchase path today. */
+const KINDS = new Set(["credit_gbp", "resource", "ai_image"]);
+
+export async function POST(req: NextRequest) {
+  const gate = await requireAdminRoute("change_plan");
+  if (gate.error) return gate.error;
+
+  let body: {
+    id?: string;
+    kind?: string;
+    name?: string;
+    priceGbp?: number;
+    unit?: number;
+    active?: boolean;
+    availableTo?: string[];
+  };
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid request body." }, { status: 400 });
+  }
+
+  const id = body.id?.trim() || null;
+  const name = String(body.name ?? "").trim();
+  const amountGbp = Number(body.priceGbp);
+  const unit = Number(body.unit);
+  const active = body.active !== false;
+
+  if (!name) {
+    return NextResponse.json({ error: "A pack name is required." }, { status: 400 });
+  }
+  if (!Number.isFinite(unit) || unit <= 0) {
+    return NextResponse.json({ error: "Units must be greater than zero." }, { status: 400 });
+  }
+
+  try {
+    assertSaneAmount(amountGbp, name);
+  } catch (err) {
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : "Invalid price." },
+      { status: 400 },
+    );
+  }
+
+  // Existing pack, if this is an edit.
+  const existing = id
+    ? (
+        await supabaseAdmin
+          .from("topup_packs")
+          .select("id, kind, name, price_gbp, stripe_price_id")
+          .eq("id", id)
+          .maybeSingle()
+      ).data
+    : null;
+
+  if (id && !existing) {
+    return NextResponse.json({ error: "No such pack." }, { status: 404 });
+  }
+
+  const kind = existing?.kind ?? String(body.kind ?? "credit_gbp");
+  if (!KINDS.has(kind)) {
+    return NextResponse.json({ error: `Unknown pack type "${kind}".` }, { status: 400 });
+  }
+
+  // A credit pack's units ARE its price in pence — the two cannot disagree, or
+  // a teacher pays one amount and receives a different amount of credit.
+  if (kind === "credit_gbp" && unit !== Math.round(amountGbp * 100)) {
+    return NextResponse.json(
+      {
+        error:
+          `A credit pack must grant exactly what it costs: £${amountGbp.toFixed(2)} ` +
+          `is ${Math.round(amountGbp * 100)}p, but the pack grants ${unit}p.`,
+      },
+      { status: 400 },
+    );
+  }
+
+  try {
+    // Only touch Stripe when the money actually changes, so renaming a pack or
+    // toggling it inactive doesn't churn Price objects.
+    const priceChanged = !existing || Number(existing.price_gbp) !== amountGbp;
+    let stripePriceId = existing?.stripe_price_id ?? null;
+
+    if (priceChanged || !stripePriceId) {
+      const result = await replacePrice({
+        currentPriceId:
+          stripePriceId ||
+          (kind === "credit_gbp" ? process.env.STRIPE_PRICE_CREDIT_TOP_UP || null : null),
+        productName: `Jooma ${name}`,
+        amountGbp,
+        interval: "one_time",
+        label: name,
+      });
+
+      await assertPriceUsable(result.priceId, { interval: "one_time" });
+      stripePriceId = result.priceId;
+    }
+
+    const { data: packId, error } = await gate.supabase.rpc("admin_upsert_topup_pack", {
+      payload: {
+        id: existing?.id ?? null,
+        kind,
+        name,
+        price_gbp: amountGbp,
+        unit,
+        active,
+        available_to: body.availableTo ?? ["free", "pro"],
+        stripe_price_id: stripePriceId,
+      },
+    });
+    if (error) throw error;
+
+    return NextResponse.json({ id: packId, stripePriceId });
+  } catch (err) {
+    console.error("[admin/topups/pack]", err);
+    const message = err instanceof Error ? err.message : "Could not save the pack.";
+    return NextResponse.json({ error: message }, { status: 400 });
+  }
+}

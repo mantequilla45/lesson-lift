@@ -2,21 +2,27 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { Sparkles, Zap, X } from "lucide-react";
+import { Sparkles, Zap, Clock, X } from "lucide-react";
+import { PLAN_CREDITS } from "@/app/lib/plans";
 
 // Centralised quota prompt. Rather than editing every tool form, this patches
-// window.fetch once and watches for the 402 the server returns when a gate
-// blocks a request (tagged with the `x-upgrade-required` header). On a hit it
-// opens a modal whose copy and CTA come from the response body.
+// window.fetch once and watches for the blocks the server returns when a gate
+// refuses a request. On a hit it opens a modal whose copy and CTA come from the
+// response body.
 //
-// Two shapes arrive here (see quotaBlockBody in lib/generation-guard.ts):
-//   action: "upgrade" — a free account hit its daily or monthly cap.
-//   action: "topup"   — a paid account used its monthly AI allowance.
+// Three shapes arrive here (see quotaBlockBody in lib/generation-guard.ts):
+//   action: "upgrade" — a free account hit its daily or monthly cap.  402
+//   action: "topup"   — a paid account used its monthly AI allowance.  402
+//   action: "wait"    — the fair-use rate limit; clears on its own.    429
+//
+// The "wait" case deliberately offers NO call to action. A Pro teacher who
+// generated too quickly has nothing to buy, and showing them an upgrade button
+// would be both wrong and irritating.
 
 interface QuotaBlock {
   error?: string;
-  action?: "upgrade" | "topup";
-  reason?: "free_daily" | "free_monthly" | "credit_exhausted";
+  action?: "upgrade" | "topup" | "wait";
+  reason?: "free_daily" | "free_monthly" | "credit_exhausted" | "rate_limited";
 }
 
 export default function UpgradeGate() {
@@ -27,7 +33,11 @@ export default function UpgradeGate() {
     const original = window.fetch;
     window.fetch = async (...args) => {
       const res = await original(...args);
-      if (res.status === 402 && res.headers.get("x-upgrade-required")) {
+      // 402 + x-upgrade-required is a quota that money fixes; 429 is the
+      // fair-use rate limit, which time fixes.
+      const isQuota = res.status === 402 && res.headers.get("x-upgrade-required");
+      const isRateLimit = res.status === 429;
+      if (isQuota || isRateLimit) {
         // MUST clone: the caller still needs to read this body, and json()
         // consumes the stream. Reading the original here would break every
         // tool form's own error handling.
@@ -62,21 +72,29 @@ export default function UpgradeGate() {
   if (!block) return null;
 
   const isTopUp = block.action === "topup";
+  const isWait = block.action === "wait" || block.reason === "rate_limited";
+  // Derived, not hardcoded, so changing the credit rate can't leave stale copy
+  // promising an amount the top-up no longer grants.
+  const topUpCredits = PLAN_CREDITS.toLocaleString("en-GB");
   const close = () => setBlock(null);
 
-  const title = isTopUp
-    ? "You've used this month's AI allowance"
-    : block.reason === "free_daily"
-      ? "That's your free generation for today"
-      : "You've used all your free generations";
+  const title = isWait
+    ? "Just a moment"
+    : isTopUp
+      ? "You've used this month's AI allowance"
+      : block.reason === "free_daily"
+        ? "That's your free generation for today"
+        : "You've used all your free generations";
 
   // The server writes copy that already names the real numbers and reset time,
   // so prefer it over anything hardcoded here.
   const message =
     block.error ??
-    (isTopUp
-      ? "Add £1.50 of credit to keep going — it lasts until the end of the month."
-      : "Upgrade to Pro Teacher for £7.99 a month.");
+    (isWait
+      ? "You've hit the fair-use limit for this hour. Try again shortly."
+      : isTopUp
+        ? `Add ${topUpCredits} credits for £1.50 to keep going — they last until the end of the month.`
+        : "Upgrade to Pro Teacher for £7.99 a month.");
 
   return (
     <div
@@ -101,9 +119,11 @@ export default function UpgradeGate() {
 
         <div
           className="w-11 h-11 rounded-xl flex items-center justify-center mb-4"
-          style={{ backgroundColor: isTopUp ? "#FDE8C8" : "#FAD4C8" }}
+          style={{ backgroundColor: isWait ? "#E8E6DC" : isTopUp ? "#FDE8C8" : "#FAD4C8" }}
         >
-          {isTopUp ? (
+          {isWait ? (
+            <Clock className="w-5 h-5" style={{ color: "#6b6055" }} />
+          ) : isTopUp ? (
             <Zap className="w-5 h-5" style={{ color: "#b07a1e" }} />
           ) : (
             <Sparkles className="w-5 h-5" style={{ color: "#c25034" }} />
@@ -118,7 +138,18 @@ export default function UpgradeGate() {
         </p>
 
         <div className="flex items-center gap-3">
-          {isTopUp ? (
+          {/* No CTA for a rate limit: there is nothing to buy, and the block
+              clears by itself. Just let them dismiss it. */}
+          {isWait ? (
+            <button
+              type="button"
+              onClick={close}
+              className="flex-1 text-center py-2.5 rounded-xl text-sm font-semibold transition-opacity hover:opacity-90"
+              style={{ backgroundColor: "#E0463F", color: "#fff" }}
+            >
+              Got it
+            </button>
+          ) : isTopUp ? (
             <button
               type="button"
               onClick={handleTopUp}
@@ -126,7 +157,7 @@ export default function UpgradeGate() {
               className="flex-1 text-center py-2.5 rounded-xl text-sm font-semibold transition-opacity hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
               style={{ backgroundColor: "#E0463F", color: "#fff" }}
             >
-              {buying ? "Starting checkout…" : "Add £1.50 credit"}
+              {buying ? "Starting checkout…" : `Add ${topUpCredits} credits · £1.50`}
             </button>
           ) : (
             <Link
@@ -138,14 +169,16 @@ export default function UpgradeGate() {
               Upgrade to Pro
             </Link>
           )}
-          <button
-            type="button"
-            onClick={close}
-            className="py-2.5 px-4 rounded-xl text-sm font-semibold transition-colors hover:bg-black/5"
-            style={{ color: "#6b6055" }}
-          >
-            Maybe later
-          </button>
+          {!isWait && (
+            <button
+              type="button"
+              onClick={close}
+              className="py-2.5 px-4 rounded-xl text-sm font-semibold transition-colors hover:bg-black/5"
+              style={{ color: "#6b6055" }}
+            >
+              Maybe later
+            </button>
+          )}
         </div>
       </div>
     </div>

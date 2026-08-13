@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChevronLeft, ChevronRight, Pin } from "lucide-react";
-import { useState } from "react";
+import { ChevronLeft, ChevronRight, LifeBuoy, Megaphone, Pin } from "lucide-react";
+import { useEffect, useState } from "react";
 import { TOOLS } from "@/app/lib/tools";
 import ToolIcon from "@/app/components/ToolIcon";
+import { createClient } from "@/app/lib/auth/client";
 import { usePinnedTools } from "@/app/lib/usePinnedTools";
 
 const NAV = [
@@ -31,6 +32,28 @@ export default function SideNav() {
 
   // Pinned tools — shared store, kept in sync with the Tools page live.
   const pinnedHrefs = usePinnedTools();
+
+  // Unread support replies. Re-checked on navigation so it clears once the
+  // teacher opens the conversation, without needing a full reload.
+  const [supportUnread, setSupportUnread] = useState(0);
+  const [announceUnread, setAnnounceUnread] = useState(0);
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const supabase = createClient();
+      // Both badges clear on navigation, so they are fetched together.
+      const [support, announce] = await Promise.all([
+        supabase.rpc("my_support_unread"),
+        supabase.rpc("my_announcements_unread"),
+      ]);
+      if (cancelled) return;
+      setSupportUnread(Number(support.data ?? 0));
+      setAnnounceUnread(Number(announce.data ?? 0));
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [pathname]);
 
   const pinnedTools = pinnedHrefs
     .map((href) => TOOLS.find((t) => t.href === href))
@@ -139,6 +162,79 @@ export default function SideNav() {
           </div>
         )
       )}
+
+      {/* Announcements — sits with Help at the foot of the rail rather than in
+          NAV above, which stays the four places a teacher goes to work. Uses a
+          lucide icon to match its neighbour; the NAV items are img/svg. */}
+      <Link
+        href="/announcements"
+        title={collapsed ? "Announcements" : undefined}
+        className={`mt-4 flex items-center gap-3 px-4 py-3 text-sm font-semibold rounded-2xl transition-colors ${
+          pathname.startsWith("/announcements")
+            ? "bg-[#1a1a1a] text-white"
+            : "text-gray-700 hover:bg-gray-100"
+        }`}
+      >
+        <span className="relative shrink-0">
+          <Megaphone className="w-4.5 h-4.5" />
+          {announceUnread > 0 && (
+            <span
+              className="absolute -top-1 -right-1 w-2 h-2 rounded-full"
+              style={{ backgroundColor: "#B3261E" }}
+            />
+          )}
+        </span>
+        <span
+          className="overflow-hidden whitespace-nowrap transition-all duration-300"
+          style={{ maxWidth: collapsed ? "0px" : "160px", opacity: collapsed ? 0 : 1 }}
+        >
+          Announcements
+        </span>
+        {!collapsed && announceUnread > 0 && (
+          <span
+            className="ml-auto text-[10px] font-bold rounded-full px-1.5 py-0.5 text-white shrink-0"
+            style={{ backgroundColor: "#B3261E" }}
+          >
+            {announceUnread}
+          </span>
+        )}
+      </Link>
+
+      {/* Help — anchored below the pinned card. The `grow` on <nav> above keeps
+          this at the bottom of the rail whatever else is rendered. */}
+      <Link
+        href="/help"
+        title={collapsed ? "Help" : undefined}
+        className={`mt-1 flex items-center gap-3 px-4 py-3 text-sm font-semibold rounded-2xl transition-colors ${
+          pathname.startsWith("/help")
+            ? "bg-[#1a1a1a] text-white"
+            : "text-gray-700 hover:bg-gray-100"
+        }`}
+      >
+        <span className="relative shrink-0">
+          <LifeBuoy className="w-4.5 h-4.5" />
+          {supportUnread > 0 && (
+            <span
+              className="absolute -top-1 -right-1 w-2 h-2 rounded-full"
+              style={{ backgroundColor: "#B3261E" }}
+            />
+          )}
+        </span>
+        <span
+          className="overflow-hidden whitespace-nowrap transition-all duration-300"
+          style={{ maxWidth: collapsed ? "0px" : "160px", opacity: collapsed ? 0 : 1 }}
+        >
+          Help
+        </span>
+        {!collapsed && supportUnread > 0 && (
+          <span
+            className="ml-auto text-[10px] font-bold rounded-full px-1.5 py-0.5 text-white shrink-0"
+            style={{ backgroundColor: "#B3261E" }}
+          >
+            {supportUnread}
+          </span>
+        )}
+      </Link>
     </aside>
   );
 }

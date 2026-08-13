@@ -11,6 +11,7 @@ import WhyJooma from "@/app/components/landing/WhyJooma";
 import Faq from "@/app/components/landing/Faq";
 import NavAuth from "@/app/components/landing/NavAuth";
 import { createClient } from "@/app/lib/auth/server";
+import { getCopy } from "@/app/lib/copy";
 
 const FEATURED = [
   { icon: "/icons/tool-lesson-plans.svg", label: "Lesson Planner", desc: "Structured plans from a topic and objective in seconds." },
@@ -25,23 +26,44 @@ const FEATURED = [
 export default async function LandingPage({
   searchParams,
 }: {
-  searchParams: Promise<{ code?: string; next?: string }>;
+  searchParams: Promise<{
+    code?: string;
+    next?: string;
+    error?: string;
+    error_code?: string;
+  }>;
 }) {
   // OAuth fallback: if Supabase falls back to the Site URL (e.g. the exact
   // `/auth/callback` redirect wasn't allowlisted, or a www/apex mismatch), the
   // `?code=` can land here on the root. Forward it to the real callback so the
   // PKCE code still gets exchanged for a session instead of being dropped.
-  const { code, next } = await searchParams;
+  const { code, next, error, error_code } = await searchParams;
   if (code) {
     const params = new URLSearchParams({ code });
     if (next) params.set("next", next);
     redirect(`/auth/callback?${params.toString()}`);
   }
 
+  // Same fallback, failure path. A rejected sign-in lands here as
+  // `?error=access_denied&error_code=user_banned`, and without this the hero
+  // page renders as if nothing happened — a suspended teacher is bounced to
+  // the marketing page with no explanation at all.
+  //
+  // Forwarded to /login, which owns the messaging. Note Supabase repeats these
+  // values in the URL fragment too; the fragment never reaches the server, so
+  // the login page reads that itself for the cases that arrive fragment-only.
+  if (error || error_code) {
+    redirect(`/login?error=${encodeURIComponent(error_code ?? error ?? "auth")}`);
+  }
+
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  // Hero wording from /admin/copy, with the previously-hardcoded strings as the
+  // fallback — see app/lib/copy.ts.
+  const copy = await getCopy();
 
   let firstName: string | null = null;
   let isAdmin = false;
@@ -87,24 +109,30 @@ export default async function LandingPage({
               style={{ backgroundColor: "#EAEFF7", color: "#3B6FF5", borderColor: "#D6DEF2" }}
             >
               <Sparkles className="w-3.5 h-3.5" />
-              AI-Powered Lesson Creation
+              {copy["home.hero.eyebrow"]}
             </span>
-            <h1 className="text-5xl md:text-6xl font-bold tracking-tight mb-6 leading-[1.04]" style={{ color: "#030303" }}>
-              Create personalised lessons<br />in minutes, not hours.
+            {/* text-balance replaces the hard <br /> this heading used to carry:
+                the break is typographic, and keeping it in the copy would mean
+                an admin editing HTML. Falls back to normal wrapping on older
+                browsers. */}
+            <h1
+              className="text-5xl md:text-6xl font-bold tracking-tight mb-6 leading-[1.04] text-balance max-w-3xl mx-auto"
+              style={{ color: "#030303" }}
+            >
+              {copy["home.hero.h1"]}
             </h1>
             <p className="max-w-2xl mx-auto mb-8 leading-normal">
-              Jooma helps teachers generate personalised, curriculum-aligned lessons
-              in minutes — reducing planning time while improving classroom engagement.
+              {copy["home.hero.sub"]}
             </p>
             <Link
               href="/signup"
               className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl text-sm font-semibold text-white transition-opacity hover:opacity-90"
               style={{ backgroundColor: "#030303" }}
             >
-              Get Started
+              {copy["home.hero.cta"]}
             </Link>
             <p className="text-xs mt-5" style={{ color: "#9a8f85" }}>
-              No card required · 5 free generations every month
+              {copy["home.hero.reassure"]}
             </p>
           </div>
 

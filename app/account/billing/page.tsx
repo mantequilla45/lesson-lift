@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { createClient } from "@/app/lib/auth/server";
-import { asPlanId, PLANS } from "@/app/lib/plans";
+import { asPlanId, PLANS, PLAN_CREDITS } from "@/app/lib/plans";
 import ManageButton from "./ManageButton";
 import AllowanceMeter from "./AllowanceMeter";
 
@@ -98,7 +98,8 @@ export default async function BillingPage({
             className="rounded-xl px-4 py-3 mb-5 text-sm font-medium"
             style={{ backgroundColor: "#DDF0E2", color: "#1f6b3b" }}
           >
-            Payment received — £1.50 of AI credit has been added to this month.
+            Payment received — {PLAN_CREDITS.toLocaleString("en-GB")} credits have been added
+            to this month.
           </div>
         )}
 

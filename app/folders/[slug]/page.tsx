@@ -4,10 +4,12 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, Folder, FileText, Trash2, Loader2 } from "lucide-react";
 import SideNav from "@/app/components/layout/SideNav";
+import SupportLauncher from "@/app/components/SupportLauncher";
 import TopBar from "@/app/components/layout/TopBar";
 import Card from "@/app/components/ui/Card";
 import { listToolRuns, deleteToolRun, type ToolRun } from "@/app/lib/toolRuns";
 import { toolForSlug, typeLabel, formatDate, TAG_COLORS } from "@/app/lib/toolRunDisplay";
+import AnnouncementBanner from "@/app/components/AnnouncementBanner";
 
 export default function FolderDetailPage() {
   const params = useParams<{ slug: string }>();
@@ -40,8 +42,11 @@ export default function FolderDetailPage() {
   return (
     <div className="min-h-screen flex" style={{ backgroundColor: "#F1EFE3" }}>
       <SideNav />
+      <SupportLauncher />
       <main className="grow flex flex-col overflow-y-auto">
         <TopBar title="Folders" />
+        {/* Team announcements. Renders nothing when there are none. */}
+        <AnnouncementBanner />
 
         <div className="px-10 pb-16 space-y-4">
           <Card className="p-10">

@@ -78,24 +78,57 @@ export interface WorstCaseInput {
   cardFees: boolean;
   /** Free plan carries no infra/support allocation. */
   chargeOverheads: boolean;
+  /**
+   * The enforced monthly AI-spend ceiling in PENCE, if the plan has one.
+   *
+   * This is a hard stop, not a guideline: generation is blocked once measured
+   * spend reaches it (my_generation_gate), so a plan with a ceiling can never
+   * cost more than this in AI no matter how the allowance is used. Without it
+   * the model multiplies out an allowance the gate makes unreachable — Pro
+   * modelled at £6.00 of AI when £1.50 is the most it can ever reach.
+   */
+  spendCeilingPence?: number | null;
 }
 
 export interface WorstCase {
-  /** AI cost if the teacher used every resource and every AI image. */
+  /** AI cost if the teacher used everything they are allowed to. */
   aiCost: number;
   cardFee: number;
   overheads: number;
   contribution: number;
   marginPct: number | null;
+  /**
+   * True when the spend ceiling — not the allowance — is what caps the cost.
+   * The console says so, because "cost if fully used" means something quite
+   * different when a hard stop is doing the capping.
+   */
+  cappedByCeiling: boolean;
 }
 
 /**
- * What a plan leaves you if a teacher used 100% of their allowance. This is
- * the number that decides whether a plan is viable — the AI-image allowance
- * dominates it, because each deck costs 33x a text resource.
+ * What a plan leaves you if a teacher used everything available to them.
+ *
+ * Two different caps can bind, and the tighter one wins:
+ *   - the ALLOWANCE (n resources, n AI decks), which is what Free is gated on;
+ *   - the SPEND CEILING in pence, which is what actually stops a Pro teacher.
+ *
+ * Modelling the allowance alone overstates the cost of any plan with a ceiling,
+ * because the gate blocks generation long before the allowance runs out. Pro
+ * shows £6.00 of AI on the allowance and £1.50 on the ceiling; only the second
+ * is reachable.
  */
 export function worstCase(input: WorstCaseInput): WorstCase {
-  const aiCost = input.monthlyResources * COST.text + input.aiImageSlideshows * COST.deckAI;
+  const allowanceCost =
+    input.monthlyResources * COST.text + input.aiImageSlideshows * COST.deckAI;
+
+  const ceiling =
+    input.spendCeilingPence != null ? input.spendCeilingPence / 100 : null;
+
+  // The ceiling only binds if it is the lower of the two — a ceiling above what
+  // the allowance permits would never be reached.
+  const cappedByCeiling = ceiling != null && ceiling < allowanceCost;
+  const aiCost = cappedByCeiling ? ceiling : allowanceCost;
+
   const cardFee = input.cardFees ? input.priceMonthly * COST.cardPct + COST.cardFixed : 0;
   const overheads = input.chargeOverheads ? COST.infra + COST.support : 0;
   const contribution = input.priceMonthly - aiCost - cardFee - overheads;
@@ -105,6 +138,7 @@ export function worstCase(input: WorstCaseInput): WorstCase {
     overheads,
     contribution,
     marginPct: input.priceMonthly > 0 ? contribution / input.priceMonthly : null,
+    cappedByCeiling,
   };
 }
 

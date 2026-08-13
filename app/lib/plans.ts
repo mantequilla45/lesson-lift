@@ -203,6 +203,22 @@ export const PLANS: Record<PlanId, Plan> = {
 
 export const DEFAULT_PLAN: PlanId = "free";
 
+/**
+ * The plans an admin may actually put someone on, in display order.
+ *
+ * Excludes `max` (withdrawn from sale — no Stripe price exists) and `school`
+ * (not built — no seats, no pooled allowances, no central billing). Offering
+ * either in a dropdown would let an admin move a teacher onto a plan that
+ * cannot be billed and, for `school`, does not function.
+ *
+ * Both plans stay fully defined in PLANS: an account already holding one still
+ * resolves real limits and still renders the right badge. This is a
+ * presentation filter, not a removal.
+ */
+export const SELECTABLE_PLANS: Plan[] = Object.values(PLANS).filter(
+  (p) => !p.retired && !p.hidden,
+);
+
 // ── AI spend ceiling ─────────────────────────────────────────────────────────
 /**
  * Monthly ceiling on MEASURED provider AI spend, in pence. `null` = no ceiling.
@@ -228,6 +244,43 @@ export const AI_SPEND_CEILING_PENCE: Record<PlanId, number | null> = {
 
 /** One top-up purchase, in pence. Repeatable; expires at month end. */
 export const TOPUP_PENCE = 150;
+
+// ── Credits: the teacher-facing unit ────────────────────────────────────────
+//
+// Internally the AI allowance is measured in pence of model spend, because that
+// is what we are actually protecting against. Teachers must never see that
+// figure: "you've used £1.50 of AI" sitting next to a £7.99 charge invites the
+// reading that they only got £1.50 of value for their money, which is both
+// wrong (the price covers the product, not a metered resale of tokens) and
+// impossible to argue against once seen.
+//
+// So the same allowance is presented as CREDITS. The rate below is the only
+// place the two units meet.
+
+/** Pence of AI spend per teacher-facing credit. */
+const PENCE_PER_CREDIT = 0.15;
+
+/**
+ * A month's Pro allowance in credits, and one top-up, both derived from the
+ * pence figures so they can never drift apart:
+ *   £1.50 ceiling  → 1,000 credits
+ *   £1.50 top-up   → 1,000 credits
+ */
+export const PLAN_CREDITS = 1000;
+
+/** Convert internal pence of AI spend into teacher-facing credits. */
+export function toCredits(pence: number): number {
+  return Math.round(pence / PENCE_PER_CREDIT);
+}
+
+/**
+ * Credits remaining, floored at zero so an overspend never renders as a
+ * negative balance. Overspend is possible: the gate is checked before a
+ * generation, not during it, so the last one can tip past the ceiling.
+ */
+export function creditsRemaining(spendPence: number, allowancePence: number): number {
+  return Math.max(0, toCredits(allowancePence - spendPence));
+}
 
 /**
  * The monthly resource allowance to display for a plan. Distinct from

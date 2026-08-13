@@ -3,16 +3,14 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/app/lib/auth/client";
-import { PLANS } from "@/app/lib/plans";
+import { SELECTABLE_PLANS } from "@/app/lib/plans";
 import { fmtRelative, gbpFromUsd, nf, penceFromUsd } from "../format";
+import ModelRoutingCard, { type ModelRow } from "../ModelRoutingCard";
 import {
   Btn,
   C,
   Card,
-  CardBody,
   CardFooter,
-  CardHeader,
-  CardTitle,
   EmptyState,
   Field,
   FilterBar,
@@ -48,16 +46,17 @@ export interface ToolRow {
   last_used: string | null;
 }
 
-export interface ModelRow {
-  model: string;
-  runs: number;
-  total_tokens: number;
-  cost_usd: number;
-  cost_per_run: number;
-  tools: number;
-}
+export type { ModelRow };
 
-const ALL_PLANS = Object.values(PLANS).map((p) => p.id);
+// Only the plans that can actually be sold — free and pro. `max` is retired
+// (no Stripe price) and `school` is unbuilt (no seats, no pooled allowances),
+// so offering either here would let an admin scope a tool to a plan nobody can
+// be on. SELECTABLE_PLANS is the same filter the teacher-facing plan pickers
+// use, so the two cannot drift.
+// Widened to string[] deliberately: tool_settings.plans is a free text[] in the
+// database and can hold values outside the PlanId union (the seed still lists
+// 'max' and 'school'), so comparisons against it must not assume otherwise.
+const ALL_PLANS: string[] = SELECTABLE_PLANS.map((p) => p.id);
 
 export default function ToolsView({
   rows,
@@ -261,15 +260,28 @@ export default function ToolsView({
                     <Td>
                       <div className="flex flex-wrap gap-1">
                         {t.plans.length === 0 ? (
-                          <Tag tone="danger">nobody</Tag>
-                        ) : t.plans.length === ALL_PLANS.length ? (
+                          <Tag
+                            tone="warn"
+                            title="Recorded only — plan restrictions are not enforced. The tool is still available to everyone."
+                          >
+                            nobody
+                          </Tag>
+                        ) : ALL_PLANS.every((p) => t.plans.includes(p)) ? (
+                          // Covers every SELLABLE plan — tested by coverage, not
+                          // by count. The seeded rows still list retired/unbuilt
+                          // plans too, so comparing lengths would never match.
                           <Tag>all plans</Tag>
                         ) : (
-                          t.plans.map((p) => (
-                            <Tag key={p} tone={p === "free" ? "plain" : "brand"}>
-                              {p}
-                            </Tag>
-                          ))
+                          // Only show plans that can actually be sold; a
+                          // lingering 'max'/'school' entry is noise, not a
+                          // restriction anyone can act on.
+                          t.plans
+                            .filter((p) => ALL_PLANS.includes(p))
+                            .map((p) => (
+                              <Tag key={p} tone={p === "free" ? "plain" : "brand"}>
+                                {p}
+                              </Tag>
+                            ))
                         )}
                       </div>
                     </Td>
@@ -295,63 +307,7 @@ export default function ToolsView({
         </CardFooter>
       </Card>
 
-      <Card className="mt-4">
-        <CardHeader>
-          <CardTitle>Model routing</CardTitle>
-        </CardHeader>
-        <CardBody>
-          {models.length === 0 ? (
-            <p className="text-sm" style={{ color: C.muted }}>
-              No generations recorded this month.
-            </p>
-          ) : (
-            <>
-              <Table>
-                <thead>
-                  <tr className="text-left">
-                    <Th>Model</Th>
-                    <Th align="right">Runs</Th>
-                    <Th align="right">Tokens</Th>
-                    <Th align="right">Cost / run</Th>
-                    <Th align="right">Cost this month</Th>
-                    <Th align="right">Tools using it</Th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {models.map((m) => (
-                    <Tr key={m.model}>
-                      <Td>
-                        <Tag tone={m.model.includes("mini") ? "ok" : "plain"}>{m.model}</Tag>
-                      </Td>
-                      <Td align="right" mono>
-                        {nf.format(Number(m.runs))}
-                      </Td>
-                      <Td align="right" mono>
-                        {nf.format(Number(m.total_tokens))}
-                      </Td>
-                      <Td align="right" mono>
-                        {penceFromUsd(Number(m.cost_per_run))}
-                      </Td>
-                      <Td align="right" mono>
-                        {gbpFromUsd(Number(m.cost_usd))}
-                      </Td>
-                      <Td align="right" mono>
-                        {nf.format(Number(m.tools))}
-                      </Td>
-                    </Tr>
-                  ))}
-                </tbody>
-              </Table>
-              <p className="text-xs mt-3" style={{ color: C.muted }}>
-                Routing is decided in each tool&apos;s API route, not here — the note on a tool
-                records intent for review. Test quality on a handful before switching anything:
-                a cheaper lesson plan a teacher doesn&apos;t trust costs far more than the
-                saving.
-              </p>
-            </>
-          )}
-        </CardBody>
-      </Card>
+      <ModelRoutingCard models={models} className="mt-4" />
 
       {editing && (
         <EditToolModal
@@ -383,6 +339,10 @@ function EditToolModal({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Only the sellable plans get a button, but `plans` is seeded from the row as
+  // it is — so any lingering 'max'/'school' entry is carried through a save
+  // untouched rather than being silently dropped by an edit that never showed
+  // it. Don't "simplify" this to rebuild the array from ALL_PLANS.
   const togglePlan = (plan: string) =>
     setPlans((prev) =>
       prev.includes(plan) ? prev.filter((p) => p !== plan) : [...prev, plan],
@@ -440,7 +400,10 @@ function EditToolModal({
         ))}
       </div>
 
-      <Field label="Available to" help="Unticking every plan makes the tool unreachable.">
+      <Field
+        label="Available to"
+        help="Recorded for review — plan restrictions are NOT enforced yet. Use the Enabled switch below to actually stop a tool."
+      >
         <div className="flex flex-wrap gap-2">
           {ALL_PLANS.map((p) => {
             const on = plans.includes(p);
@@ -464,8 +427,9 @@ function EditToolModal({
       </Field>
 
       {plans.length === 0 && (
-        <Note tone="danger">
-          No plans selected — this tool will be unavailable to everyone.
+        <Note tone="warn">
+          No plans selected. This is recorded but not enforced — the tool stays available to
+          everyone until you switch it off below.
         </Note>
       )}
 
@@ -493,7 +457,8 @@ function EditToolModal({
             Enabled
           </div>
           <div className="text-xs" style={{ color: C.muted }}>
-            Turning a tool off hides it and stops new generations.
+            Removes it from the teacher tool grid, blocks the tool page, and refuses new
+            generations at the API. Takes effect within a minute.
           </div>
         </div>
         <Toggle on={enabled} onChange={setEnabled} label="Enabled" />

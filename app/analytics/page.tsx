@@ -4,11 +4,13 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, FileText, Trash2, Loader2, Sparkles, Clock, Wrench, CalendarDays } from "lucide-react";
 import SideNav from "@/app/components/layout/SideNav";
+import SupportLauncher from "@/app/components/SupportLauncher";
 import TopBar from "@/app/components/layout/TopBar";
 import Card from "@/app/components/ui/Card";
 import { minutesSavedFor } from "@/app/lib/tools";
 import { listRecentRuns, deleteToolRun, type ToolRun } from "@/app/lib/toolRuns";
 import { toolForSlug, typeLabel, formatDate, TAG_COLORS } from "@/app/lib/toolRunDisplay";
+import AnnouncementBanner from "@/app/components/AnnouncementBanner";
 
 function formatHours(minutes: number) {
   if (minutes < 60) return `${minutes} min`;
@@ -68,8 +70,11 @@ export default function AnalyticsPage() {
   return (
     <div className="min-h-screen flex" style={{ backgroundColor: "#F1EFE3" }}>
       <SideNav />
+      <SupportLauncher />
       <main className="grow flex flex-col overflow-y-auto">
         <TopBar title="Analytics" />
+        {/* Team announcements. Renders nothing when there are none. */}
+        <AnnouncementBanner />
 
         <div className="px-10 pb-16 space-y-4">
           {/* Summary */}

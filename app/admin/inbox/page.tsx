@@ -3,7 +3,14 @@ import InboxView, { type CannedReply, type SupportSummary, type ThreadRow } from
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminInboxPage() {
+export default async function AdminInboxPage({
+  searchParams,
+}: {
+  // ?thread= lets other pages deep-link to one conversation — the Teachers
+  // drawer's "Open inbox" points here at that teacher's newest thread.
+  searchParams: Promise<{ thread?: string }>;
+}) {
+  const { thread } = await searchParams;
   const { supabase, user } = await requireAdmin();
 
   const [{ data: threads }, { data: canned }, { data: summary }] = await Promise.all([
@@ -18,6 +25,7 @@ export default async function AdminInboxPage() {
       canned={(canned ?? []) as CannedReply[]}
       summary={((summary ?? [])[0] ?? null) as SupportSummary | null}
       currentUserId={user.id}
+      initialOpenId={thread ?? null}
     />
   );
 }

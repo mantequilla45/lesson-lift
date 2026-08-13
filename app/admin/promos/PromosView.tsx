@@ -1,22 +1,30 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { fmtDate, nf } from "../format";
 import {
+  Btn,
   C,
   Card,
   CardFooter,
   EmptyState,
+  Field,
   FilterBar,
+  Modal,
   Note,
   PageHead,
   Table,
   Tag,
   Td,
   Th,
+  Toggle,
   Tr,
+  fieldClass,
+  fieldStyle,
   inputClass,
   inputStyle,
+  useToast,
 } from "../ui";
 
 export interface PromoRow {
@@ -34,10 +42,13 @@ export interface PromoRow {
 }
 
 /**
- * Read-only by design. Stripe validates codes at checkout, so Stripe is the
- * only place a code can meaningfully be created or changed — a code that
- * existed only here would be rejected the moment a teacher typed it. This page
- * reports what is actually live rather than keeping a second copy that drifts.
+ * Stripe is the source of truth. Codes are created and deactivated here through
+ * the Stripe API rather than mirrored into our database — a code that existed
+ * only locally would be rejected the moment a teacher typed it at checkout.
+ *
+ * WHAT CANNOT BE EDITED: a coupon's discount is immutable in Stripe. Once a code
+ * is 20% off it stays 20% off; changing an offer means a new code. So there is
+ * no "edit" here, only create and activate/deactivate.
  */
 export default function PromosView({
   rows,
@@ -46,8 +57,34 @@ export default function PromosView({
   rows: PromoRow[];
   error: string | null;
 }) {
+  const router = useRouter();
   const [q, setQ] = useState("");
   const [state, setState] = useState("");
+  const [creating, setCreating] = useState(false);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [toastNode, fire] = useToast();
+
+  const setActive = async (id: string, code: string, next: boolean) => {
+    setBusy(id);
+    try {
+      const res = await fetch("/api/admin/promos", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, active: next }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        fire(json.error ?? "Could not update the code.");
+        return;
+      }
+      fire(`${code} ${next ? "activated" : "deactivated"}.`);
+      router.refresh();
+    } catch {
+      fire("Could not reach Stripe.");
+    } finally {
+      setBusy(null);
+    }
+  };
 
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase();
@@ -69,7 +106,11 @@ export default function PromosView({
       <PageHead
         title="Promo codes"
         sub="Every promotion code live in Stripe, with how many times each has been redeemed."
-      />
+      >
+        <Btn variant="primary" onClick={() => setCreating(true)} disabled={!!error}>
+          + New code
+        </Btn>
+      </PageHead>
 
       {error ? (
         <Note tone="danger">
@@ -77,10 +118,10 @@ export default function PromosView({
         </Note>
       ) : (
         <Note>
-          Codes are created and edited <b>in Stripe</b>, which is what validates them at
-          checkout. This page reads them live — there is no separate copy here to fall out of
-          step. Set a <code>channel</code> key in a code&apos;s Stripe metadata to label where
-          it&apos;s being used.
+          Codes live <b>in Stripe</b>, which is what validates them at checkout — this page
+          reads and writes them there directly, so there is no second copy to fall out of step.
+          A code&apos;s discount can&apos;t be changed once created; to change an offer, make a
+          new code and deactivate the old one.
         </Note>
       )}
 
@@ -113,7 +154,7 @@ export default function PromosView({
               title={rows.length === 0 ? "No promotion codes in Stripe" : "Nothing matches that"}
               body={
                 rows.length === 0
-                  ? "Create a coupon and a promotion code in the Stripe dashboard and it will appear here. Checkout already accepts them — allow_promotion_codes is on."
+                  ? "Use + New code to create one in Stripe. Checkout already accepts them — allow_promotion_codes is on."
                   : "Try clearing a filter."
               }
             />
@@ -127,6 +168,7 @@ export default function PromosView({
                   <Th align="right">Redeemed</Th>
                   <Th>Expires</Th>
                   <Th>State</Th>
+                  <Th align="right">Active</Th>
                 </tr>
               </thead>
               <tbody>
@@ -190,6 +232,19 @@ export default function PromosView({
                           </Tag>
                         )}
                       </Td>
+                      <Td align="right">
+                        {/* Expiry and the redemption cap are enforced by Stripe
+                            and can't be undone by flipping this, so don't offer
+                            a switch that would appear to revive a dead code. */}
+                        <div className="flex justify-end">
+                          <Toggle
+                            on={p.active}
+                            disabled={busy === p.id || expired || capped}
+                            onChange={(next) => setActive(p.id, p.code, next)}
+                            label={`${p.code} active`}
+                          />
+                        </div>
+                      </Td>
                     </Tr>
                   );
                 })}
@@ -208,6 +263,196 @@ export default function PromosView({
           </CardFooter>
         </Card>
       </div>
+
+      {creating && (
+        <NewCodeModal
+          onClose={() => setCreating(false)}
+          onCreated={(msg) => {
+            fire(msg);
+            router.refresh();
+          }}
+        />
+      )}
+      {toastNode}
     </>
+  );
+}
+
+/** Creates a Coupon and its Promotion Code in Stripe in one step. */
+function NewCodeModal({
+  onClose,
+  onCreated,
+}: {
+  onClose: () => void;
+  onCreated: (msg: string) => void;
+}) {
+  const [code, setCode] = useState("");
+  const [discountType, setDiscountType] = useState<"percent" | "amount">("percent");
+  const [value, setValue] = useState("20");
+  const [duration, setDuration] = useState<"once" | "repeating" | "forever">("once");
+  const [months, setMonths] = useState("3");
+  const [maxRedemptions, setMaxRedemptions] = useState("");
+  const [expiresAt, setExpiresAt] = useState("");
+  const [channel, setChannel] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const submit = async () => {
+    setSaving(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/admin/promos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          code,
+          ...(discountType === "percent"
+            ? { percentOff: Number(value) }
+            : { amountOffGbp: Number(value) }),
+          duration,
+          ...(duration === "repeating" ? { durationInMonths: Number(months) } : {}),
+          ...(maxRedemptions ? { maxRedemptions: Number(maxRedemptions) } : {}),
+          ...(expiresAt ? { expiresAt } : {}),
+          ...(channel ? { channel } : {}),
+        }),
+      });
+      const json = await res.json();
+      setSaving(false);
+      if (!res.ok) {
+        setError(json.error ?? "Could not create the code.");
+        return;
+      }
+      onCreated(`${json.code} created in Stripe.`);
+      onClose();
+    } catch {
+      setSaving(false);
+      setError("Could not reach Stripe.");
+    }
+  };
+
+  return (
+    <Modal
+      title="New promo code"
+      onClose={onClose}
+      footer={
+        <>
+          <Btn onClick={onClose}>Cancel</Btn>
+          <Btn variant="primary" onClick={submit} disabled={saving || !code.trim()}>
+            {saving ? "Creating…" : "Create in Stripe"}
+          </Btn>
+        </>
+      }
+    >
+      <Field
+        label="Code"
+        help="What the teacher types at checkout. Letters, numbers, hyphens and underscores."
+      >
+        <input
+          value={code}
+          onChange={(e) => setCode(e.target.value.toUpperCase())}
+          placeholder="BACKTOSCHOOL"
+          className={fieldClass}
+          style={{ ...fieldStyle, fontFamily: "ui-monospace, monospace" }}
+        />
+      </Field>
+
+      <div className="grid gap-x-4 sm:grid-cols-2">
+        <Field label="Discount">
+          <select
+            value={discountType}
+            onChange={(e) => setDiscountType(e.target.value as "percent" | "amount")}
+            className={fieldClass}
+            style={fieldStyle}
+          >
+            <option value="percent">Percentage off</option>
+            <option value="amount">Amount off (£)</option>
+          </select>
+        </Field>
+        <Field label={discountType === "percent" ? "Percent off" : "Amount off (£)"}>
+          <input
+            type="number"
+            step={discountType === "percent" ? "1" : "0.01"}
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            className={fieldClass}
+            style={fieldStyle}
+          />
+        </Field>
+      </div>
+
+      <div className="grid gap-x-4 sm:grid-cols-2">
+        <Field label="Applies for" help="How many billing periods the discount lasts.">
+          <select
+            value={duration}
+            onChange={(e) =>
+              setDuration(e.target.value as "once" | "repeating" | "forever")
+            }
+            className={fieldClass}
+            style={fieldStyle}
+          >
+            <option value="once">One payment</option>
+            <option value="repeating">A number of months</option>
+            <option value="forever">Forever</option>
+          </select>
+        </Field>
+        {duration === "repeating" && (
+          <Field label="Months">
+            <input
+              type="number"
+              value={months}
+              onChange={(e) => setMonths(e.target.value)}
+              className={fieldClass}
+              style={fieldStyle}
+            />
+          </Field>
+        )}
+      </div>
+
+      <div className="grid gap-x-4 sm:grid-cols-2">
+        <Field label="Redemption limit" help="Blank means unlimited.">
+          <input
+            type="number"
+            value={maxRedemptions}
+            onChange={(e) => setMaxRedemptions(e.target.value)}
+            placeholder="Unlimited"
+            className={fieldClass}
+            style={fieldStyle}
+          />
+        </Field>
+        <Field label="Expires" help="Blank means it never expires.">
+          <input
+            type="date"
+            value={expiresAt}
+            onChange={(e) => setExpiresAt(e.target.value)}
+            className={fieldClass}
+            style={fieldStyle}
+          />
+        </Field>
+      </div>
+
+      <Field
+        label="Where it's used"
+        help="Stored as the code's `channel` metadata in Stripe, for campaign attribution."
+      >
+        <input
+          value={channel}
+          onChange={(e) => setChannel(e.target.value)}
+          placeholder="Twitter, BETT, newsletter…"
+          className={fieldClass}
+          style={fieldStyle}
+        />
+      </Field>
+
+      <Note tone="warn">
+        A discount can&apos;t be changed once the code exists — Stripe coupons are immutable.
+        Check the numbers before creating.
+      </Note>
+
+      {error && (
+        <p className="text-sm mt-2" style={{ color: C.danger }}>
+          {error}
+        </p>
+      )}
+    </Modal>
   );
 }

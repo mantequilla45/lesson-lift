@@ -4,8 +4,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import SideNav from "@/app/components/layout/SideNav";
+import SupportLauncher from "@/app/components/SupportLauncher";
 import TopBar from "@/app/components/layout/TopBar";
 import UpgradeGate from "@/app/components/UpgradeGate";
+import AnnouncementBanner from "@/app/components/AnnouncementBanner";
 
 const ROUTE_LABELS: Record<string, string> = {
   "/tools/lesson-planner": "Lesson Planner",
@@ -60,8 +62,11 @@ export default function ToolsLayout({ children }: { children: React.ReactNode })
     <div className="min-h-screen flex" style={{ backgroundColor: "#F1EFE3" }}>
       <UpgradeGate />
       <SideNav />
+      <SupportLauncher />
       <main className="grow flex flex-col min-h-screen">
         <TopBar title={label} />
+        {/* Team announcements. Renders nothing when there are none. */}
+        <AnnouncementBanner />
         <div className="px-10 pb-4 shrink-0">
           <Link href="/tools" className="flex items-center gap-1.5 text-sm text-muted hover:text-gray-700 transition-colors w-fit">
             <ArrowLeft className="w-3.5 h-3.5" />

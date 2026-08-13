@@ -19,6 +19,10 @@ export async function saveToolRun(run: {
   title?: string | null;
   input: Record<string, unknown>;
   output: string;
+  /** Ties this run to the cost rows the server wrote for the same generation.
+   *  Set by callers that pass the same id to their API route; without it, the
+   *  admin console falls back to matching cost by timestamp. */
+  runId?: string | null;
 }): Promise<ToolRun> {
   const supabase = createClient();
   const { data, error } = await supabase
@@ -28,6 +32,7 @@ export async function saveToolRun(run: {
       title: run.title ?? null,
       input: run.input,
       output: run.output,
+      run_id: run.runId ?? null,
     })
     .select()
     .single();

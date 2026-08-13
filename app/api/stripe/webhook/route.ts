@@ -47,7 +47,10 @@ async function syncSubscription(sub: Stripe.Subscription) {
   }
 
   const priceId = sub.items.data[0]?.price?.id;
-  const paidPlan = planForPriceId(priceId);
+  // Resolves superseded prices too, via plan_price_history — a subscriber who
+  // signed up on an older price must not be read as "no subscription" and
+  // dropped to Free just because the plan's price has since changed.
+  const paidPlan = await planForPriceId(priceId);
   const isActive = ACTIVE_STATUSES.has(sub.status);
   const plan = isActive && paidPlan ? paidPlan : DEFAULT_PLAN;
 
@@ -110,12 +113,27 @@ async function grantTopUpCredit(session: Stripe.Checkout.Session) {
 
   const amountPence = session.amount_total ?? TOPUP_PENCE;
 
+  // Attribute the sale to the credit pack so the admin console's per-pack sold
+  // and revenue figures are real. Best-effort by design: pack_id is nullable and
+  // the purchase row must never fail to insert just because this lookup did —
+  // the customer has paid, and the credit matters more than the reporting.
+  const { data: creditPack, error: packErr } = await supabaseAdmin
+    .from("topup_packs")
+    .select("id")
+    .eq("kind", "credit_gbp")
+    .eq("active", true)
+    .order("sort")
+    .limit(1)
+    .maybeSingle();
+
+  if (packErr) {
+    console.error("[stripe/webhook] credit pack lookup failed", packErr);
+  }
+
   // 1. Idempotency gate.
   const { error: purchaseErr } = await supabaseAdmin.from("topup_purchases").insert({
     user_id: userId,
-    // Not a topup_packs purchase — packs are unit-denominated (N resources,
-    // N images) and a GBP credit doesn't fit that shape. pack_id is nullable.
-    pack_id: null,
+    pack_id: creditPack?.id ?? null,
     kind: "credit_gbp",
     units: amountPence, // pence, matching allowance_grants.amount for this kind
     price_gbp: toMajor(amountPence),
@@ -138,6 +156,14 @@ async function grantTopUpCredit(session: Stripe.Checkout.Session) {
   if (grantErr) throw grantErr;
 
   // 3. Local mirror so the charge shows in billing views without a Stripe trip.
+  //
+  // stripe_charge_id matters as much as the row itself: syncRefund() finds the
+  // invoice to mark refunded by charge id, so a mirror without one can never be
+  // marked refunded and the admin console goes on showing "paid" after the money
+  // has gone back. A Checkout session carries the PaymentIntent, not the charge,
+  // so resolve it here.
+  const chargeId = await chargeIdForPaymentIntent(paymentIntentId);
+
   const { error: invoiceErr } = await supabaseAdmin.from("invoices").insert({
     reference: session.id,
     user_id: userId,
@@ -146,6 +172,7 @@ async function grantTopUpCredit(session: Stripe.Checkout.Session) {
     status: "paid",
     paid_at: new Date().toISOString(),
     method: "Card · AI credit top-up",
+    stripe_charge_id: chargeId,
   });
   if (invoiceErr) {
     // The credit is already granted, which is what the customer paid for.
@@ -165,6 +192,25 @@ async function grantTopUpCredit(session: Stripe.Checkout.Session) {
 /** Stripe works in minor units (pence). Everything we store is major (pounds). */
 function toMajor(minor: number | null | undefined): number {
   return (minor ?? 0) / 100;
+}
+
+/**
+ * The charge behind a PaymentIntent.
+ *
+ * Checkout sessions and PaymentIntents both reference the charge indirectly, but
+ * refunds arrive as charge.refunded — so the charge id is what links a payment
+ * to its refund. Best-effort: a missing charge id only costs refund tracking,
+ * never the credit the customer paid for, so this never throws.
+ */
+async function chargeIdForPaymentIntent(paymentIntentId: string): Promise<string | null> {
+  try {
+    const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
+    const latest = pi.latest_charge;
+    return typeof latest === "string" ? latest : (latest?.id ?? null);
+  } catch (err) {
+    console.error("[stripe/webhook] could not resolve charge for", paymentIntentId, err);
+    return null;
+  }
 }
 
 /** Resolve the local profile id for a Stripe customer. */
@@ -211,10 +257,23 @@ async function syncInvoice(inv: Stripe.Invoice, status: string) {
     return;
   }
 
-  const chargeId =
-    typeof (inv as unknown as { charge?: string | { id: string } }).charge === "string"
-      ? ((inv as unknown as { charge: string }).charge)
-      : ((inv as unknown as { charge?: { id: string } }).charge?.id ?? null);
+  // Stripe removed `invoice.charge` in favour of a PaymentIntent reference, so
+  // the old read silently produced null on every invoice — which in turn meant
+  // syncRefund() could never find the row to mark refunded. Prefer whichever
+  // field this API version actually sends, then fall back to the PaymentIntent.
+  const invAny = inv as unknown as {
+    charge?: string | { id: string };
+    payment_intent?: string | { id: string };
+  };
+  let chargeId =
+    typeof invAny.charge === "string" ? invAny.charge : (invAny.charge?.id ?? null);
+  if (!chargeId) {
+    const pi =
+      typeof invAny.payment_intent === "string"
+        ? invAny.payment_intent
+        : (invAny.payment_intent?.id ?? null);
+    if (pi) chargeId = await chargeIdForPaymentIntent(pi);
+  }
 
   const { error } = await supabaseAdmin.from("invoices").upsert(
     {
@@ -242,19 +301,125 @@ async function syncInvoice(inv: Stripe.Invoice, status: string) {
   if (error) console.error("[stripe/webhook] invoice upsert failed", error);
 }
 
-/** Mark the originating invoice refunded when a charge is refunded. */
+/**
+ * Mark the originating invoice refunded, and claw back any AI credit the refund
+ * paid for.
+ *
+ * Matching is by charge id first, then by the PaymentIntent via the
+ * topup_purchases row. The fallback exists because rows written before the
+ * charge id was recorded have a null stripe_charge_id, and without it those
+ * invoices would show "paid" forever after the money went back.
+ *
+ * A PARTIAL refund deliberately does not flip the status: "refunded" on a row
+ * whose amount_gbp still reads the full charge would overstate refunded revenue
+ * in admin_billing_summary. Partials are left as-is until there is somewhere
+ * honest to record the refunded portion.
+ */
 async function syncRefund(charge: Stripe.Charge) {
-  if (!charge.refunded && (charge.amount_refunded ?? 0) === 0) return;
+  const refunded = charge.amount_refunded ?? 0;
+  if (!charge.refunded && refunded === 0) return;
 
-  const { error } = await supabaseAdmin
-    .from("invoices")
-    .update({
-      status: "refunded",
-      updated_at: new Date().toISOString(),
-    })
-    .eq("stripe_charge_id", charge.id);
+  const isFull = refunded >= charge.amount;
+  if (!isFull) {
+    console.warn(
+      "[stripe/webhook] partial refund not mirrored locally",
+      charge.id,
+      `${refunded}/${charge.amount}`,
+    );
+    return;
+  }
 
-  if (error) console.error("[stripe/webhook] refund sync failed", error);
+  const paymentIntentId =
+    typeof charge.payment_intent === "string"
+      ? charge.payment_intent
+      : (charge.payment_intent?.id ?? null);
+
+  // Find the invoice by charge id, or by the session reference recorded against
+  // the top-up purchase for the same PaymentIntent.
+  let query = supabaseAdmin.from("invoices").select("id").eq("stripe_charge_id", charge.id);
+  let { data: rows } = await query;
+
+  if ((!rows || rows.length === 0) && paymentIntentId) {
+    const { data: purchase } = await supabaseAdmin
+      .from("topup_purchases")
+      .select("user_id, created_at")
+      .eq("stripe_payment_intent_id", paymentIntentId)
+      .maybeSingle();
+    if (purchase) {
+      query = supabaseAdmin
+        .from("invoices")
+        .select("id")
+        .eq("user_id", purchase.user_id)
+        .eq("type", "topup")
+        .eq("amount_gbp", charge.amount / 100)
+        .is("stripe_charge_id", null);
+      ({ data: rows } = await query);
+    }
+  }
+
+  if (rows && rows.length > 0) {
+    const { error } = await supabaseAdmin
+      .from("invoices")
+      .update({
+        status: "refunded",
+        stripe_charge_id: charge.id, // backfill so a repeat event matches directly
+        updated_at: new Date().toISOString(),
+      })
+      .in(
+        "id",
+        rows.map((r) => r.id),
+      );
+    if (error) console.error("[stripe/webhook] refund sync failed", error);
+  } else {
+    console.warn("[stripe/webhook] refund had no matching invoice", charge.id);
+  }
+
+  // Take back the credit the refund undid. Without this the customer keeps
+  // £1.50 of AI spend they are no longer paying for, until it expires at month
+  // end. Only unspent credit is removed — see below.
+  if (paymentIntentId) {
+    await reverseTopUpCredit(paymentIntentId, charge.amount);
+  }
+}
+
+/**
+ * Remove the allowance grant created by a refunded top-up.
+ *
+ * Deleting the grant is right even if some of the credit has already been
+ * spent: the ceiling is measured against real provider cost, so a partly-used
+ * credit that is then refunded should stop subsidising further spend. We do not
+ * claw back spend that already happened — that is a cost of doing business, and
+ * billing a refunded customer for it would be worse.
+ */
+async function reverseTopUpCredit(paymentIntentId: string, amountPence: number) {
+  const { data: purchase } = await supabaseAdmin
+    .from("topup_purchases")
+    .select("user_id, created_at")
+    .eq("stripe_payment_intent_id", paymentIntentId)
+    .maybeSingle();
+  if (!purchase) return;
+
+  // Match the specific grant this purchase created: same user, same amount,
+  // bought (granted_by is null) rather than granted by an admin, and created in
+  // the same moment. Belt and braces so a refund can't delete a goodwill grant.
+  const { data: grants } = await supabaseAdmin
+    .from("allowance_grants")
+    .select("id")
+    .eq("user_id", purchase.user_id)
+    .eq("kind", "credit_gbp")
+    .eq("amount", amountPence)
+    .is("granted_by", null)
+    .gte("created_at", new Date(new Date(purchase.created_at).getTime() - 60_000).toISOString())
+    .lte("created_at", new Date(new Date(purchase.created_at).getTime() + 60_000).toISOString())
+    .limit(1);
+
+  if (grants && grants.length > 0) {
+    const { error } = await supabaseAdmin
+      .from("allowance_grants")
+      .delete()
+      .eq("id", grants[0].id);
+    if (error) console.error("[stripe/webhook] could not reverse top-up credit", error);
+  }
 }
 
 export async function POST(req: NextRequest) {

@@ -1,5 +1,9 @@
 import { requireAdmin } from "@/app/lib/auth/admin";
-import TopupsView, { type TopupPack, type TopupSummary } from "./TopupsView";
+import TopupsView, {
+  type RecentTopup,
+  type TopupPack,
+  type TopupSummary,
+} from "./TopupsView";
 import { type PricingRule } from "../plans/PlansView";
 
 export const dynamic = "force-dynamic";
@@ -17,17 +21,22 @@ const TOPUP_RULE_KEYS = [
 export default async function AdminTopupsPage() {
   const { supabase } = await requireAdmin();
 
-  const [{ data: packs }, { data: summary }, { data: rules }] = await Promise.all([
-    supabase.rpc("admin_topup_packs"),
-    supabase.rpc("admin_topup_summary"),
-    supabase.rpc("admin_pricing_rules"),
-  ]);
+  const [{ data: packs }, { data: summary }, { data: rules }, { data: recent }] =
+    await Promise.all([
+      supabase.rpc("admin_topup_packs"),
+      supabase.rpc("admin_topup_summary"),
+      supabase.rpc("admin_pricing_rules"),
+      // Purchases as they happened, so a real payment is visible here even if it
+      // never resolved to a pack.
+      supabase.rpc("admin_recent_topups", { p_limit: 50 }),
+    ]);
 
   return (
     <TopupsView
       packs={(packs ?? []) as TopupPack[]}
       summary={((summary ?? [])[0] ?? null) as TopupSummary | null}
       rules={((rules ?? []) as PricingRule[]).filter((r) => TOPUP_RULE_KEYS.includes(r.key))}
+      recent={(recent ?? []) as RecentTopup[]}
     />
   );
 }

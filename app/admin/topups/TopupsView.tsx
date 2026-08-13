@@ -4,8 +4,9 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/app/lib/auth/client";
 import { COST } from "@/app/lib/costs";
-import { gbp, nf } from "../format";
-import { type PricingRule } from "../plans/PlansView";
+import { PLAN_CREDITS, toCredits } from "@/app/lib/plans";
+import { fmtDateTime, gbp, nf } from "../format";
+import { RuleRow, type PricingRule } from "../plans/PlansView";
 import {
   Btn,
   C,
@@ -17,8 +18,10 @@ import {
   EmptyState,
   Field,
   Modal,
+  Note,
   PageHead,
   Stat,
+  StatusTag,
   Table,
   Tag,
   Td,
@@ -39,6 +42,7 @@ export interface TopupPack {
   unit: number;
   available_to: string[];
   active: boolean;
+  stripe_price_id: string | null;
   sold: number;
   revenue_gbp: number;
 }
@@ -52,8 +56,30 @@ export interface TopupSummary {
   repeat_buyers: number;
 }
 
-/** What a pack of this kind costs Jooma to fulfil, from the measured cost sheet. */
-function packCost(pack: TopupPack): number {
+export interface RecentTopup {
+  id: string;
+  user_id: string;
+  email: string | null;
+  pack_name: string;
+  kind: string;
+  units: number;
+  price_gbp: number;
+  status: string;
+  stripe_payment_intent_id: string | null;
+  created_at: string;
+}
+
+/**
+ * What a pack costs Jooma to fulfil, from the modelled cost sheet.
+ *
+ * Returns null for credit packs: their unit is pence of AI spend, not a count of
+ * anything, so multiplying it by a per-resource cost produces a number with no
+ * meaning. A £1.50 credit buys £1.50 of model spend — the margin is zero by
+ * construction, and inventing a percentage here would be worse than showing
+ * nothing.
+ */
+function packCost(pack: TopupPack): number | null {
+  if (pack.kind === "credit_gbp") return null;
   return pack.kind === "ai_image" ? pack.unit * COST.deckAI : pack.unit * COST.text;
 }
 
@@ -61,13 +87,16 @@ export default function TopupsView({
   packs,
   summary,
   rules,
+  recent,
 }: {
   packs: TopupPack[];
   summary: TopupSummary | null;
   rules: PricingRule[];
+  recent: RecentTopup[];
 }) {
   const router = useRouter();
   const [editing, setEditing] = useState<TopupPack | null>(null);
+  const [creating, setCreating] = useState(false);
   const [toastNode, fire] = useToast();
 
   const toggleRule = async (key: string, enabled: boolean) => {
@@ -87,8 +116,12 @@ export default function TopupsView({
     <>
       <PageHead
         title="Top-ups"
-        sub="What a teacher can buy when they run out mid-month. Two separate pools — resources are cheap, AI images are not."
-      />
+        sub="What a teacher can buy when they run out mid-month. Creating or re-pricing a pack updates Stripe."
+      >
+        <Btn variant="primary" onClick={() => setCreating(true)}>
+          + New pack
+        </Btn>
+      </PageHead>
 
       <div className="grid gap-3.5 mb-6 grid-cols-2 lg:grid-cols-4">
         <Stat
@@ -137,7 +170,7 @@ export default function TopupsView({
               {packs.map((p) => {
                 const cost = packCost(p);
                 const price = Number(p.price_gbp);
-                const margin = price > 0 ? (price - cost) / price : 0;
+                const margin = cost != null && price > 0 ? (price - cost) / price : null;
                 return (
                   <Tr key={p.id}>
                     <Td>
@@ -149,10 +182,26 @@ export default function TopupsView({
                           <Tag>Inactive</Tag>
                         </span>
                       )}
+                      {/* An active pack with no Stripe price cannot be sold —
+                          checkout would fail at the moment of payment. */}
+                      {p.active && !p.stripe_price_id && (
+                        <span className="ml-2">
+                          <Tag tone="warn">No Stripe price</Tag>
+                        </span>
+                      )}
                     </Td>
                     <Td>
-                      <Tag tone={p.kind === "ai_image" ? "img" : "ai"} dot>
-                        {p.kind === "ai_image" ? "AI images" : "Resources"}
+                      <Tag
+                        tone={
+                          p.kind === "ai_image" ? "img" : p.kind === "credit_gbp" ? "brand" : "ai"
+                        }
+                        dot
+                      >
+                        {p.kind === "ai_image"
+                          ? "AI images"
+                          : p.kind === "credit_gbp"
+                            ? "AI credit"
+                            : "Resources"}
                       </Tag>
                     </Td>
                     <Td align="right" mono>
@@ -160,11 +209,19 @@ export default function TopupsView({
                     </Td>
                     <Td align="right">
                       <span className="tabular-nums" style={{ color: C.ink2 }}>
-                        {gbp(cost)}
+                        {cost == null ? "—" : gbp(cost)}
                       </span>
                     </Td>
                     <Td align="right">
-                      <Tag tone={margin < 0.35 ? "warn" : "ok"}>{Math.round(margin * 100)}%</Tag>
+                      {margin == null ? (
+                        <span className="text-xs" style={{ color: C.muted }}>
+                          —
+                        </span>
+                      ) : (
+                        <Tag tone={margin < 0.35 ? "warn" : "ok"}>
+                          {Math.round(margin * 100)}%
+                        </Tag>
+                      )}
                     </Td>
                     <Td align="right" mono>
                       {nf.format(Number(p.sold))}
@@ -190,9 +247,56 @@ export default function TopupsView({
           </Table>
         )}
         <CardFooter>
-          AI image packs run at a much thinner margin than resource packs — that&apos;s
-          deliberate. They exist to stop heavy users going underwater, not to make money. If
-          someone buys two in a month, sell them Max instead.
+          The top-up sells {nf.format(PLAN_CREDITS)} credits for £1.50 — internally that is
+          £1.50 of model spend, so it has no margin to report. It exists to stop heavy users
+          hitting a wall mid-lesson, not to make money. Teachers see <b>credits</b>, never the
+          pound figure. A pack needs a Stripe price before checkout can charge for it.
+        </CardFooter>
+      </Card>
+
+      <Card className="mt-4">
+        <CardHeader>
+          <CardTitle>Recent top-ups</CardTitle>
+        </CardHeader>
+        {recent.length === 0 ? (
+          <EmptyState title="No top-ups yet" />
+        ) : (
+          <Table>
+            <thead>
+              <tr className="text-left">
+                <Th>When</Th>
+                <Th>Teacher</Th>
+                <Th>Bought</Th>
+                <Th align="right">Paid</Th>
+                <Th>Status</Th>
+              </tr>
+            </thead>
+            <tbody>
+              {recent.map((r) => (
+                <Tr key={r.id}>
+                  <Td>
+                    <span className="tabular-nums" style={{ color: C.ink2 }}>
+                      {fmtDateTime(r.created_at)}
+                    </span>
+                  </Td>
+                  <Td>
+                    <span style={{ color: C.ink }}>{r.email ?? "Deleted account"}</span>
+                  </Td>
+                  <Td>{r.pack_name}</Td>
+                  <Td align="right" mono>
+                    {gbp(Number(r.price_gbp))}
+                  </Td>
+                  <Td>
+                    <StatusTag status={r.status} />
+                  </Td>
+                </Tr>
+              ))}
+            </tbody>
+          </Table>
+        )}
+        <CardFooter>
+          Every completed purchase, whether or not it maps to a pack. Refunds are mirrored from
+          Stripe, so a refunded top-up shows here rather than silently disappearing.
         </CardFooter>
       </Card>
 
@@ -206,19 +310,18 @@ export default function TopupsView({
               No rules configured.
             </p>
           ) : (
-            rules.map((r) => (
-              <ToggleRow key={r.key} title={r.label} desc={r.description ?? undefined}>
-                <Toggle on={r.enabled} onChange={(next) => toggleRule(r.key, next)} label={r.label} />
-              </ToggleRow>
-            ))
+            rules.map((r) => <RuleRow key={r.key} rule={r} onToggle={toggleRule} />)
           )}
         </CardBody>
       </Card>
 
-      {editing && (
+      {(editing || creating) && (
         <EditPackModal
           pack={editing}
-          onClose={() => setEditing(null)}
+          onClose={() => {
+            setEditing(null);
+            setCreating(false);
+          }}
           onSaved={(msg) => {
             fire(msg);
             router.refresh();
@@ -230,51 +333,89 @@ export default function TopupsView({
   );
 }
 
+/**
+ * Create or edit a pack. Saving goes through /api/admin/topups/pack rather than
+ * straight to the RPC, because a price change has to create a new Stripe Price
+ * first — Price objects are immutable, and a pack whose stored price disagrees
+ * with Stripe would charge the wrong amount at checkout.
+ */
 function EditPackModal({
   pack,
   onClose,
   onSaved,
 }: {
-  pack: TopupPack;
+  /** Null when creating a new pack. */
+  pack: TopupPack | null;
   onClose: () => void;
   onSaved: (msg: string) => void;
 }) {
-  const [name, setName] = useState(pack.name);
-  const [price, setPrice] = useState(String(pack.price_gbp));
-  const [unit, setUnit] = useState(String(pack.unit));
-  const [active, setActive] = useState(pack.active);
+  const isNew = pack === null;
+  const [kind, setKind] = useState(pack?.kind ?? "credit_gbp");
+  const [name, setName] = useState(pack?.name ?? "");
+  const [price, setPrice] = useState(pack ? String(pack.price_gbp) : "1.50");
+  const [unit, setUnit] = useState(pack ? String(pack.unit) : "150");
+  const [active, setActive] = useState(pack?.active ?? true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const cost =
-    pack.kind === "ai_image" ? Number(unit) * COST.deckAI : Number(unit) * COST.text;
-  const margin = Number(price) > 0 ? (Number(price) - cost) / Number(price) : 0;
+  const isCredit = kind === "credit_gbp";
+
+  // A credit pack grants exactly what it costs, so the two fields are one
+  // number. Keeping them in lockstep here means the server-side check that they
+  // agree can never fire from ordinary use.
+  const setPriceSynced = (next: string) => {
+    setPrice(next);
+    if (isCredit) {
+      const pence = Math.round(Number(next) * 100);
+      if (Number.isFinite(pence) && pence > 0) setUnit(String(pence));
+    }
+  };
+
+  const cost = isCredit
+    ? null
+    : kind === "ai_image"
+      ? Number(unit) * COST.deckAI
+      : Number(unit) * COST.text;
+  const margin =
+    cost != null && Number(price) > 0 ? (Number(price) - cost) / Number(price) : null;
+
+  const priceChanged = !pack || Number(pack.price_gbp) !== Number(price);
 
   const submit = async () => {
     setSaving(true);
     setError(null);
-    const supabase = createClient();
-    const { error: e } = await supabase.rpc("admin_upsert_topup_pack", {
-      payload: {
-        id: pack.id,
-        name,
-        price_gbp: Number(price),
-        unit: Number(unit),
-        active,
-      },
-    });
-    setSaving(false);
-    if (e) {
-      setError(e.message);
-      return;
+    try {
+      const res = await fetch("/api/admin/topups/pack", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: pack?.id,
+          kind,
+          name,
+          priceGbp: Number(price),
+          unit: Number(unit),
+          active,
+        }),
+      });
+      const json = await res.json();
+      setSaving(false);
+      if (!res.ok) {
+        setError(json.error ?? "Could not save the pack.");
+        return;
+      }
+      onSaved(
+        priceChanged ? `${name} saved — price live in Stripe.` : `${name} saved.`,
+      );
+      onClose();
+    } catch {
+      setSaving(false);
+      setError("Could not reach the server.");
     }
-    onSaved(`${name} saved.`);
-    onClose();
   };
 
   return (
     <Modal
-      title={`Edit ${pack.name}`}
+      title={isNew ? "New top-up pack" : `Edit ${pack.name}`}
       onClose={onClose}
       footer={
         <>
@@ -285,6 +426,24 @@ function EditPackModal({
         </>
       }
     >
+      {isNew && (
+        <Field
+          label="Pool"
+          help="Only AI credit has a live purchase path — the other pools aren't sellable yet."
+        >
+          <select
+            value={kind}
+            onChange={(e) => setKind(e.target.value)}
+            className={fieldClass}
+            style={fieldStyle}
+          >
+            <option value="credit_gbp">AI credit (£ of model spend)</option>
+            <option value="resource">Resources</option>
+            <option value="ai_image">AI-image slideshows</option>
+          </select>
+        </Field>
+      )}
+
       <Field label="Pack name">
         <input
           value={name}
@@ -294,53 +453,78 @@ function EditPackModal({
         />
       </Field>
       <div className="grid gap-x-4 sm:grid-cols-2">
-        <Field label="Price (£)">
+        <Field label="Price (£)" help="Saving creates a new one-off price in Stripe.">
           <input
             type="number"
             step="0.01"
             value={price}
-            onChange={(e) => setPrice(e.target.value)}
+            onChange={(e) => setPriceSynced(e.target.value)}
             className={fieldClass}
             style={fieldStyle}
           />
         </Field>
-        <Field label={pack.kind === "ai_image" ? "AI slideshows" : "Resources"}>
+        <Field
+          label={
+            isCredit ? "Credit granted (pence)" : kind === "ai_image" ? "AI slideshows" : "Resources"
+          }
+          help={
+            isCredit
+              ? `Always matches the price. Teachers see this as ${nf.format(
+                  toCredits(Number(unit) || 0),
+                )} credits, never as pence.`
+              : undefined
+          }
+        >
           <input
             type="number"
             value={unit}
             onChange={(e) => setUnit(e.target.value)}
+            disabled={isCredit}
             className={fieldClass}
-            style={fieldStyle}
+            style={{ ...fieldStyle, opacity: isCredit ? 0.6 : 1 }}
           />
         </Field>
       </div>
 
-      <div
-        className="rounded-xl border px-3.5 py-3 text-sm"
-        style={{ borderColor: C.border, backgroundColor: C.white }}
-      >
-        <div className="flex justify-between mb-1">
-          <span style={{ color: C.muted }}>Costs us to fulfil</span>
-          <span className="tabular-nums" style={{ color: C.ink }}>
-            {gbp(cost)}
-          </span>
+      {/* Credit packs have no margin to model: a £1.50 credit buys £1.50 of
+          spend by definition, so the cost sheet has nothing to say about it. */}
+      {cost != null && margin != null && (
+        <div
+          className="rounded-xl border px-3.5 py-3 text-sm"
+          style={{ borderColor: C.border, backgroundColor: C.white }}
+        >
+          <div className="flex justify-between mb-1">
+            <span style={{ color: C.muted }}>Costs us to fulfil</span>
+            <span className="tabular-nums" style={{ color: C.ink }}>
+              {gbp(cost)}
+            </span>
+          </div>
+          <div className="flex justify-between">
+            <span style={{ color: C.muted }}>Margin</span>
+            <span
+              className="tabular-nums font-semibold"
+              style={{ color: margin < 0 ? C.danger : margin < 0.35 ? C.warn : C.ok }}
+            >
+              {Math.round(margin * 100)}%
+            </span>
+          </div>
         </div>
-        <div className="flex justify-between">
-          <span style={{ color: C.muted }}>Margin</span>
-          <span
-            className="tabular-nums font-semibold"
-            style={{ color: margin < 0 ? C.danger : margin < 0.35 ? C.warn : C.ok }}
-          >
-            {Math.round(margin * 100)}%
-          </span>
-        </div>
-      </div>
+      )}
 
       <div className="mt-3">
         <ToggleRow title="Active" desc="Inactive packs are hidden from teachers.">
           <Toggle on={active} onChange={setActive} label="Active" />
         </ToggleRow>
       </div>
+
+      {priceChanged && !isNew && (
+        <div className="mt-3">
+          <Note tone="warn">
+            Stripe prices can&apos;t be edited, so saving creates a new one and archives the
+            old. Anyone part-way through checkout on the old price still pays the old amount.
+          </Note>
+        </div>
+      )}
 
       {error && (
         <p className="text-sm mt-2" style={{ color: C.danger }}>

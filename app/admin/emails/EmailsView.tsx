@@ -24,6 +24,20 @@ import {
   fieldStyle,
   useToast,
 } from "../ui";
+import EmailPreview from "./EmailPreview";
+import { SAMPLE_PARAMS } from "@/app/lib/email-templates/samples";
+import type { EmailTemplateKey } from "@/app/lib/email-templates";
+
+/** The {{placeholders}} this template can use, taken from the values its real
+ *  trigger passes. Listing the actual names beats a generic sentence about
+ *  curly braces. */
+function placeholderHint(key: string): string {
+  const params = SAMPLE_PARAMS[key as EmailTemplateKey];
+  if (!params) return "";
+  return Object.keys(params)
+    .map((p) => `{{${p}}}`)
+    .join(", ");
+}
 
 export interface EmailTemplate {
   key: string;
@@ -37,10 +51,24 @@ export interface EmailTemplate {
   click_rate: number | null;
 }
 
-export default function EmailsView({ rows }: { rows: EmailTemplate[] }) {
+export default function EmailsView({
+  rows,
+  mailerReady,
+  renderableKeys,
+}: {
+  rows: EmailTemplate[];
+  /** SendGrid keys present — i.e. anything can send at all. */
+  mailerReady: boolean;
+  /** Keys with a renderer in app/lib/email-templates. A row without one is a
+   *  wording record and nothing more, however live it claims to be. */
+  renderableKeys: string[];
+}) {
   const router = useRouter();
   const [editing, setEditing] = useState<EmailTemplate | null>(null);
   const [toastNode, fire] = useToast();
+
+  const renderable = new Set(renderableKeys);
+  const orphans = rows.filter((r) => !renderable.has(r.key));
 
   const toggleLive = async (key: string, live: boolean, name: string) => {
     const supabase = createClient();
@@ -56,8 +84,9 @@ export default function EmailsView({ rows }: { rows: EmailTemplate[] }) {
     router.refresh();
   };
 
-  // Nothing sends these yet, so there is no engagement data to show. Rather
-  // than render invented open rates, the columns are omitted entirely.
+  // Engagement columns appear only once there is real data behind them. Nothing
+  // writes sent_30d/open_rate yet — that needs SendGrid's event webhook — so
+  // rather than render invented open rates the columns are omitted entirely.
   const hasStats = rows.some((r) => r.sent_30d !== null);
 
   return (
@@ -67,13 +96,29 @@ export default function EmailsView({ rows }: { rows: EmailTemplate[] }) {
         sub="Every automatic email Jooma sends. Edit the wording and control which are active."
       />
 
-      <div className="mb-4">
-        <Note tone="warn">
-          <b>No email provider is configured</b>, so none of these are actually sent yet —
-          Supabase Auth handles verification and password resets on its own templates. This
-          page records the wording and which are meant to be live; delivery and open rates
-          arrive when a provider is wired up.
-        </Note>
+      <div className="mb-4 space-y-2">
+        {!mailerReady ? (
+          <Note tone="warn">
+            <b>No email provider is configured</b> — SENDGRID_API_KEY and
+            SENDGRID_FROM_EMAIL are not both set in this environment, so nothing sends
+            here. Wording saved on this page still applies once they are.
+          </Note>
+        ) : (
+          <Note>
+            <b>SendGrid is configured</b>, so the templates below with a renderer send for
+            real. Turning one off here stops it immediately.
+          </Note>
+        )}
+        {orphans.length > 0 && (
+          <Note tone="warn">
+            <b>
+              {orphans.length} of these {rows.length} have nothing to trigger them yet
+            </b>{" "}
+            — {orphans.map((o) => o.name).join(", ")}. Their wording is saved for
+            whenever the feature that sends them gets built, and they are marked{" "}
+            <b>Not sending</b> below.
+          </Note>
+        )}
       </div>
 
       <Card>
@@ -100,8 +145,18 @@ export default function EmailsView({ rows }: { rows: EmailTemplate[] }) {
               {rows.map((t) => (
                 <Tr key={t.key}>
                   <Td>
-                    <div className="font-semibold" style={{ color: C.ink }}>
-                      {t.name}
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-semibold" style={{ color: C.ink }}>
+                        {t.name}
+                      </span>
+                      {!renderable.has(t.key) && (
+                        <Tag
+                          tone="warn"
+                          title="Nothing in the code triggers this yet, so it cannot send whatever the Live switch says"
+                        >
+                          Not sending
+                        </Tag>
+                      )}
                     </div>
                     <div className="font-mono text-xs" style={{ color: C.muted }}>
                       {t.key}
@@ -155,6 +210,8 @@ export default function EmailsView({ rows }: { rows: EmailTemplate[] }) {
       {editing && (
         <EditEmailModal
           template={editing}
+          sends={mailerReady && renderable.has(editing.key)}
+          renderable={renderable.has(editing.key)}
           onClose={() => setEditing(null)}
           onSaved={(msg) => {
             fire(msg);
@@ -169,10 +226,16 @@ export default function EmailsView({ rows }: { rows: EmailTemplate[] }) {
 
 function EditEmailModal({
   template,
+  sends,
+  renderable,
   onClose,
   onSaved,
 }: {
   template: EmailTemplate;
+  /** Provider configured AND this template has a renderer. */
+  sends: boolean;
+  /** Whether a renderer exists — drives whether a preview is possible at all. */
+  renderable: boolean;
   onClose: () => void;
   onSaved: (msg: string) => void;
 }) {
@@ -202,6 +265,8 @@ function EditEmailModal({
     <Modal
       title={`Edit ${template.name}`}
       onClose={onClose}
+      // Wide enough for the two email frames side by side.
+      width="max-w-4xl"
       footer={
         <>
           <Btn onClick={onClose}>Cancel</Btn>
@@ -217,7 +282,14 @@ function EditEmailModal({
         </p>
       </Field>
 
-      <Field label="Subject">
+      <Field
+        label="Subject"
+        help={
+          placeholderHint(template.key)
+            ? `Placeholders: ${placeholderHint(template.key)}`
+            : undefined
+        }
+      >
         <input
           value={subject}
           onChange={(e) => setSubject(e.target.value)}
@@ -228,21 +300,38 @@ function EditEmailModal({
 
       <Field
         label="Body"
-        help="Plain text for now. {curly braces} mark values filled in at send time."
+        help={`Replaces the opening paragraphs only — the heading, button and footer stay as designed. Leave blank to use the wording in the code.${
+          placeholderHint(template.key)
+            ? ` Placeholders: ${placeholderHint(template.key)}`
+            : ""
+        }`}
       >
         <textarea
-          rows={8}
+          rows={6}
           value={body}
           onChange={(e) => setBody(e.target.value)}
-          placeholder="Hi {first_name},"
+          placeholder="Leave blank to keep the built-in wording."
           className={`${fieldClass} resize-none`}
           style={fieldStyle}
         />
       </Field>
 
-      <Note>
-        Saving records the wording. Nothing sends until an email provider is configured.
-      </Note>
+      <EmailPreview
+        templateKey={template.key}
+        subject={subject}
+        body={body}
+        savedSubject={template.subject}
+        savedBody={template.body}
+        renderable={renderable}
+      />
+
+      <div className="mt-3">
+        <Note tone={sends ? "warn" : "brand"}>
+          {sends
+            ? "This template sends for real. Saving changes the wording of the next one that goes out."
+            : "Saving records the wording. This template has nothing to trigger it yet, so it won't send."}
+        </Note>
+      </div>
 
       {error && (
         <p className="text-sm mt-2" style={{ color: C.danger }}>

@@ -1,9 +1,12 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { PLANS, asPlanId } from "@/app/lib/plans";
+import { useRouter } from "next/navigation";
+import { usePermissions } from "./usePermissions";
+import { PLANS, SELECTABLE_PLANS, asPlanId } from "@/app/lib/plans";
+import { downloadCsv, toCsv } from "@/app/lib/csv";
 import { FX_USD_TO_GBP, gbpFromUsd, nf } from "../format";
-import { AiChip, Meter } from "../ui";
+import { AiChip, Meter, PLAN_TONE, Tag } from "../ui";
 import TeacherDrawer from "./TeacherDrawer";
 
 export interface TeacherRow {
@@ -26,14 +29,17 @@ export interface TeacherRow {
   ai_topup: number;
   school_id: string | null;
   school_name: string | null;
+  /** Set when the account is suspended — sign-in is blocked. */
+  suspended_at: string | null;
 }
 
-const PLAN_STYLE: Record<string, { bg: string; color: string }> = {
-  free: { bg: "#EEECE4", color: "#8a8078" },
-  pro: { bg: "#DDF0E2", color: "#1f6b3b" },
-  max: { bg: "#E5DBFA", color: "#6B4FD8" },
-  school: { bg: "#E2E8F5", color: "#2a4a8a" },
-};
+/** Progress and outcome of one bulk action across the selected teachers. */
+interface BulkRun {
+  label: string;
+  done: number;
+  total: number;
+  failures: { email: string; error: string }[];
+}
 
 const STATUS_STYLE: Record<string, { bg: string; color: string }> = {
   active: { bg: "#DDF0E2", color: "#1f6b3b" },
@@ -61,6 +67,47 @@ function marginPct(plan: string, costUsd: number): number | null {
   return (revenue - costUsd * FX_USD_TO_GBP) / revenue;
 }
 
+const EXPORT_HEADERS = [
+  "User ID", "Email", "First name", "Surname", "Plan", "Subscription status",
+  "School", "Joined", "Generations (all time)", "Generations this month",
+  "Resource allowance", "Resource top-up", "AI images this month",
+  "AI image allowance", "AI image top-up", "Cost this month (USD)",
+  "Monthly revenue (GBP)", "Margin %",
+];
+
+/** One teacher → one CSV row, in EXPORT_HEADERS order.
+ *
+ *  Cost stays in USD because that is the unit token_usage/asset_cost record;
+ *  converting here would bake in today's FX rate and silently disagree with the
+ *  figures on every other admin page. Revenue and margin are GBP, since those
+ *  come from our own price list. Both units are named in the headers. */
+function exportRow(u: TeacherRow): unknown[] {
+  const plan = u.plan ?? "free";
+  const limits = PLANS[asPlanId(plan)].limits;
+  const m = marginPct(plan, Number(u.cost_usd));
+  return [
+    u.id,
+    u.email,
+    u.first_name ?? "",
+    u.surname ?? "",
+    plan,
+    u.subscription_status ?? "",
+    u.school_name ?? "Individual",
+    u.created_at ? new Date(u.created_at).toISOString().slice(0, 10) : "",
+    u.generations,
+    u.generations_this_month,
+    // Admins bypass the cap entirely, and an unlimited plan has no denominator.
+    u.is_admin ? "no cap" : (limits.monthlyGenerations ?? "unlimited"),
+    u.resources_topup,
+    u.ai_images_this_month,
+    limits.aiImageSlideshows,
+    u.ai_topup,
+    Number(u.cost_usd).toFixed(4),
+    monthlyRevenue(plan).toFixed(2),
+    m === null ? "" : Math.round(m * 100),
+  ];
+}
+
 export default function AdminTeachersTable({ rows }: { rows: TeacherRow[] }) {
   const [q, setQ] = useState("");
   const [plan, setPlan] = useState("");
@@ -80,6 +127,9 @@ export default function AdminTeachersTable({ rows }: { rows: TeacherRow[] }) {
   const [selecting, setSelecting] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [openId, setOpenId] = useState<string | null>(null);
+  const [bulk, setBulk] = useState<BulkRun | null>(null);
+  const router = useRouter();
+  const { can } = usePermissions();
 
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase();
@@ -90,7 +140,10 @@ export default function AdminTeachersTable({ rows }: { rows: TeacherRow[] }) {
         if (!hay.includes(needle)) return false;
       }
       if (plan && (u.plan ?? "free") !== plan) return false;
-      if (status && (u.subscription_status ?? "") !== status) return false;
+      // Suspension isn't a subscription_status — it's a separate column — so it
+      // gets its own branch rather than being compared against one.
+      if (status === "suspended" && !u.suspended_at) return false;
+      if (status && status !== "suspended" && (u.subscription_status ?? "") !== status) return false;
       if (school === "none" && u.school_id) return false;
       if (school && school !== "none" && u.school_id !== school) return false;
       if (margin) {
@@ -116,6 +169,59 @@ export default function AdminTeachersTable({ rows }: { rows: TeacherRow[] }) {
   const exitSelect = () => {
     setSelecting(false);
     setSelected(new Set());
+    setBulk(null);
+  };
+
+  /**
+   * Run one action across the selected teachers, one at a time.
+   *
+   * Sequential rather than Promise.all: these hit Stripe and SendGrid, both of
+   * which rate-limit, and a serial loop is what makes the "4 of 12" counter and
+   * the per-teacher failure list honest. One teacher failing must not abandon
+   * the rest — that's how you end up with half a job done and no record of
+   * which half.
+   */
+  const runBulk = async (
+    label: string,
+    body: (u: TeacherRow) => Record<string, unknown>,
+    path: string,
+  ) => {
+    const targets = filtered.filter((u) => selected.has(u.id));
+    if (targets.length === 0) return;
+    setBulk({ label, done: 0, total: targets.length, failures: [] });
+
+    const failures: { email: string; error: string }[] = [];
+    for (let i = 0; i < targets.length; i++) {
+      const u = targets[i];
+      try {
+        const res = await fetch(path, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body(u)),
+        });
+        if (!res.ok) {
+          const json = await res.json().catch(() => ({}));
+          failures.push({ email: u.email, error: json.error ?? `HTTP ${res.status}` });
+        }
+      } catch {
+        failures.push({ email: u.email, error: "Network error" });
+      }
+      setBulk({ label, done: i + 1, total: targets.length, failures: [...failures] });
+    }
+
+    router.refresh();
+  };
+
+  // Exports exactly what's on screen — the same `filtered` array the table
+  // renders — so the file always matches the "N shown" count next to it.
+  // Generated in the browser from data that's already loaded: no route, no
+  // second query, and no new service-role surface for personal data.
+  const exportCsv = (rows: TeacherRow[], scope: "" | "selected-") => {
+    const stamp = new Date().toISOString().slice(0, 10);
+    downloadCsv(
+      toCsv(EXPORT_HEADERS, rows.map(exportRow)),
+      `jooma-teachers-${scope}${stamp}.csv`,
+    );
   };
 
   const clearFilters = () => {
@@ -156,7 +262,11 @@ export default function AdminTeachersTable({ rows }: { rows: TeacherRow[] }) {
             style={selectStyle}
           >
             <option value="">All plans</option>
-            {Object.values(PLANS).map((p) => (
+            {/* Only the plans we actually sell. Max is withdrawn and School
+                isn't built, so listing them here reads as bloat — and nobody
+                is on either (checked: 8 free, 2 pro). A teacher somehow
+                holding one still renders their badge correctly below. */}
+            {SELECTABLE_PLANS.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.name}
               </option>
@@ -169,6 +279,7 @@ export default function AdminTeachersTable({ rows }: { rows: TeacherRow[] }) {
             style={selectStyle}
           >
             <option value="">Any status</option>
+            <option value="suspended">Suspended</option>
             {STATUS_OPTIONS.map((s) => (
               <option key={s} value={s}>
                 {s.replace("_", " ")}
@@ -220,14 +331,32 @@ export default function AdminTeachersTable({ rows }: { rows: TeacherRow[] }) {
           </span>
 
           {!selecting ? (
-            <button
-              type="button"
-              onClick={() => setSelecting(true)}
-              className="text-sm font-semibold rounded-lg border px-3 py-1.5 transition-colors hover:bg-black/5"
-              style={{ borderColor: "#DAD8D0", color: "#1a1a1a" }}
-            >
-              Select
-            </button>
+            <>
+              <button
+                type="button"
+                onClick={() => exportCsv(filtered, "")}
+                disabled={filtered.length === 0 || !can("export_personal_data")}
+                title={
+                  !can("export_personal_data")
+                    ? "Your admin role can't export personal data"
+                    : hasFilters
+                      ? "Download the teachers matching your current filters as a CSV"
+                      : "Download all teachers as a CSV"
+                }
+                className="text-sm font-semibold rounded-lg border px-3 py-1.5 transition-colors hover:bg-black/5 disabled:opacity-40"
+                style={{ borderColor: "#DAD8D0", color: "#1a1a1a" }}
+              >
+                Export
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelecting(true)}
+                className="text-sm font-semibold rounded-lg border px-3 py-1.5 transition-colors hover:bg-black/5"
+                style={{ borderColor: "#DAD8D0", color: "#1a1a1a" }}
+              >
+                Select
+              </button>
+            </>
           ) : (
             <>
               <span className="text-xs font-semibold px-2 py-1 rounded-full" style={{ backgroundColor: "#EEECE4", color: "#8a8078" }}>
@@ -252,6 +381,112 @@ export default function AdminTeachersTable({ rows }: { rows: TeacherRow[] }) {
             </>
           )}
         </div>
+
+        {selecting && selected.size > 0 && (
+          <div
+            className="flex flex-wrap items-center gap-2 px-4 py-2.5 border-b"
+            style={{ borderColor: "#EEECE4", backgroundColor: "#F1EFE9" }}
+          >
+            <span className="text-xs font-semibold" style={{ color: "#4a423a" }}>
+              {nf.format(selected.size)} selected
+            </span>
+
+            <button
+              type="button"
+              onClick={() => exportCsv(filtered.filter((u) => selected.has(u.id)), "selected-")}
+              className="text-xs font-semibold rounded-lg border px-2.5 py-1 transition-colors hover:bg-black/5"
+              style={{ borderColor: "#DAD8D0", color: "#1a1a1a" }}
+            >
+              Export selected
+            </button>
+
+            <button
+              type="button"
+              disabled={!can("reset_passwords") || bulk !== null}
+              title={can("reset_passwords") ? undefined : "Your admin role can't reset passwords"}
+              onClick={() => {
+                if (!confirm(`Send a password reset email to ${selected.size} teacher(s)?`)) return;
+                void runBulk(
+                  "Sending password resets",
+                  (u) => ({ userId: u.id }),
+                  "/api/admin/teachers/reset-password",
+                );
+              }}
+              className="text-xs font-semibold rounded-lg border px-2.5 py-1 transition-colors hover:bg-black/5 disabled:opacity-40"
+              style={{ borderColor: "#DAD8D0", color: "#1a1a1a" }}
+            >
+              Send password reset
+            </button>
+
+            <button
+              type="button"
+              disabled={!can("suspend_accounts") || bulk !== null}
+              title={can("suspend_accounts") ? undefined : "Your admin role can't suspend accounts"}
+              onClick={() => {
+                const reason = prompt(
+                  `Suspend ${selected.size} teacher(s)? They'll be signed out and blocked from signing in.\n\nReason (goes in the audit log):`,
+                );
+                if (reason === null) return;
+                void runBulk(
+                  "Suspending",
+                  (u) => ({ userId: u.id, suspend: true, reason }),
+                  "/api/admin/teachers/suspend",
+                );
+              }}
+              className="text-xs font-semibold rounded-lg border px-2.5 py-1 transition-colors hover:bg-black/5 disabled:opacity-40"
+              style={{ borderColor: "#EDD3D1", color: "#B3261E" }}
+            >
+              Suspend
+            </button>
+
+            <button
+              type="button"
+              disabled={!can("suspend_accounts") || bulk !== null}
+              title={can("suspend_accounts") ? undefined : "Your admin role can't suspend accounts"}
+              onClick={() => {
+                if (!confirm(`Lift the suspension on ${selected.size} teacher(s)?`)) return;
+                void runBulk(
+                  "Lifting suspensions",
+                  (u) => ({ userId: u.id, suspend: false }),
+                  "/api/admin/teachers/suspend",
+                );
+              }}
+              className="text-xs font-semibold rounded-lg border px-2.5 py-1 transition-colors hover:bg-black/5 disabled:opacity-40"
+              style={{ borderColor: "#DAD8D0", color: "#1a1a1a" }}
+            >
+              Unsuspend
+            </button>
+
+            <div className="flex-1" />
+
+            {bulk && (
+              <span className="text-xs" style={{ color: "#6b6055" }}>
+                {bulk.done < bulk.total
+                  ? `${bulk.label}… ${bulk.done} of ${bulk.total}`
+                  : bulk.failures.length === 0
+                    ? `Done — ${bulk.total} succeeded.`
+                    : `Done — ${bulk.total - bulk.failures.length} succeeded, ${bulk.failures.length} failed.`}
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Partial failures are listed rather than folded into a count: knowing
+            WHICH teacher didn't get their email is the whole point. */}
+        {bulk && bulk.done === bulk.total && bulk.failures.length > 0 && (
+          <div className="px-4 py-2.5 border-b" style={{ borderColor: "#EEECE4", backgroundColor: "#FBECEB" }}>
+            <p className="text-xs font-semibold mb-1" style={{ color: "#B3261E" }}>
+              These didn&rsquo;t go through:
+            </p>
+            <ul className="space-y-0.5">
+              {bulk.failures.map((f) => (
+                <li key={f.email} className="text-xs font-mono" style={{ color: "#B3261E" }}>
+                  {f.email} — {f.error}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -283,7 +518,6 @@ export default function AdminTeachersTable({ rows }: { rows: TeacherRow[] }) {
                 filtered.map((u) => {
                   const name = [u.first_name, u.surname].filter(Boolean).join(" ");
                   const p = u.plan ?? "free";
-                  const ps = PLAN_STYLE[p] ?? PLAN_STYLE.free;
                   const st = u.subscription_status ?? "";
                   const ss = STATUS_STYLE[st];
                   const cost = Number(u.cost_usd);
@@ -324,11 +558,8 @@ export default function AdminTeachersTable({ rows }: { rows: TeacherRow[] }) {
                         )}
                       </td>
                       <td className="px-4 py-3">
-                        <span
-                          className="text-xs font-semibold px-2 py-1 rounded-full capitalize whitespace-nowrap"
-                          style={{ backgroundColor: ps.bg, color: ps.color }}
-                        >
-                          {p}
+                        <span className="capitalize">
+                          <Tag tone={PLAN_TONE[p] ?? "plain"}>{p}</Tag>
                         </span>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap" style={{ color: "#6b6055" }}>
@@ -361,7 +592,17 @@ export default function AdminTeachersTable({ rows }: { rows: TeacherRow[] }) {
                         />
                       </td>
                       <td className="px-4 py-3">
-                        {st ? (
+                        {/* Suspension outranks billing status here: a suspended
+                            teacher can't sign in at all, which matters more
+                            than whether their card is current. */}
+                        {u.suspended_at ? (
+                          <span
+                            className="text-xs font-semibold px-2 py-1 rounded-full whitespace-nowrap"
+                            style={{ backgroundColor: "#FBECEB", color: "#B3261E" }}
+                          >
+                            Suspended
+                          </span>
+                        ) : st ? (
                           <span
                             className="text-xs font-semibold px-2 py-1 rounded-full capitalize whitespace-nowrap"
                             style={ss ? { backgroundColor: ss.bg, color: ss.color } : { backgroundColor: "#EEECE4", color: "#8a8078" }}

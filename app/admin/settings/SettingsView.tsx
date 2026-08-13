@@ -11,6 +11,7 @@ import {
   CardTitle,
   Note,
   PageHead,
+  Tag,
   Toggle,
   ToggleRow,
   inputClass,
@@ -30,9 +31,18 @@ export interface SettingRow {
 
 const SECTION_TITLE: Record<string, string> = {
   access: "Access",
-  fair_use: "Fair use and abuse",
   general: "General",
 };
+
+// Settings that persist correctly and are shown honestly, but that nothing
+// reads yet. They carry a visible badge rather than relying on prose: a blanket
+// "some of these don't work" note at the top of the page taught people to
+// distrust every row, including the ones that do.
+const NOT_ENFORCED = new Set(["block_disposable_email"]);
+
+// Fair use lives on /admin/usage, next to the numbers that give it meaning.
+// Rendering an editable second copy here meant two controls writing one row.
+const HIDDEN_SECTIONS = new Set(["fair_use"]);
 
 export default function SettingsView({ rows }: { rows: SettingRow[] }) {
   const router = useRouter();
@@ -42,6 +52,7 @@ export default function SettingsView({ rows }: { rows: SettingRow[] }) {
   const sections = useMemo(() => {
     const map = new Map<string, SettingRow[]>();
     for (const r of rows) {
+      if (HIDDEN_SECTIONS.has(r.section)) continue;
       if (!map.has(r.section)) map.set(r.section, []);
       map.get(r.section)!.push(r);
     }
@@ -69,14 +80,6 @@ export default function SettingsView({ rows }: { rows: SettingRow[] }) {
         sub="System-wide switches. Most of these you'll set once and forget."
       />
 
-      <div className="mb-4">
-        <Note tone="warn">
-          These are recorded and shown here, but most are <b>not yet read</b> by the app —
-          wiring each one to the behaviour it describes is separate work. Signup, maintenance
-          mode and sign-in providers are configured in Supabase Auth today.
-        </Note>
-      </div>
-
       <div className="grid gap-3.5 lg:grid-cols-2">
         {sections.map(([section, items]) => (
           <Card key={section}>
@@ -87,7 +90,20 @@ export default function SettingsView({ rows }: { rows: SettingRow[] }) {
               {items.map((s) => {
                 const isNumber = typeof s.value === "number";
                 return (
-                  <ToggleRow key={s.key} title={s.label} desc={s.description ?? undefined}>
+                  <ToggleRow
+                    key={s.key}
+                    title={
+                      NOT_ENFORCED.has(s.key) ? (
+                        <span className="flex items-center gap-2 flex-wrap">
+                          {s.label}
+                          <Tag tone="warn">Not enforced yet</Tag>
+                        </span>
+                      ) : (
+                        s.label
+                      )
+                    }
+                    desc={s.description ?? undefined}
+                  >
                     {isNumber ? (
                       <input
                         type="number"
@@ -145,6 +161,10 @@ export default function SettingsView({ rows }: { rows: SettingRow[] }) {
                 protection officer asks.
               </Note>
             </div>
+            <p className="text-xs mt-3" style={{ color: C.muted }}>
+              Rate limits and margin warnings live on Usage &amp; margins, beside the
+              numbers they act on.
+            </p>
           </CardBody>
         </Card>
       </div>

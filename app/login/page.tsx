@@ -3,20 +3,68 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { FcGoogle } from "react-icons/fc";
 import { MdLock } from "react-icons/md";
 import { Eye, EyeOff } from "lucide-react";
 import { createClient } from "@/app/lib/auth/client";
+import { usePublicSettings } from "@/app/lib/usePublicSettings";
+
+const SUSPENDED_MESSAGE =
+  "This account has been suspended. If you think that's a mistake, contact support and we'll take another look.";
 
 export default function LoginPage() {
   const router = useRouter();
+  const settings = usePublicSettings();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const canSubmit = email.trim().length > 0 && password.length > 0 && !loading;
+
+  // Google sign-in leaves the page entirely, so a suspended account can only be
+  // reported by whatever lands back here.
+  //
+  // Supabase rejects a banned user in the URL FRAGMENT, not the query string:
+  //
+  //   /login?error=auth#error=access_denied&error_code=user_banned&...
+  //
+  // A fragment is never sent to the server, so /auth/callback cannot see it and
+  // falls through to its generic ?error=auth — which is why a banned Google user
+  // used to get "Could not sign you in" with no explanation. The fragment is
+  // readable only here, on the client, so this is the only place the real reason
+  // can be recovered. Check it FIRST and let it win over the query string.
+  //
+  // Read from window rather than useSearchParams(): that hook sees only the
+  // query string anyway, and forces a client-side bailout needing a Suspense
+  // boundary around the whole form.
+  useEffect(() => {
+    const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+    const query = new URLSearchParams(window.location.search);
+    // Four shapes reach this page, depending on whether Supabase redirected to
+    // /auth/callback or fell back to the Site URL, and whether the reason
+    // survived in the query string or only in the fragment:
+    //   #error_code=user_banned      (fragment — the server never sees it)
+    //   ?error_code=user_banned      (Site-URL fallback, forwarded by app/page.tsx)
+    //   ?error=user_banned           (as above, normalised)
+    //   ?error=suspended             (our own /auth/callback redirect)
+    const reason =
+      hash.get("error_code") ?? query.get("error_code") ?? query.get("error");
+
+    if (reason === "user_banned" || reason === "suspended") {
+      setError(SUSPENDED_MESSAGE);
+    } else if (reason) {
+      setError("Could not sign you in. Please try again.");
+    }
+
+    // Strip the error off the URL once it's been shown. Otherwise a refresh —
+    // or a successful sign-in that re-renders this page — keeps re-displaying a
+    // stale failure, and the fragment lingers in the address bar.
+    if (hash.has("error_code") || query.has("error") || query.has("error_code")) {
+      window.history.replaceState(null, "", window.location.pathname);
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,7 +77,11 @@ export default function LoginPage() {
       password,
     });
     if (error) {
-      setError("Incorrect email or password.");
+      // A suspended account has to say so. Reporting "incorrect email or
+      // password" — which is what every failure used to say — sends someone
+      // whose credentials are perfectly correct into retrying them forever,
+      // and then to support to ask why their password stopped working.
+      setError(error.code === "user_banned" ? SUSPENDED_MESSAGE : "Incorrect email or password.");
       setLoading(false);
       return;
     }
@@ -85,20 +137,27 @@ export default function LoginPage() {
               </p>
             </div>
 
-            <button
-              type="button"
-              onClick={handleGoogle}
-              className="w-full flex items-center justify-center gap-3 py-3 rounded-xl bg-white border border-line text-sm font-medium hover:border-dark transition-colors mb-6"
-            >
-              <FcGoogle className="w-5 h-5" />
-              Continue with Google
-            </button>
+            {/* Only the Google button is gated here. Signing IN is never
+                blocked by signups_open — closing signups stops new accounts,
+                it doesn't lock out the teachers who already have one. */}
+            {settings.googleSignin && (
+              <>
+                <button
+                  type="button"
+                  onClick={handleGoogle}
+                  className="w-full flex items-center justify-center gap-3 py-3 rounded-xl bg-white border border-line text-sm font-medium hover:border-dark transition-colors mb-6"
+                >
+                  <FcGoogle className="w-5 h-5" />
+                  Continue with Google
+                </button>
 
-            <div className="flex items-center gap-3 mb-6">
-              <div className="h-px bg-line flex-1" />
-              <span className="text-xs text-muted">or</span>
-              <div className="h-px bg-line flex-1" />
-            </div>
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="h-px bg-line flex-1" />
+                  <span className="text-xs text-muted">or</span>
+                  <div className="h-px bg-line flex-1" />
+                </div>
+              </>
+            )}
 
             <form onSubmit={handleSubmit}>
               <div>
@@ -140,9 +199,29 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              {error && (
-                <p className="mt-3 text-sm text-red-600 font-light">{error}</p>
-              )}
+              {error &&
+                (error === SUSPENDED_MESSAGE ? (
+                  // A suspension is not a typo — it's an account state the
+                  // teacher can do nothing about by retrying, so it gets a
+                  // banner rather than the same one-line hint as a wrong
+                  // password.
+                  <div
+                    role="alert"
+                    className="mt-4 rounded-xl border px-4 py-3"
+                    style={{ backgroundColor: "#FBECEB", borderColor: "#EDD3D1" }}
+                  >
+                    <p className="text-sm font-semibold" style={{ color: "#B3261E" }}>
+                      Account suspended
+                    </p>
+                    <p className="mt-0.5 text-sm font-light" style={{ color: "#8A3B34" }}>
+                      {error}
+                    </p>
+                  </div>
+                ) : (
+                  <p className="mt-3 text-sm text-red-600 font-light" role="alert">
+                    {error}
+                  </p>
+                ))}
 
               <div className="mt-8 flex justify-center">
                 <button

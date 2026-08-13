@@ -3,8 +3,16 @@ export const nf = new Intl.NumberFormat("en-GB");
 
 // USD -> GBP. Costs are logged in USD (token_usage.cost_usd, asset_cost.cost_usd)
 // because that's what the model providers bill in, but Jooma sells in GBP and
-// every figure in this console is read as GBP. This is the single place to
-// change the rate.
+// every figure in this console is read as GBP.
+//
+// THE RATE LIVES IN THE DATABASE — the `fx_rate` table, read by fx_usd_to_gbp()
+// in SQL and by loadFxRate() in app/lib/fx.ts. That is deliberate: the spend
+// ceiling is enforced in SQL, so if these two ever disagreed the gate and the
+// console would report different numbers with nothing to catch it.
+//
+// The constant below is a FALLBACK for synchronous render paths that cannot
+// await a query, and for the modelling constants in lib/costs.ts. Keep it equal
+// to the seeded fx_rate row. Change the rate with admin_set_fx_rate(), not here.
 export const FX_USD_TO_GBP = 0.79;
 
 export const usd = (n: number) => {

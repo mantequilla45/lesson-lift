@@ -7,9 +7,11 @@ import {
   Search, Pin, Check,
 } from "lucide-react";
 import SideNav from "@/app/components/layout/SideNav";
+import SupportLauncher from "@/app/components/SupportLauncher";
 import TopBar from "@/app/components/layout/TopBar";
 import { listRecentRuns, type ToolRun } from "@/app/lib/toolRuns";
 import { toolForSlug, typeLabel, formatDate, TAG_COLORS } from "@/app/lib/toolRunDisplay";
+import AnnouncementBanner from "@/app/components/AnnouncementBanner";
 
 const PIN_STORAGE_KEY = "jooma:pinned-tools";
 const DATE_RANGES = ["Any time", "Last 7 days", "Last 30 days", "This year"] as const;
@@ -150,8 +152,11 @@ export default function FoldersPage() {
   return (
     <div className="min-h-screen flex" style={{ backgroundColor: "#F1EFE3" }}>
       <SideNav />
+      <SupportLauncher />
       <main className="grow flex flex-col overflow-y-auto">
         <TopBar title="Folders" />
+        {/* Team announcements. Renders nothing when there are none. */}
+        <AnnouncementBanner />
 
         <div className="px-10 pb-16 space-y-4">
           {/* Search + action */}

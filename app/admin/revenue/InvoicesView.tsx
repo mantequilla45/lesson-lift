@@ -9,6 +9,7 @@ import {
   C,
   Card,
   CardBody,
+  CardFooter,
   CardHeader,
   CardTitle,
   EmptyState,
@@ -23,8 +24,6 @@ import {
   Tag,
   Td,
   Th,
-  Timeline,
-  TimelineItem,
   Tr,
   fieldClass,
   fieldStyle,
@@ -67,32 +66,69 @@ export interface SchoolOption {
   annual_value: number;
 }
 
-// What happens when a card fails. Documented here because the sequence is
-// Stripe's Smart Retries plus our own emails, and support needs to be able to
-// tell a teacher exactly what will happen next.
-const DUNNING: [string, string][] = [
-  ["Day 0 — retry, email “your payment didn't go through”", "Template: payment_failed_1"],
-  ["Day 3 — retry, email with a one-click card update link", "Template: payment_failed_2"],
-  ["Day 7 — final retry, in-app banner", "Template: payment_failed_3"],
-  ["Day 10 — downgrade to Free, keep all their resources", "Never delete their work. They come back."],
-  ["Day 14 — offer the annual plan", "A failed card is often a switched card."],
-];
+/** A subscription Stripe is currently failing to collect on. */
+export interface DunningRow {
+  id: string;
+  userId: string | null;
+  email: string | null;
+  status: string;
+  amountGbp: number;
+  nextAttempt: string | null;
+  since: string;
+}
 
 export default function InvoicesView({
   rows,
   summary,
   schools,
+  dunning,
+  stripeError,
 }: {
   rows: InvoiceRow[];
   summary: BillingSummary | null;
   schools: SchoolOption[];
+  dunning: DunningRow[];
+  stripeError: string | null;
 }) {
   const router = useRouter();
   const [q, setQ] = useState("");
   const [status, setStatus] = useState("");
   const [type, setType] = useState("");
   const [raising, setRaising] = useState(false);
+  const [portalBusy, setPortalBusy] = useState<string | null>(null);
   const [toastNode, fire] = useToast();
+
+  /**
+   * Mint a billing-portal link for a teacher whose card is failing, for the
+   * admin to send on. Reuses the existing admin route, which logs the action —
+   * the link is a bearer credential, so it is copied deliberately rather than
+   * emailed automatically.
+   */
+  const copyPortalLink = async (userId: string | null, label: string) => {
+    if (!userId) {
+      fire("No Jooma account is linked to that Stripe customer.");
+      return;
+    }
+    setPortalBusy(userId);
+    try {
+      const res = await fetch("/api/admin/teachers/billing-portal", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        fire(json.error ?? "Could not create a portal link.");
+        return;
+      }
+      await navigator.clipboard.writeText(json.url);
+      fire(`Portal link for ${label} copied.`);
+    } catch {
+      fire("Could not create a portal link.");
+    } finally {
+      setPortalBusy(null);
+    }
+  };
 
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase();
@@ -129,9 +165,20 @@ export default function InvoicesView({
         title="Payments & invoices"
         sub="Card charges from teachers and BACS invoices from schools, in one list."
       >
-        <Btn variant="primary" onClick={() => setRaising(true)} disabled={schools.length === 0}>
-          + Raise invoice
-        </Btn>
+        {/* School invoices are the only kind raised by hand, and the School
+            plan isn't built — so with no schools on file there is nothing this
+            can be pointed at. Say why rather than showing a dead button. */}
+        <span
+          title={
+            schools.length === 0
+              ? "Not available — invoices are raised against a school, and the School plan isn't built yet"
+              : undefined
+          }
+        >
+          <Btn variant="primary" onClick={() => setRaising(true)} disabled={schools.length === 0}>
+            + Raise invoice
+          </Btn>
+        </span>
       </PageHead>
 
       <div className="grid gap-3.5 mb-6 grid-cols-2 lg:grid-cols-4">
@@ -294,20 +341,65 @@ export default function InvoicesView({
       </Card>
 
       <div className="grid gap-3.5 mt-4 lg:grid-cols-2">
+        {/* Cards Stripe is currently failing to collect on, read live. Retries
+            are Stripe's Smart Retries, configured in its dashboard — this shows
+            who is affected right now rather than describing a schedule. */}
         <Card>
           <CardHeader>
-            <CardTitle>Dunning — what happens when a card fails</CardTitle>
+            <CardTitle>Failing payments</CardTitle>
           </CardHeader>
-          <CardBody>
-            <Timeline>
-              {DUNNING.map(([title, meta], i) => (
-                <TimelineItem key={title} title={title} meta={meta} highlight={i < 2} />
-              ))}
-            </Timeline>
-            <p className="text-xs mt-2" style={{ color: C.muted }}>
-              Retries are driven by Stripe. The emails are ours — see Email templates.
-            </p>
-          </CardBody>
+          {stripeError ? (
+            <CardBody>
+              <Note tone="danger">
+                <b>Could not reach Stripe.</b> {stripeError}
+              </Note>
+            </CardBody>
+          ) : dunning.length === 0 ? (
+            <EmptyState
+              title="No failing payments"
+              body="Nobody's card is currently being retried."
+            />
+          ) : (
+            <Table>
+              <thead>
+                <tr className="text-left">
+                  <Th>Teacher</Th>
+                  <Th align="right">Amount</Th>
+                  <Th>State</Th>
+                  <Th />
+                </tr>
+              </thead>
+              <tbody>
+                {dunning.map((d) => (
+                  <Tr key={d.id}>
+                    <Td>
+                      <span style={{ color: C.ink }}>{d.email ?? "Unknown"}</span>
+                    </Td>
+                    <Td align="right" mono>
+                      {gbp(d.amountGbp)}
+                    </Td>
+                    <Td>
+                      <StatusTag status={d.status} />
+                    </Td>
+                    <Td align="right">
+                      <Btn
+                        size="sm"
+                        disabled={portalBusy === d.userId || !d.userId}
+                        onClick={() => copyPortalLink(d.userId, d.email ?? "this teacher")}
+                      >
+                        Copy card-update link
+                      </Btn>
+                    </Td>
+                  </Tr>
+                ))}
+              </tbody>
+            </Table>
+          )}
+          <CardFooter>
+            Retry timing is Stripe&apos;s, set in its billing settings.{" "}
+            <b>past due</b> means it is still retrying; <b>unpaid</b> means it has given up.
+            The card-update link is a private credential — send it to the teacher directly.
+          </CardFooter>
         </Card>
 
         <Card>
@@ -315,21 +407,26 @@ export default function InvoicesView({
             <CardTitle>Tax &amp; company</CardTitle>
           </CardHeader>
           <CardBody>
-            <Note tone="warn">
-              VAT registration would take £7.99 down to £6.66 net. Worth modelling before you
-              cross the threshold — schools can usually reclaim it, individual teachers
-              can&apos;t.
-            </Note>
-            <div className="mt-3 text-sm space-y-1.5">
+            <div className="text-sm space-y-1.5">
               {[
                 ["Currency", "GBP only"],
                 ["Invoice prefix", "INV-" + new Date().getFullYear() + "-"],
                 ["Payment terms", "30 days default"],
-                ["Stripe", "Connected · invoice events mirrored locally"],
+                [
+                  "Stripe",
+                  // Derived from whether this page's Stripe call actually
+                  // answered, rather than an unconditional "Connected".
+                  stripeError ? "Unreachable" : "Connected · invoice events mirrored locally",
+                ],
               ].map(([k, v]) => (
-                <div key={k} className="flex justify-between">
+                <div key={k} className="flex justify-between gap-4">
                   <span style={{ color: C.muted }}>{k}</span>
-                  <span style={{ color: C.ink }}>{v}</span>
+                  <span
+                    className="text-right"
+                    style={{ color: k === "Stripe" && stripeError ? C.danger : C.ink }}
+                  >
+                    {v}
+                  </span>
                 </div>
               ))}
             </div>

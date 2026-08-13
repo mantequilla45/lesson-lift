@@ -1,36 +1,136 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Mail, X } from "lucide-react";
-import { PLANS } from "@/app/lib/plans";
+import { SELECTABLE_PLANS } from "@/app/lib/plans";
+import { parseCsv } from "@/app/lib/csv";
 
-// Matches the mockup's bulkInvite() modal: a list of emails (or a CSV), which
-// school pool to add them to, and which plan to put them on.
-//
-// Submission is deliberately stubbed — there's no invite-email flow yet
-// (auth.admin.inviteUserByEmail + a mailer to actually send it), and no
-// school entity in the schema to assign anyone to, so the school dropdown is
-// a placeholder like the Teachers table's School column.
+// Sends each address a Supabase invite link by email (via SendGrid — see
+// app/lib/email.ts). The link signs them in once and drops them on
+// /create-password, so nobody is ever emailed a password.
 
 const fieldClass =
   "w-full px-3.5 py-2.5 border rounded-xl bg-white text-sm font-medium placeholder-[#A5A5A5] focus:outline-none focus:border-[#1a1a1a] transition-colors";
 const fieldStyle = { borderColor: "#DAD8D0" };
 
+const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+
+interface Result {
+  email: string;
+  status: "sent" | "exists" | "failed";
+  error?: string;
+}
+
+/**
+ * Pull email addresses out of an uploaded CSV.
+ *
+ * Uses a header cell matching /e-?mail/i when there is one; otherwise picks the
+ * column that looks most like emails and treats row 0 as data, so a headerless
+ * export still works. Returns the count of rows it couldn't use so the admin
+ * hears about them rather than silently losing addresses.
+ */
+function extractEmails(text: string): { emails: string[]; skipped: number } {
+  const rows = parseCsv(text);
+  if (rows.length === 0) return { emails: [], skipped: 0 };
+
+  const header = rows[0];
+  let col = header.findIndex((c) => /e-?mail/i.test(c));
+  let body = rows.slice(1);
+
+  if (col === -1) {
+    // No header we recognise. Score each column by how many of its cells look
+    // like an address and take the best one, counting row 0 as data.
+    const width = Math.max(...rows.map((r) => r.length));
+    let best = -1;
+    for (let i = 0; i < width; i++) {
+      const hits = rows.filter((r) => EMAIL_RE.test(r[i] ?? "")).length;
+      if (hits > best) {
+        best = hits;
+        col = i;
+      }
+    }
+    body = rows;
+    if (best === 0) return { emails: [], skipped: rows.length };
+  }
+
+  const emails: string[] = [];
+  let skipped = 0;
+  for (const row of body) {
+    const cell = (row[col] ?? "").trim().toLowerCase();
+    if (EMAIL_RE.test(cell)) emails.push(cell);
+    else if (row.some((c) => c.trim() !== "")) skipped++;
+  }
+  return { emails, skipped };
+}
+
 export default function InviteTeachersModal({ onClose }: { onClose: () => void }) {
+  const router = useRouter();
   const [emails, setEmails] = useState("");
-  const [plan, setPlan] = useState<string>(PLANS.free.id);
+  const [plan, setPlan] = useState<string>(SELECTABLE_PLANS[0]?.id ?? "free");
   const [notice, setNotice] = useState<string | null>(null);
+  const [sending, setSending] = useState(false);
+  const [results, setResults] = useState<Result[] | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
-  const parsed = emails
-    .split(/[\n,]/)
-    .map((e) => e.trim())
-    .filter(Boolean);
-  const canSubmit = parsed.length > 0;
+  const parsed = [
+    ...new Set(
+      emails
+        .split(/[\n,;]+/)
+        .map((e) => e.trim().toLowerCase())
+        .filter(Boolean),
+    ),
+  ];
+  const valid = parsed.filter((e) => EMAIL_RE.test(e));
+  const invalid = parsed.length - valid.length;
+  const canSubmit = valid.length > 0 && !sending;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleFile = async (file: File) => {
+    const { emails: found, skipped } = extractEmails(await file.text());
+    if (found.length === 0) {
+      setNotice(`No email addresses found in ${file.name}.`);
+      return;
+    }
+    // Appended, not replaced, and left in the textarea where it can be read and
+    // edited — the admin sees exactly what will be sent before sending it.
+    setEmails((prev) => (prev.trim() ? `${prev.trim()}\n${found.join("\n")}` : found.join("\n")));
+    setNotice(
+      `Loaded ${found.length} address${found.length === 1 ? "" : "es"} from ${file.name}` +
+        (skipped > 0 ? ` — ${skipped} row${skipped === 1 ? "" : "s"} skipped.` : "."),
+    );
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!canSubmit) return;
-    setNotice("Inviting teachers isn't wired up yet.");
+    setSending(true);
+    setNotice(null);
+    setResults(null);
+
+    const res = await fetch("/api/admin/teachers/invite", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ emails: valid, plan }),
+    });
+    const json = await res.json().catch(() => ({}));
+    setSending(false);
+
+    if (!res.ok) {
+      setNotice(json.error ?? "Could not send the invites.");
+      return;
+    }
+
+    setResults(json.results ?? []);
+    const sent = json.sent ?? 0;
+    setNotice(
+      sent === json.requested
+        ? `Sent ${sent} invite${sent === 1 ? "" : "s"}.`
+        : `Sent ${sent} of ${json.requested}. See below.`,
+    );
+    if (sent > 0) {
+      setEmails("");
+      router.refresh();
+    }
   };
 
   return (
@@ -80,18 +180,36 @@ export default function InviteTeachersModal({ onClose }: { onClose: () => void }
                 className={`${fieldClass} resize-none`}
                 style={fieldStyle}
               />
+              <input
+                ref={fileRef}
+                type="file"
+                accept=".csv,text/csv"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) void handleFile(file);
+                  // Reset so picking the same file twice still fires onChange.
+                  e.target.value = "";
+                }}
+              />
               <p className="mt-1.5 text-xs" style={{ color: "#8a8078" }}>
                 Or{" "}
                 <button
                   type="button"
-                  onClick={(e) => e.preventDefault()}
+                  onClick={() => fileRef.current?.click()}
                   className="underline hover:no-underline"
                   style={{ color: "#1a1a1a" }}
                 >
                   upload a CSV
                 </button>{" "}
-                with name, email, year group.
-                {parsed.length > 0 && ` ${parsed.length} email${parsed.length === 1 ? "" : "s"} detected.`}
+                — we&rsquo;ll find the email column.
+                {valid.length > 0 && ` ${valid.length} address${valid.length === 1 ? "" : "es"} ready.`}
+                {invalid > 0 && (
+                  <span style={{ color: "#A85F0C" }}>
+                    {" "}
+                    {invalid} don&rsquo;t look like emails and will be skipped.
+                  </span>
+                )}
               </p>
             </div>
 
@@ -99,7 +217,14 @@ export default function InviteTeachersModal({ onClose }: { onClose: () => void }
               <label className="block text-xs font-semibold mb-1.5" style={{ color: "#4a423a" }}>
                 Add to
               </label>
-              <select disabled title="No school data yet" className={`${fieldClass} opacity-50 cursor-not-allowed`} style={fieldStyle}>
+              {/* Still disabled: there are no schools in the database yet, so
+                  there is nothing to assign anyone to. */}
+              <select
+                disabled
+                title="No schools have been set up yet"
+                className={`${fieldClass} opacity-50 cursor-not-allowed`}
+                style={fieldStyle}
+              >
                 <option>No school — individual accounts</option>
               </select>
             </div>
@@ -114,13 +239,42 @@ export default function InviteTeachersModal({ onClose }: { onClose: () => void }
                 className={fieldClass}
                 style={fieldStyle}
               >
-                {Object.values(PLANS).map((p) => (
+                {/* Free and Pro only — Max is withdrawn from sale and School
+                    isn't built, so inviting someone onto either would put them
+                    on a plan we can't bill. */}
+                {SELECTABLE_PLANS.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.name}
                   </option>
                 ))}
               </select>
             </div>
+
+            {results && results.length > 0 && (
+              <div className="rounded-xl border divide-y" style={{ borderColor: "#DAD8D0" }}>
+                {results.map((r) => (
+                  <div
+                    key={r.email}
+                    className="flex items-center gap-2 px-3 py-2 text-xs"
+                    style={{ borderColor: "#EEECE4" }}
+                  >
+                    <span className="flex-1 min-w-0 truncate font-mono" style={{ color: "#1a1a1a" }}>
+                      {r.email}
+                    </span>
+                    <span
+                      className="font-semibold shrink-0"
+                      style={{
+                        color:
+                          r.status === "sent" ? "#1f6b3b" : r.status === "exists" ? "#8a8078" : "#B3261E",
+                      }}
+                      title={r.error}
+                    >
+                      {r.status === "sent" ? "Sent" : r.status === "exists" ? "Already has an account" : "Failed"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <div
@@ -137,7 +291,7 @@ export default function InviteTeachersModal({ onClose }: { onClose: () => void }
                 className="text-sm font-semibold rounded-xl border px-4 py-2 transition-colors hover:bg-black/5"
                 style={{ borderColor: "#DAD8D0", color: "#1a1a1a" }}
               >
-                Cancel
+                {results ? "Done" : "Cancel"}
               </button>
               <button
                 type="submit"
@@ -145,7 +299,7 @@ export default function InviteTeachersModal({ onClose }: { onClose: () => void }
                 className="text-sm font-semibold rounded-xl px-4 py-2 text-white transition-opacity hover:opacity-90 disabled:opacity-40"
                 style={{ backgroundColor: "#1a1a1a" }}
               >
-                Send invites
+                {sending ? "Sending…" : `Send invite${valid.length === 1 ? "" : "s"}`}
               </button>
             </div>
           </div>

@@ -637,7 +637,11 @@ export default function LessonSlideshowForm({ sidebar }: { sidebar: React.ReactN
       output: JSON.stringify(s),
     })
       .then(() => setHistoryKey((k) => k + 1))
-      .catch(() => {});
+      // Non-fatal — the slides are on screen either way — but log it. A bare
+      // `.catch(() => {})` here meant a run that never saved looked identical
+      // to one that did, which is how a whole tool can end up with no history
+      // and nobody notices.
+      .catch((err) => console.warn("[lesson-slideshow] could not save run:", err));
   };
 
   const restore = (run: ToolRun) => {

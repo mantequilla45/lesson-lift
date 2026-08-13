@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { ChevronDown } from "lucide-react";
 
 const FAQS = [
@@ -45,13 +44,17 @@ export default function Faq() {
             <br />
             We&apos;re here to help every step of the way.
           </p>
-          <Link
-            href="/contact"
+          {/* mailto rather than /help: this is the public landing page, and
+              /help needs a session. Signed-in teachers reach the same support
+              inbox from Help in the app. (/contact never existed — this link
+              404'd.) */}
+          <a
+            href="mailto:support@jooma.ai"
             className="inline-flex items-center px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-opacity hover:opacity-90"
             style={{ backgroundColor: "#030303" }}
           >
             Get in touch
-          </Link>
+          </a>
         </div>
 
         {/* Right — accordion */}
