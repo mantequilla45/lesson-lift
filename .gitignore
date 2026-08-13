@@ -44,3 +44,5 @@ next-env.d.ts
 /app_data
 
 .mcp.json
+staging_schema.sql
+staging_seed.sql
