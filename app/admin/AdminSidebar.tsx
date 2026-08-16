@@ -20,6 +20,7 @@ import {
   Megaphone,
   UsersRound,
   ScrollText,
+  FlaskConical,
   Sliders,
   Presentation,
   Activity,
@@ -75,6 +76,7 @@ const NAV: NavGroup[] = [
     items: [
       { href: "/admin/usage", label: "Usage & margins", icon: BarChart3 },
       { href: "/admin/tools", label: "Tools", icon: Sliders },
+      { href: "/admin/model-lab", label: "Model lab", icon: FlaskConical },
       { href: "/admin/flags", label: "Safeguarding flags", icon: ShieldAlert },
       { href: "/admin/presentations", label: "Presentations", icon: Presentation },
     ],

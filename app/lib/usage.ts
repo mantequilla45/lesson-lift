@@ -392,6 +392,10 @@ type StreamParams = Omit<
 > &
   ReasoningParams & {
     toolSlug: string;
+    /** Sub-step attribution on the token_usage row. Normally null; set to
+     *  'model-lab' by labModelFor() so an admin's model comparison is visible
+     *  in cost totals without being counted as a teacher's run. */
+    step?: string | null;
     /** Ties this generation's telemetry (and any safeguarding flag) to one run. */
     runId?: string | null;
     /**
@@ -412,6 +416,7 @@ type StreamParams = Omit<
  *  key the usage report groups by — pass the tool's API slug. */
 export async function streamChat({
   toolSlug,
+  step,
   runId,
   safeguardingText,
   ...params
@@ -470,7 +475,7 @@ export async function streamChat({
         //
         // The user has already received every token by this point, so the extra
         // few ms before close costs them nothing.
-        await recordUsage(toolSlug, params.model, usage, null, userId, runId, {
+        await recordUsage(toolSlug, params.model, usage, step ?? null, userId, runId, {
           effort: reasoning.reasoning_effort,
           verbosity: reasoning.verbosity,
         });
