@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getOpenAI } from "@/app/lib/openai";
-import { recordUsage } from "@/app/lib/usage";
+import { createCompletion } from "@/app/lib/usage";
+import { modelFor } from "@/app/lib/tool-model";
 
 export interface GenerateRequest {
   curriculum: string;
@@ -16,7 +16,6 @@ export interface GenerateRequest {
 
 
 export async function POST(req: NextRequest) {
-  const client = getOpenAI();
   const body: GenerateRequest = await req.json();
 
   const { curriculum, yearGroup, textSource, topic, ownText, readingFocuses, numQuestions, complexity = "Standard", includeAnswerKey = true } = body;
@@ -52,16 +51,15 @@ Group the questions clearly by reading focus with a heading for each group.${ans
 PASSAGE:
 ${ownText}`;
 
-  const response = await client.chat.completions.create({
-    model: "gpt-4o",
-    max_tokens: 4096,
+  const response = await createCompletion({
+    toolSlug: "generate",
+    ...(await modelFor("generate", "gpt-4o")),
+    max_completion_tokens: 4096,
     messages: [
       { role: "system", content: "You are an expert teacher and curriculum designer. You create high-quality, age-appropriate reading comprehension activities. Write clearly and engagingly. Do not use any emojis anywhere in your output." },
       { role: "user", content: userPrompt },
     ],
-    stream: false,
   });
-  await recordUsage("generate", "gpt-4o", response.usage);
   const output = response.choices[0].message.content ?? "";
 
   return NextResponse.json({ output });

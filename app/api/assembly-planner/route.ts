@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { buildSystem } from "@/app/lib/systemPrompt";
 import { streamChat } from "@/app/lib/usage";
+import { modelFor } from "@/app/lib/tool-model";
 
 
 export async function POST(req: NextRequest) {
@@ -96,8 +97,8 @@ Be specific to the stage of school: ${stageOfSchool || "Primary"}. Use UK Englis
 
   return streamChat({
     toolSlug: "assembly-planner",
-    model: "gpt-4o",
-    max_tokens: 4000,
+    ...(await modelFor("assembly-planner", "gpt-4o")),
+    max_completion_tokens: 4000,
     messages: [
       { role: "system", content: buildSystem("You are an expert UK school leader, PSHE specialist, and assembly writer with extensive experience planning and scripting whole-school assemblies for all phases. You write engaging, age-appropriate assembly scripts that are practical to deliver, curriculum-linked where relevant, and aligned with British values and safeguarding principles.") },
       { role: "user", content: prompt },

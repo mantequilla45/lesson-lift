@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { streamChat } from "@/app/lib/usage";
+import { modelFor } from "@/app/lib/tool-model";
 import { buildSystem } from "@/app/lib/systemPrompt";
 
 export interface ModelAnswerRequest {
@@ -108,8 +109,8 @@ Do not use any emojis. Do not add any text before the main title or after the la
 
   return streamChat({
     toolSlug: "model-answer-generator",
-    model: "gpt-4o",
-    max_tokens: 8192,
+    ...(await modelFor("model-answer-generator", "gpt-4o")),
+    max_completion_tokens: 8192,
     messages: [
       { role: "system", content: buildSystem("You are an expert UK examiner, subject specialist, and classroom teacher with extensive experience across GCSE, A-level, and primary/secondary assessment frameworks. You have a precise understanding of what examiners reward at each level and how mark schemes are structured. You write model answers that are genuinely exam-worthy — accurate, well-structured, and pitched at the level of a high-achieving pupil — and teacher notes that are specific, evidence-informed, and immediately useful in a UK classroom. You write in professional UK English.") },
       { role: "user", content: userPrompt },

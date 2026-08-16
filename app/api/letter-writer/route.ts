@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { streamChat } from "@/app/lib/usage";
+import { modelFor } from "@/app/lib/tool-model";
 import { buildSystem } from "@/app/lib/systemPrompt";
 
 
@@ -54,8 +55,8 @@ Write in UK English. Use £ for currency. Use British date conventions. Do not u
 
   return streamChat({
     toolSlug: "letter-writer",
-    model: "gpt-4o",
-    max_tokens: 2000,
+    ...(await modelFor("letter-writer", "gpt-4o")),
+    max_completion_tokens: 2000,
     messages: [
       { role: "system", content: buildSystem("You are an expert school communications specialist with extensive experience writing clear, professional letters for UK schools to parents, governors, staff, and external stakeholders. You write letters that are well-structured, appropriately toned, and cover all required information concisely.") },
       { role: "user", content: prompt },

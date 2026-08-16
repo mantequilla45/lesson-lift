@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { streamChat } from "@/app/lib/usage";
+import { modelFor } from "@/app/lib/tool-model";
 import { buildSystem } from "@/app/lib/systemPrompt";
 
 
@@ -117,8 +118,8 @@ Make every section specific to the meeting purpose and participants provided —
 
   return streamChat({
     toolSlug: "meeting-planner",
-    model: "gpt-4o",
-    max_tokens: 3000,
+    ...(await modelFor("meeting-planner", "gpt-4o")),
+    max_completion_tokens: 3000,
     messages: [
       { role: "system", content: buildSystem("You are an expert facilitator and school leader with extensive experience designing and running productive professional meetings in UK schools. You create structured, time-efficient meeting plans that respect participants' time, drive clear outcomes, and follow best practice for collaborative professional dialogue.") },
       { role: "user", content: prompt },

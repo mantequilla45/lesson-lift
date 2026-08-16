@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { streamChat } from "@/app/lib/usage";
+import { modelFor } from "@/app/lib/tool-model";
 import { buildSystem } from "@/app/lib/systemPrompt";
 
 
@@ -100,8 +101,8 @@ Write in a formal, professional tone appropriate for a school leadership observa
 
   return streamChat({
     toolSlug: "lesson-observation-report",
-    model: "gpt-4o",
-    max_tokens: 4000,
+    ...(await modelFor("lesson-observation-report", "gpt-4o")),
+    max_completion_tokens: 4000,
     messages: [
       { role: "system", content: buildSystem("You are an experienced school leader and instructional coach with deep expertise in lesson observation and teacher development. You write formal, evidence-based observation reports that are specific, fair, and grounded in the Teachers' Standards and current Ofsted EIF criteria. Your reports support teacher growth through clear, actionable feedback.") },
       { role: "user", content: prompt },

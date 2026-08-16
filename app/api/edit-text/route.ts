@@ -3,8 +3,8 @@
 // AI" popover in the editor. Returns only the revised text.
 
 import { NextRequest, NextResponse } from "next/server";
-import { getOpenAI } from "@/app/lib/openai";
-import { recordUsage } from "@/app/lib/usage";
+import { createCompletion } from "@/app/lib/usage";
+import { modelFor } from "@/app/lib/tool-model";
 
 export const maxDuration = 30;
 
@@ -39,17 +39,18 @@ ${text}
 """`;
 
   try {
-    const client = getOpenAI();
-    const completion = await client.chat.completions.create({
-      model: "gpt-4o-mini",
+    const completion = await createCompletion({
+      toolSlug: "edit-text",
+      ...(await modelFor("edit-text", "gpt-4o-mini")),
       messages: [
         { role: "system", content: "You are a precise slide-copy editor. Output only the revised text, nothing else." },
         { role: "user", content: prompt },
       ],
-      max_tokens: 700,
+      max_completion_tokens: 700,
+      // Only honoured on gpt-4o. gpt-5.6 rejects any value but the default, so
+      // createCompletion strips it there — see applyModelParams in usage.ts.
       temperature: 0.7,
     });
-    await recordUsage("edit-text", "gpt-4o-mini", completion.usage);
     const out = completion.choices[0]?.message?.content?.trim();
     if (!out) return NextResponse.json({ error: "Empty AI response" }, { status: 500 });
     // Strip wrapping quotes the model sometimes adds despite instructions.

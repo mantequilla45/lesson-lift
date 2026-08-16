@@ -3,8 +3,8 @@
 // list (uncheck / add their own) before the terms are woven into the deck.
 
 import { NextRequest, NextResponse } from "next/server";
-import { getOpenAI } from "@/app/lib/openai";
-import { recordUsage } from "@/app/lib/usage";
+import { createCompletion } from "@/app/lib/usage";
+import { modelFor } from "@/app/lib/tool-model";
 
 export const maxDuration = 30;
 
@@ -42,16 +42,15 @@ ${yearLine}
 Return 5-8 essential terms — the specific subject words pupils need to learn for this topic, not generic words. Each term should be 1-3 words (a noun or noun phrase), no definitions, no punctuation. Order them from most fundamental to more advanced. Use British English spelling.`;
 
   try {
-    const client = getOpenAI();
-    const completion = await client.chat.completions.create({
-      model: "gpt-4o-2024-08-06",
+    const completion = await createCompletion({
+      toolSlug: "suggest-vocabulary",
+      ...(await modelFor("suggest-vocabulary", "gpt-4o-2024-08-06")),
       messages: [
         { role: "system", content: "You are a UK classroom planning assistant. You output precise subject-specific vocabulary lists." },
         { role: "user", content: prompt },
       ],
       response_format: { type: "json_schema", json_schema: vocabSchema },
     });
-    await recordUsage("suggest-vocabulary", "gpt-4o-2024-08-06", completion.usage);
     const content = completion.choices[0]?.message?.content;
     if (!content) return NextResponse.json({ error: "Empty AI response" }, { status: 500 });
     const parsed: { terms: string[] } = JSON.parse(content);

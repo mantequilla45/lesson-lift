@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { buildSystem } from "@/app/lib/systemPrompt";
 import { streamChat } from "@/app/lib/usage";
+import { modelFor } from "@/app/lib/tool-model";
 
 export interface CoverLessonRequest {
   curriculum: string;
@@ -106,8 +107,8 @@ Ensure the total timing adds up to ${lessonLength}. Write in a warm, professiona
 
   return streamChat({
     toolSlug: "cover-lesson",
-    model: "gpt-4o",
-    max_tokens: 4096,
+    ...(await modelFor("cover-lesson", "gpt-4o")),
+    max_completion_tokens: 4096,
     messages: [
       { role: "system", content: buildSystem(`You are an expert UK teacher with extensive experience writing cover lessons that any non-specialist can deliver confidently. You write in clear, friendly, step-by-step language. Your cover lessons are fully self-contained — no preparation required, no subject knowledge assumed. You are precise about timings, explicit about instructions, and always include word-for-word scripts where helpful. You write in professional UK English.`) },
       { role: "user", content: userPrompt },

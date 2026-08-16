@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { streamChat } from "@/app/lib/usage";
+import { modelFor } from "@/app/lib/tool-model";
 import { buildSystem } from "@/app/lib/systemPrompt";
 
 
@@ -45,8 +46,8 @@ Each cell must be a single paragraph — no line breaks, no bullet points, no su
 
   return streamChat({
     toolSlug: "performance-management",
-    model: "gpt-4o",
-    max_tokens: 4000,
+    ...(await modelFor("performance-management", "gpt-4o")),
+    max_completion_tokens: 4000,
     messages: [
       { role: "system", content: buildSystem("You are an expert school leader and performance management specialist with extensive experience in UK schools. You draft rigorous, fair, and motivating performance management targets that align with the Teachers' Standards, school improvement priorities, and individual staff development needs. You are familiar with pay scale expectations at all levels from ECT through to UPS and leadership.") },
       { role: "user", content: prompt },

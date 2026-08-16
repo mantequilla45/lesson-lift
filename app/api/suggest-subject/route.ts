@@ -3,8 +3,8 @@
 // step to pre-fill the subject dropdown based on what the teacher typed.
 
 import { NextRequest, NextResponse } from "next/server";
-import { getOpenAI } from "@/app/lib/openai";
-import { recordUsage } from "@/app/lib/usage";
+import { createCompletion } from "@/app/lib/usage";
+import { modelFor } from "@/app/lib/tool-model";
 
 export const maxDuration = 15;
 
@@ -26,9 +26,9 @@ export async function POST(req: NextRequest) {
     .join("\n");
 
   try {
-    const client = getOpenAI();
-    const completion = await client.chat.completions.create({
-      model: "gpt-4o-mini",
+    const completion = await createCompletion({
+      toolSlug: "suggest-subject",
+      ...(await modelFor("suggest-subject", "gpt-4o-mini")),
       messages: [
         {
           role: "system",
@@ -59,7 +59,6 @@ export async function POST(req: NextRequest) {
         },
       },
     });
-    await recordUsage("suggest-subject", "gpt-4o-mini", completion.usage);
 
     const content = completion.choices[0]?.message?.content;
     if (!content) return NextResponse.json(empty);

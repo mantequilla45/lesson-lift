@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { streamChat } from "@/app/lib/usage";
+import { modelFor } from "@/app/lib/tool-model";
 import { buildSystem } from "@/app/lib/systemPrompt";
 
 
@@ -113,8 +114,8 @@ Return the full updated profile in the same markdown format. No preamble.`;
 async function streamText(system: string, userContent: string) {
   return streamChat({
     toolSlug: "one-page-profile",
-    model: "gpt-4o",
-    max_tokens: 4096,
+    ...(await modelFor("one-page-profile", "gpt-4o")),
+    max_completion_tokens: 4096,
     messages: [
       { role: "system", content: system },
       { role: "user", content: userContent },

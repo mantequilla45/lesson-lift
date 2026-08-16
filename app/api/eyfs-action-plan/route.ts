@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { buildSystem } from "@/app/lib/systemPrompt";
 import { streamChat } from "@/app/lib/usage";
+import { modelFor } from "@/app/lib/tool-model";
 
 
 export async function POST(req: NextRequest) {
@@ -125,8 +126,8 @@ Write in a professional, action-oriented tone appropriate for a formal school im
 
   return streamChat({
     toolSlug: "eyfs-action-plan",
-    model: "gpt-4o",
-    max_tokens: 2000,
+    ...(await modelFor("eyfs-action-plan", "gpt-4o")),
+    max_completion_tokens: 2000,
     messages: [
       { role: "system", content: buildSystem("You are an expert UK EYFS Lead and school improvement specialist with comprehensive knowledge of the EYFS Statutory Framework (2021), the Early Learning Goals, Ofsted's inspection of early years provision, and best practice in early childhood education. You write formal, specific, and practically grounded EYFS action plans that would withstand scrutiny from governors, headteachers, and Ofsted inspectors. Your plans are never vague — every action is named, assigned, and measurable. You write in professional UK English.") },
       { role: "user", content: prompt },

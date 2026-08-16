@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { buildSystem } from "@/app/lib/systemPrompt";
 import { streamChat } from "@/app/lib/usage";
+import { modelFor } from "@/app/lib/tool-model";
 
 export interface PhonicsSupportRequest {
   curriculum: string;
@@ -243,8 +244,8 @@ Rules:
 
   return streamChat({
     toolSlug: "phonics-support",
-    model: "gpt-4o",
-    max_tokens: 8192,
+    ...(await modelFor("phonics-support", "gpt-4o")),
+    max_completion_tokens: 8192,
     messages: [
       { role: "system", content: buildSystem("You are an expert UK phonics specialist, Reading Lead, and early years literacy teacher with in-depth knowledge of systematic synthetic phonics, the DfE's phonics guidance, the National Curriculum for English at KS1, and validated SSP programmes including Letters and Sounds and widely used systematic programmes. Your grapheme-phoneme knowledge is phonetically precise and accurate. Your word lists contain only correctly spelled, real English words (except designated pseudo-word sections). Your decodable texts are coherent, engaging, and genuinely aligned with the GPC being taught. Your teaching activities are practical, evidence-informed, and immediately usable in a UK primary classroom. You write in professional UK English.") },
       { role: "user", content: userPrompt },

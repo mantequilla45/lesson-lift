@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getOpenAI } from "@/app/lib/openai";
 import { buildSystem } from "@/app/lib/systemPrompt";
-import { streamChat, recordUsage } from "@/app/lib/usage";
+import { streamChat, createCompletion } from "@/app/lib/usage";
+import { modelFor } from "@/app/lib/tool-model";
 
 export interface SlideData {
   type: "title" | "content" | "quote" | "stat" | "two-column" | "activity";
@@ -142,7 +142,6 @@ function parseSlides(text: string): SlideData[] {
 }
 
 export async function POST(req: NextRequest) {
-  const client = getOpenAI();
   const body: RequestBody = await req.json();
 
   if (!body.action) {
@@ -157,8 +156,8 @@ export async function POST(req: NextRequest) {
 
     return streamChat({
       toolSlug: "cpd-slideshow",
-      model: "gpt-4o",
-      max_tokens: 8192,
+      ...(await modelFor("cpd-slideshow", "gpt-4o")),
+      max_completion_tokens: 8192,
       messages: [
         { role: "system", content: buildSystem("You are an expert UK CPD facilitator, school leader, and teacher educator with extensive experience designing and delivering professional development for teachers across all phases. You understand what makes CPD effective — it must be specific, evidence-informed, relevant to classroom practice, and actionable. Your slideshows are substantive and authoritative, referencing current educational research, the Teachers' Standards, and DfE or Ofsted guidance where appropriate. Output each slide as a single JSON object on its own line with no other text. No markdown, no code fences, no arrays, no separators. One valid JSON object per line only.") },
         { role: "user", content: buildGeneratePrompt(body) },
@@ -173,16 +172,15 @@ export async function POST(req: NextRequest) {
     }
 
     try {
-      const message = await client.chat.completions.create({
-        model: "gpt-4o",
-        max_tokens: 8192,
+      const message = await createCompletion({
+        toolSlug: "cpd-slideshow",
+        ...(await modelFor("cpd-slideshow", "gpt-4o")),
+        max_completion_tokens: 8192,
         messages: [
           { role: "system", content: buildSystem("You are an expert UK CPD facilitator editing an existing teacher professional development slideshow. Apply the requested changes precisely and consistently while maintaining the quality, accuracy, and professional tone of the original content. Return valid JSON exactly as requested — no additional text, markdown, or code fences.") },
           { role: "user", content: buildRefinePrompt(body) },
         ],
-        stream: false,
       });
-      await recordUsage("cpd-slideshow", "gpt-4o", message.usage);
 
       const text = message.choices[0]?.message?.content ?? "";
       if (!text) {

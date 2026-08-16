@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { streamChat } from "@/app/lib/usage";
+import { modelFor } from "@/app/lib/tool-model";
 import { buildSystem } from "@/app/lib/systemPrompt";
 
 
@@ -48,8 +49,8 @@ Use the school name "${schoolName?.trim() || "our school"}" naturally in the tex
 
   return streamChat({
     toolSlug: "newsletter-writer",
-    model: "gpt-4o",
-    max_tokens: 4000,
+    ...(await modelFor("newsletter-writer", "gpt-4o")),
+    max_completion_tokens: 4000,
     messages: [
       { role: "system", content: buildSystem("You are an expert school communications specialist and newsletter writer with extensive experience producing high-quality, engaging school newsletters for UK primary and secondary schools. You write clearly, warmly, and professionally, adapting tone to the audience — whether parents, staff, or the wider community. Your newsletters are free of clichés, genuinely informative, and reflect the values and culture of the school.") },
       { role: "user", content: prompt },

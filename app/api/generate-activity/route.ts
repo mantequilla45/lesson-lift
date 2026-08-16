@@ -5,8 +5,8 @@
 // everything the Editor needs to build the slide.
 
 import { NextRequest, NextResponse } from "next/server";
-import { getOpenAI } from "@/app/lib/openai";
-import { recordUsage } from "@/app/lib/usage";
+import { createCompletion } from "@/app/lib/usage";
+import { modelFor } from "@/app/lib/tool-model";
 
 export const maxDuration = 60;
 
@@ -146,16 +146,15 @@ Title: a short evocative title (3-6 words) — creative, not generic ("Banned: T
 Use British English. Body should be tight and concrete — the kind of writing a confident teacher would put on a slide.`;
 
   try {
-    const client = getOpenAI();
-    const completion = await client.chat.completions.create({
-      model: "gpt-4o-2024-08-06",
+    const completion = await createCompletion({
+      toolSlug: "generate-activity",
+      ...(await modelFor("generate-activity", "gpt-4o-2024-08-06")),
       messages: [
         { role: "system", content: "You are a UK classroom activity designer. You write tight, specific prompts kids can act on." },
         { role: "user", content: prompt },
       ],
       response_format: { type: "json_schema", json_schema: activitySchema },
     });
-    await recordUsage("generate-activity", "gpt-4o-2024-08-06", completion.usage);
     const content = completion.choices[0]?.message?.content;
     if (!content) return NextResponse.json({ error: "Empty AI response" }, { status: 500 });
     const parsed = JSON.parse(content) as {

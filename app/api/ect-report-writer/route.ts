@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { buildSystem } from "@/app/lib/systemPrompt";
 import { streamChat } from "@/app/lib/usage";
+import { modelFor } from "@/app/lib/tool-model";
 
 export interface ECTReportWriterRequest {
   curriculum: string;
@@ -106,8 +107,8 @@ Throughout the report:
 
   return streamChat({
     toolSlug: "ect-report-writer",
-    model: "gpt-4o",
-    max_tokens: 8192,
+    ...(await modelFor("ect-report-writer", "gpt-4o")),
+    max_completion_tokens: 8192,
     messages: [
       { role: "system", content: buildSystem("You are an expert UK school leader, induction tutor, and ECT mentor with comprehensive knowledge of the Early Career Framework (ECF), the Teachers' Standards (DfE, 2011), and the statutory requirements for ECT induction. You have written many formal ECT assessment reports that have been reviewed by appropriate bodies and used in professional review meetings. Your reports are evidence-based, precisely referenced to the Teachers' Standards by number and full title, and written in formal third-person language that meets the standard of an official professional document. You write in professional UK English.") },
       { role: "user", content: userPrompt },

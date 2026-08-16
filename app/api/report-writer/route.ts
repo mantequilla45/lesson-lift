@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { buildSystem } from "@/app/lib/systemPrompt";
 import { streamChat } from "@/app/lib/usage";
+import { modelFor } from "@/app/lib/tool-model";
 
 export interface SubjectFocus {
   subject: string;
@@ -92,8 +93,8 @@ Writing guidelines:
 
   return streamChat({
     toolSlug: "report-writer",
-    model: "gpt-4o",
-    max_tokens: 4096,
+    ...(await modelFor("report-writer", "gpt-4o")),
+    max_completion_tokens: 4096,
     messages: [
       { role: "system", content: buildSystem("You are an expert UK teacher and form tutor with many years of experience writing high-quality end-of-year and termly school reports for parents and carers. You understand that school reports serve a dual purpose: they celebrate genuine achievement and communicate honest, constructive feedback in a way that motivates pupils and informs parents. Your reports are specific, never generic — every compliment is evidenced and every area for development is framed as an achievable next step. You write in polished UK English and produce reports that reflect well on the school and the teacher.") },
       { role: "user", content: userPrompt },

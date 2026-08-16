@@ -9,7 +9,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getOpenAI } from "@/app/lib/openai";
 import { supabase } from "@/app/lib/supabase";
-import { recordUsage, recordAssetCost, costUsd, type Usage } from "@/app/lib/usage";
+import { recordUsage, recordAssetCost, createCompletion, costUsd, type Usage } from "@/app/lib/usage";
+import { modelFor } from "@/app/lib/tool-model";
 
 /** tts-1 is billed per character, not per token, so it has no entry in the
  *  shared PRICING table. https://openai.com/api/pricing */
@@ -83,12 +84,16 @@ export async function POST(req: NextRequest) {
   }
 
   const client = getOpenAI();
+  // The script-writing model, resolved once and shared by all three prompt
+  // paths below and by the cost rollup. The tts-1 narration call is a separate
+  // modality and is deliberately NOT affected by this setting.
+  const scriptModel = await modelFor("generate-audio", "gpt-4o-2024-08-06");
   let title: string;
   let description: string;
   let script: string;
   let questions: string[];
   let answers: string[];
-  // gpt-4o usage for the script-writing call, captured for cost reporting.
+  // Script-writing usage, captured for cost reporting.
   let scriptUsage: Usage | null = null;
 
   const activity = body.activityType ?? "comprehension";
@@ -111,8 +116,9 @@ export async function POST(req: NextRequest) {
 ${activityInstruction}${extraInstr}
 
 Return the questions array, plus an "answers" array with ONE model answer per question in the same order, plus a brief title and one-sentence description for the activity.`;
-    const completion = await client.chat.completions.create({
-      model: "gpt-4o-2024-08-06",
+    const completion = await createCompletion({
+      toolSlug: "generate-audio",
+      ...scriptModel,
       messages: [
         { role: "system", content: "You design clear, age-appropriate UK classroom listening activities." },
         { role: "user", content: qPrompt },
@@ -152,8 +158,9 @@ Write:
 
 Do NOT rewrite the script — leave the "script" field equal to the supplied text. Use British English in everything you write.`;
 
-    const completion = await client.chat.completions.create({
-      model: "gpt-4o-2024-08-06",
+    const completion = await createCompletion({
+      toolSlug: "generate-audio",
+      ...scriptModel,
       messages: [
         { role: "system", content: "You design clear, age-appropriate UK classroom listening activities." },
         { role: "user", content: qPrompt },
@@ -190,8 +197,15 @@ Write:
 
 The "script" must be plain spoken text only — no stage directions, sound effects, or speaker tags.`;
 
-    const completion = await client.chat.completions.create({
-      model: "gpt-4o-2024-08-06",
+    // The one path that does NOT record here: this call's usage is carried in
+    // `scriptUsage` and written below alongside the TTS asset cost, so that the
+    // script and the narration land as one attributed pair (with the parent
+    // slideshow's step/runId when nested). Recording it here as well would
+    // double-count it — and token_usage feeds the spend ceiling.
+    const completion = await createCompletion({
+      toolSlug: "generate-audio",
+      skipUsage: true,
+      ...scriptModel,
       messages: [
         { role: "system", content: "You design clear, age-appropriate UK classroom listening activities." },
         { role: "user", content: prompt },
@@ -247,7 +261,7 @@ The "script" must be plain spoken text only — no stage directions, sound effec
   // through the shared table in lib/usage.ts so it can't drift from what
   // recordUsage() writes (and so cached prompt tokens get their discount);
   // tts-1 is per-character at $15/1M and has no shared table.
-  const scriptCost = scriptUsage ? costUsd("gpt-4o-2024-08-06", scriptUsage) : 0;
+  const scriptCost = scriptUsage ? costUsd(scriptModel.model, scriptUsage) : 0;
   const ttsCost = (script.length / 1_000_000) * TTS_USD_PER_1M_CHARS;
   const totalCostUsd = scriptCost + ttsCost;
 
@@ -266,7 +280,8 @@ The "script" must be plain spoken text only — no stage directions, sound effec
   // Awaited: see the note in find-youtube. A frozen instance suspends an
   // in-flight write until its socket is dead, and these feed the spend ceiling.
   await Promise.allSettled([
-    recordUsage(audioSlug, "gpt-4o-2024-08-06", scriptUsage, parentTool ? "Audio script" : null, null, runId),
+    recordUsage(audioSlug, scriptModel.model, scriptUsage, parentTool ? "Audio script" : null, null, runId,
+      { effort: scriptModel.reasoning_effort, verbosity: scriptModel.verbosity }),
     recordAssetCost(audioSlug, "audio", script.length, ttsCost, parentTool ? "Audio speech" : null, null, null, runId),
   ]);
 
