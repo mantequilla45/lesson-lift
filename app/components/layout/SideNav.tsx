@@ -65,13 +65,41 @@ export default function SideNav() {
       style={{ borderRight: "1px solid #DAD8D0" }}
     >
       <div className="flex items-center justify-between mb-10">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="/logo/logo.svg"
-          alt="Jooma"
-          className="overflow-hidden transition-all duration-300 shrink-0"
-          style={{ height: 32, width: "auto", maxWidth: collapsed ? "0px" : "130px", opacity: collapsed ? 0 : 1 }}
-        />
+        {/* The wordmark is the way back to the landing page.
+
+            The collapse styles (overflow-hidden, maxWidth, opacity, the
+            transition) live on the LINK rather than the image: an anchor keeps
+            its own intrinsic 130px box, so leaving them on the <img> would shrink
+            the picture while the anchor held the row open and the rail never
+            closed up.
+
+            A zero-width anchor is still focusable, which would leave a keyboard
+            user tabbing a collapsed rail stranded on an invisible link with no
+            way to tell where they are — hence tabIndex/aria-hidden/pointerEvents
+            below. No separate "home" affordance is added for the collapsed rail:
+            the nav icons stay visible and /dashboard is the app's home, whereas
+            this points at the MARKETING page, which a signed-in teacher rarely
+            wants. Expanding the rail is one click. */}
+        <Link
+          href="/"
+          aria-label="Jooma home"
+          tabIndex={collapsed ? -1 : 0}
+          aria-hidden={collapsed}
+          className="overflow-hidden transition-all duration-300 shrink-0 rounded-lg"
+          style={{
+            maxWidth: collapsed ? "0px" : "130px",
+            opacity: collapsed ? 0 : 1,
+            pointerEvents: collapsed ? "none" : undefined,
+          }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/logo/logo.svg"
+            alt="Jooma"
+            className="shrink-0"
+            style={{ height: 32, width: "auto" }}
+          />
+        </Link>
         <button
           onClick={toggle}
           className="p-2 border border-line rounded-lg hover:bg-gray-100 transition-colors shrink-0 cursor-pointer"
