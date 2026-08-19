@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { streamChat } from "@/app/lib/usage";
+import { modelFor } from "@/app/lib/tool-model";
 import { buildSystem } from "@/app/lib/systemPrompt";
 
 
@@ -82,8 +83,8 @@ Write 3–4 bullet points, each using this format:
 
   return streamChat({
     toolSlug: "learning-walk-report",
-    model: "gpt-4o",
-    max_tokens: 4000,
+    ...(await modelFor("learning-walk-report", "gpt-4o")),
+    max_completion_tokens: 4000,
     messages: [
       { role: "system", content: buildSystem("You are an expert UK school leader, assistant headteacher, and quality assurance specialist with extensive experience conducting learning walks, lesson observations, and professional monitoring activities in primary and secondary schools. You write professional, evidence-based learning walk reports that are specific, fair, and immediately useful to leadership teams and classroom teachers. Your reports reflect genuine knowledge of what high-quality teaching and learning looks like and how it connects to pupil outcomes. You write in professional UK English.") },
       { role: "user", content: prompt },

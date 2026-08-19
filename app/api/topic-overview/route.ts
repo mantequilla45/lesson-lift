@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { streamChat } from "@/app/lib/usage";
+import { modelFor } from "@/app/lib/tool-model";
 import { buildSystem } from "@/app/lib/systemPrompt";
 
 export interface TopicOverviewRequest {
@@ -78,8 +79,8 @@ Write in a clear, professional tone suitable for ${yearGroup} in a UK school con
 
   return streamChat({
     toolSlug: "topic-overview",
-    model: "gpt-4o",
-    max_tokens: 4096,
+    ...(await modelFor("topic-overview", "gpt-4o")),
+    max_completion_tokens: 4096,
     messages: [
       { role: "system", content: buildSystem("You are an expert UK teacher and curriculum designer with deep knowledge of the National Curriculum and subject-specific pedagogy across primary and secondary phases. You specialise in creating coherent, well-sequenced topic overviews that reflect curriculum intent — where each lesson builds deliberately on the last. Your output must include a properly formatted markdown table with columns: Lesson, Learning Objective, Starter, Input, Activity, Plenary, Resources, Questions, Key Vocabulary. Write clearly and at an appropriate level for the year group specified, using professional UK English. Never use the © symbol — always write labels as plain text: (a), (b), (c), (d).") },
       { role: "user", content: userPrompt },

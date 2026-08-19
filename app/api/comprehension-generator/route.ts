@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { buildSystem } from "@/app/lib/systemPrompt";
 import { streamChat } from "@/app/lib/usage";
+import { labModelFor } from "@/app/lib/model-lab";
 
 export interface GenerateRequest {
   curriculum: string;
@@ -131,8 +132,8 @@ ${ownText}`;
 
   return streamChat({
     toolSlug: "comprehension-generator",
-    model: "gpt-4o",
-    max_tokens: 4096,
+    ...(await labModelFor(body, "comprehension-generator", "gpt-4o")),
+    max_completion_tokens: 4096,
     messages: [
       { role: "system", content: buildSystem("You are an expert UK English teacher and literacy specialist with in-depth knowledge of the National Curriculum for English and KS1–KS4 reading assessment frameworks. You create high-quality, age-appropriate reading comprehension activities that develop the full range of reading skills — from retrieval and inference through to evaluation and critical response. Your passages are well-crafted, purposeful, and rich enough to sustain genuine comprehension work. Your questions are precise, unambiguous, and matched to the content domain they are assessing. Write in professional UK English.") },
       { role: "user", content: userPrompt },

@@ -1,59 +1,45 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { createClient } from "@/app/lib/auth/server";
-import { asPlanId, PLANS, PLAN_CREDITS } from "@/app/lib/plans";
-import ManageButton from "./ManageButton";
-import AllowanceMeter from "./AllowanceMeter";
+import Tabs from "./Tabs";
+// asTab/TABS come from a plain module, not from Tabs.tsx: a "use client" file's
+// non-component exports arrive here as client-reference stubs rather than real
+// values, so calling TABS.some() on one throws at runtime.
+import { asTab } from "./tabs-shared";
+import { TabSkeleton } from "./Skeletons";
+import OverviewTab from "./OverviewTab";
+import UsageTab from "./UsageTab";
+import HistoryTab from "./HistoryTab";
 
-// Billing dashboard: shows the signed-in user's current plan, where they stand
-// against this month's allowance, and (for paying subscribers) a button into the
-// Stripe portal to update or cancel. The proxy guarantees a session by the time
-// this renders.
-export default async function BillingPage({
+// Usage & Billing — where a teacher stands this month, what they've paid, and
+// how to change either.
+//
+// The URL stays /account/billing rather than moving to something that reads
+// like the heading, because it is hardcoded as a Stripe redirect target in four
+// places (checkout, top-up, portal, and the admin-initiated portal link) plus
+// very likely in the Stripe dashboard's own portal configuration, which we
+// can't see from here. /account/usage was merged in and redirects; it had one
+// in-app referrer, so it was the cheap side to move.
+//
+// This shell fetches NOTHING. Each tab body is its own async server component
+// behind a Suspense boundary, so the heading, tab strip and banners paint
+// immediately and only the tab you asked for does any work. The previous
+// version awaited a four-way Promise.all before rendering a single pixel.
+export const dynamic = "force-dynamic";
+
+export default async function UsageBillingPage({
   searchParams,
 }: {
-  searchParams: Promise<{ checkout?: string; topup?: string }>;
+  // A Promise in this version of Next — see
+  // node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/page.md
+  searchParams: Promise<{ tab?: string; checkout?: string; topup?: string }>;
 }) {
-  const { checkout, topup } = await searchParams;
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  const [{ data: profile }, { data: usedMonth }, { data: usedToday }, { data: spend }] =
-    await Promise.all([
-      supabase
-        .from("profiles")
-        .select("plan, subscription_status, current_period_end, stripe_customer_id")
-        .eq("id", user?.id ?? "")
-        .maybeSingle(),
-      supabase.rpc("my_generation_count_this_month"),
-      supabase.rpc("my_generation_count_today"),
-      supabase.rpc("monthly_ai_spend", { uid: user?.id ?? "" }),
-    ]);
-
-  // monthly_ai_spend returns one row; supabase-js hands back an array.
-  const spendRow = (Array.isArray(spend) ? spend[0] : spend) as
-    | { spend_pence: number | string; credit_pence: number | string }
-    | null
-    | undefined;
-
-  const plan = asPlanId(profile?.plan);
-  const planName = PLANS[plan].name;
-  const isSubscriber = Boolean(profile?.stripe_customer_id);
-  const renews = profile?.current_period_end
-    ? new Date(profile.current_period_end).toLocaleDateString("en-GB", {
-        day: "numeric",
-        month: "long",
-        year: "numeric",
-      })
-    : null;
-  const cancelling = profile?.subscription_status === "canceled";
+  const { tab: rawTab, checkout, topup } = await searchParams;
+  const tab = asTab(rawTab);
 
   return (
     <div className="min-h-screen py-12 px-4" style={{ backgroundColor: "#F1EFE3" }}>
-      <div className="max-w-xl mx-auto w-full">
+      <div className="max-w-5xl mx-auto w-full">
         <Link
           href="/"
           className="inline-flex items-center gap-2 text-sm font-semibold mb-6 transition-colors hover:opacity-70"
@@ -64,95 +50,30 @@ export default async function BillingPage({
         </Link>
 
         <h1 className="text-2xl font-bold tracking-tight mb-1" style={{ color: "#1a1a1a" }}>
-          Billing
+          Usage &amp; Billing
         </h1>
         <p className="text-sm mb-6" style={{ color: "#8a8078" }}>
-          Manage your Jooma subscription.
+          Your plan, your credits, and everything you&apos;ve paid for.
         </p>
 
-        {/* The plan is granted by the Stripe webhook, which lands a moment after
-            this redirect — so `plan` here is usually still the OLD one. Naming
-            it would congratulate the user on the plan they just paid to leave.
-            Report only what we know: the payment went through. */}
-        {checkout === "success" && plan === "free" && (
-          <div
-            className="rounded-xl px-4 py-3 mb-5 text-sm font-medium"
-            style={{ backgroundColor: "#FDF0D5", color: "#8a6d1f" }}
-          >
-            Payment received — activating your plan. This usually takes a few
-            seconds; refresh the page to check.
-          </div>
-        )}
+        <Tabs active={tab} />
 
-        {checkout === "success" && plan !== "free" && (
-          <div
-            className="rounded-xl px-4 py-3 mb-5 text-sm font-medium"
-            style={{ backgroundColor: "#DDF0E2", color: "#1f6b3b" }}
-          >
-            Payment received — welcome to {planName}!
-          </div>
-        )}
+        {/*
+          key={tab} is the single most important line on this page.
 
-        {topup === "success" && (
-          <div
-            className="rounded-xl px-4 py-3 mb-5 text-sm font-medium"
-            style={{ backgroundColor: "#DDF0E2", color: "#1f6b3b" }}
-          >
-            Payment received — {PLAN_CREDITS.toLocaleString("en-GB")} credits have been added
-            to this month.
-          </div>
-        )}
+          All three tabs render into the SAME position in the tree, so once one
+          has resolved React will happily reuse that boundary for the next one —
+          leaving the PREVIOUS tab's content on screen until the new data
+          arrives. Changing the key forces a brand-new boundary, so the skeleton
+          shows immediately on every tab change.
 
-        <div
-          className="rounded-2xl p-6 border"
-          style={{ backgroundColor: "#FAF9F5", borderColor: "#DAD8D0" }}
-        >
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <p className="text-xs font-semibold mb-1" style={{ color: "#8a8078" }}>
-                Current plan
-              </p>
-              <p className="text-xl font-bold" style={{ color: "#1a1a1a" }}>
-                {planName}
-              </p>
-            </div>
-            <span
-              className="text-xs font-semibold px-3 py-1 rounded-full"
-              style={{ backgroundColor: "#EEECE4", color: "#8a8078" }}
-            >
-              {profile?.subscription_status ?? (plan === "free" ? "free" : "—")}
-            </span>
-          </div>
-
-          {renews && (
-            <p className="text-sm mb-5" style={{ color: "#6b6055" }}>
-              {cancelling
-                ? `Access ends on ${renews}.`
-                : `Renews on ${renews}.`}
-            </p>
-          )}
-
-          {isSubscriber ? (
-            <ManageButton />
-          ) : (
-            <Link
-              href="/pricing"
-              className="inline-block py-2.5 px-5 rounded-xl text-sm font-semibold transition-opacity hover:opacity-90"
-              style={{ backgroundColor: "#E0463F", color: "#fff" }}
-            >
-              Upgrade to Pro
-            </Link>
-          )}
-        </div>
-
-        <AllowanceMeter
-          plan={plan}
-          usedToday={typeof usedToday === "number" ? usedToday : 0}
-          usedMonth={typeof usedMonth === "number" ? usedMonth : 0}
-          spendPence={Number(spendRow?.spend_pence ?? 0)}
-          creditPence={Number(spendRow?.credit_pence ?? 0)}
-          justToppedUp={topup === "success"}
-        />
+          See docs/instant-navigation-guide.md §11.
+        */}
+        <Suspense key={tab} fallback={<TabSkeleton tab={tab} />}>
+          {tab === "overview" && <OverviewTab checkout={checkout} topup={topup} />}
+          {tab === "usage" && <UsageTab />}
+          {tab === "history" && <HistoryTab />}
+        </Suspense>
       </div>
     </div>
   );

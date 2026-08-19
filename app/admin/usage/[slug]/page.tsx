@@ -11,6 +11,12 @@ interface ReportRow {
   tool_slug: string;
   generations: number;
   total_tokens: number;
+  /** Billed as output and already inside total_tokens — shown as a sub-figure
+   *  so an expensive month can be traced to thinking rather than answer length. */
+  reasoning_tokens: number;
+  /** Every model that actually ran this tool this month. More than one means it
+   *  was switched mid-month, which is otherwise invisible on this page. */
+  models: string[];
   text_cost_usd: number;
   asset_cost_usd: number;
   cost_usd: number;
@@ -23,11 +29,12 @@ interface StepRow {
   generations: number;
   cost_usd: number;
 }
-function Stat({ label, value }: { label: string; value: string }) {
+function Stat({ label, value, foot }: { label: string; value: string; foot?: string }) {
   return (
     <div className="rounded-2xl p-5 border" style={{ backgroundColor: "#FAF9F5", borderColor: "#DAD8D0" }}>
       <p className="text-xs font-semibold mb-2" style={{ color: "#8a8078" }}>{label}</p>
       <p className="text-2xl font-bold" style={{ color: "#1a1a1a" }}>{value}</p>
+      {foot && <p className="text-xs mt-1" style={{ color: "#8a8078" }}>{foot}</p>}
     </div>
   );
 }
@@ -63,6 +70,13 @@ export default async function AdminToolDetailPage({
 
   const month = new Date().toLocaleDateString("en-GB", { month: "long", year: "numeric" });
 
+  const totalTokens = Number(report?.total_tokens ?? 0);
+  const reasoningTokens = Number(report?.reasoning_tokens ?? 0);
+  // Share of all tokens, matching the figure shown directly above it. A share
+  // of completion alone would be a bigger, unrelated number.
+  const reasoningPct = totalTokens > 0 ? Math.round((reasoningTokens / totalTokens) * 100) : 0;
+  const models = report?.models ?? [];
+
   return (
     <>
       <Link
@@ -81,9 +95,22 @@ export default async function AdminToolDetailPage({
         Usage across all users for {month}.
       </p>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
         <Stat label="Generations" value={nf.format(Number(report?.generations ?? 0))} />
-        <Stat label="Total tokens" value={nf.format(Number(report?.total_tokens ?? 0))} />
+        <Stat
+          label="Total tokens"
+          value={nf.format(totalTokens)}
+          // Only when a reasoning model has run — a permanent "0% thinking" on
+          // every gpt-4o tool would be noise, not information.
+          foot={reasoningTokens > 0 ? `${reasoningPct}% thinking` : undefined}
+        />
+        <Stat
+          label="Model"
+          value={models.length === 0 ? "—" : models.length === 1 ? models[0] : `${models.length} models`}
+          // Naming them matters: two models this month means the tool was
+          // switched mid-month, and the cost figures below straddle both.
+          foot={models.length > 1 ? models.join(", ") : undefined}
+        />
         <Stat label="Text cost" value={usd(Number(report?.text_cost_usd ?? 0))} />
         <Stat label="Total cost" value={usd(Number(report?.cost_usd ?? 0))} />
       </div>

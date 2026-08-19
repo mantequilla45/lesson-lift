@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { streamChat } from "@/app/lib/usage";
+import { labModelFor } from "@/app/lib/model-lab";
 import { buildSystem } from "@/app/lib/systemPrompt";
 
 export interface SmartTargetsRequest {
@@ -48,8 +49,8 @@ Additional rules:
 
   return streamChat({
     toolSlug: "smart-targets",
-    model: "gpt-4o",
-    max_tokens: 4096,
+    ...(await labModelFor(body, "smart-targets", "gpt-4o")),
+    max_completion_tokens: 4096,
     messages: [
       { role: "system", content: buildSystem("You are an expert UK SENCO and inclusion specialist with extensive experience writing SMART targets within the framework of the SEND Code of Practice (2015) and EHCPs. You understand that genuinely SMART targets must be outcomes-focused, specific enough to act on, and measurable in a practical classroom context. You write targets that are accessible to pupils and useful to teachers — not bureaucratic tick-boxes. You are skilled at taking vague teacher input and converting it into precise, actionable, pupil-facing targets. You write in professional UK English.") },
       { role: "user", content: userPrompt },

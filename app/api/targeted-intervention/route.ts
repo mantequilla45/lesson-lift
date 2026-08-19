@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { streamChat } from "@/app/lib/usage";
+import { modelFor } from "@/app/lib/tool-model";
 import { buildSystem } from "@/app/lib/systemPrompt";
 
 export interface TargetedInterventionRequest {
@@ -72,8 +73,8 @@ Do not include a preamble, introduction, or closing summary. Do not include any 
 
   return streamChat({
     toolSlug: "targeted-intervention",
-    model: "gpt-4o",
-    max_tokens: 4096,
+    ...(await modelFor("targeted-intervention", "gpt-4o")),
+    max_completion_tokens: 4096,
     messages: [
       {
         role: "system",

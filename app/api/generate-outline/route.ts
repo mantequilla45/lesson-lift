@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { streamChat } from "@/app/lib/usage";
+import { modelFor } from "@/app/lib/tool-model";
 import { buildSystem } from "@/app/lib/systemPrompt";
 
 interface GenerateOutlineRequest {
@@ -31,8 +32,8 @@ Output only the bullet points, each on its own line starting with "- ". No intro
 
   return streamChat({
     toolSlug: "generate-outline",
-    model: "gpt-4o",
-    max_tokens: 512,
+    ...(await modelFor("generate-outline", "gpt-4o")),
+    max_completion_tokens: 512,
     messages: [
       {
         role: "system",

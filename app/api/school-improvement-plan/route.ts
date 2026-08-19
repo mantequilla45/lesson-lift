@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { streamChat } from "@/app/lib/usage";
+import { modelFor } from "@/app/lib/tool-model";
 import { buildSystem } from "@/app/lib/systemPrompt";
 
 
@@ -200,8 +201,8 @@ ${isTable ? tablePrompt : narrativePrompt}`;
 
   return streamChat({
     toolSlug: "school-improvement-plan",
-    model: "gpt-4o",
-    max_tokens: 8000,
+    ...(await modelFor("school-improvement-plan", "gpt-4o")),
+    max_completion_tokens: 8000,
     messages: [
       { role: "system", content: buildSystem("You are an expert UK school improvement specialist, former Ofsted inspector, and school leadership consultant with deep knowledge of the Education Inspection Framework (EIF), DfE school improvement guidance, and evidence-based approaches to raising standards. You help headteachers and senior leaders draft rigorous, inspection-ready School Improvement Plans that are specific, measurable, and grounded in the latest research and policy. You write with authority, precision, and professional clarity.") },
       { role: "user", content: prompt },

@@ -4,8 +4,8 @@
 // point they can edit before generating the deck.
 
 import { NextRequest, NextResponse } from "next/server";
-import { getOpenAI } from "@/app/lib/openai";
-import { recordUsage } from "@/app/lib/usage";
+import { createCompletion } from "@/app/lib/usage";
+import { modelFor } from "@/app/lib/tool-model";
 
 export const maxDuration = 60;
 
@@ -67,16 +67,15 @@ Write a compact teacher-facing outline (10-14 short lines, plain prose — no ma
 Keep it concise — this gets pasted into a slideshow generator as additional context, so it should be a clear plan, not a script. Use British English.`;
 
   try {
-    const client = getOpenAI();
-    const completion = await client.chat.completions.create({
-      model: "gpt-4o-2024-08-06",
+    const completion = await createCompletion({
+      toolSlug: "generate-lesson-outline",
+      ...(await modelFor("generate-lesson-outline", "gpt-4o-2024-08-06")),
       messages: [
         { role: "system", content: "You are a UK classroom planning assistant. Output concise, teacher-friendly lesson outlines." },
         { role: "user", content: prompt },
       ],
       response_format: { type: "json_schema", json_schema: outlineSchema },
     });
-    await recordUsage("generate-lesson-outline", "gpt-4o-2024-08-06", completion.usage);
     const content = completion.choices[0]?.message?.content;
     if (!content) return NextResponse.json({ error: "Empty AI response" }, { status: 500 });
     const parsed: { outline: string } = JSON.parse(content);

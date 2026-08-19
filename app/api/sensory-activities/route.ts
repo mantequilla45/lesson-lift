@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { streamChat } from "@/app/lib/usage";
+import { modelFor } from "@/app/lib/tool-model";
 import { buildSystem } from "@/app/lib/systemPrompt";
 
 export interface SensoryActivitiesRequest {
@@ -84,8 +85,8 @@ Do not use any emojis. Do not add any text before the title or after the last ac
 
   return streamChat({
     toolSlug: "sensory-activities",
-    model: "gpt-4o",
-    max_tokens: 8192,
+    ...(await modelFor("sensory-activities", "gpt-4o")),
+    max_completion_tokens: 8192,
     messages: [
       { role: "system", content: buildSystem("You are an expert UK SENCO, inclusion specialist, and classroom teacher with extensive experience designing multisensory learning activities for pupils across the SEND spectrum, including autism, dyslexia, sensory processing differences, and DCD. You understand the SEND Code of Practice and how multisensory approaches increase engagement, retention, and access for all learners. Your activities are always curriculum-aligned, practically achievable in a UK school, and genuinely informed by knowledge of sensory learning theory. You write in professional UK English.") },
       { role: "user", content: userPrompt },

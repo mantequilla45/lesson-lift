@@ -9,8 +9,8 @@
 // Requires YOUTUBE_API_KEY in env.
 
 import { NextRequest, NextResponse } from "next/server";
-import { getOpenAI } from "@/app/lib/openai";
-import { recordUsage, costUsd } from "@/app/lib/usage";
+import { createCompletion, costUsd } from "@/app/lib/usage";
+import { modelFor } from "@/app/lib/tool-model";
 
 export const maxDuration = 30;
 
@@ -117,7 +117,6 @@ export async function POST(req: NextRequest) {
   }
 
   // 1) Ask gpt-4o for a focused, educational search query.
-  const client = getOpenAI();
   const yearLine = body.year ? `Audience: UK ${body.year} pupils.` : "";
   const deckLine = body.deckTitle?.trim()
     ? `The lesson is titled "${body.deckTitle.trim()}".`
@@ -155,25 +154,30 @@ Return three things:
   // rollup. See the `costUsd` field on the response below.
   let queryCostUsd = 0;
   try {
-    const completion = await client.chat.completions.create({
-      model: "gpt-4o-2024-08-06",
+    // Record the query-refinement cost. When the slideshow calls this
+    // (parentTool set), attribute it to the slideshow's breakdown.
+    const parentTool = (body as { parentTool?: string }).parentTool;
+    // Passed down by the slideshow so this joins to the deck's run exactly.
+    const runId = (body as { runId?: string }).runId ?? null;
+    // Resolved once and reused: the cost rollup below must be priced with the
+    // model that actually ran, not a literal that may now be out of date.
+    const resolved = await modelFor("find-youtube", "gpt-4o-2024-08-06");
+    // createCompletion awaits the usage write before returning — on Fluid
+    // Compute the instance can be frozen as soon as the response is sent,
+    // suspending an in-flight write until the socket behind it is dead.
+    const completion = await createCompletion({
+      toolSlug: parentTool ?? "find-youtube",
+      step: parentTool ? "YouTube" : null,
+      runId,
+      ...resolved,
       messages: [
         { role: "system", content: "You design UK classroom lessons. Return concise JSON." },
         { role: "user", content: prompt },
       ],
       response_format: { type: "json_schema", json_schema: querySchema },
     });
-    // Record the query-refinement cost. When the slideshow calls this
-    // (parentTool set), attribute it to the slideshow's breakdown.
-    const parentTool = (body as { parentTool?: string }).parentTool;
-    // Passed down by the slideshow so this joins to the deck's run exactly.
-    const runId = (body as { runId?: string }).runId ?? null;
-    // Awaited, not fire-and-forget: on Fluid Compute the instance can be frozen
-    // as soon as the response is sent, suspending an in-flight write until the
-    // socket behind it is dead. Awaiting costs a few ms and keeps the row.
-    await recordUsage(parentTool ?? "find-youtube", "gpt-4o-2024-08-06", completion.usage, parentTool ? "YouTube" : null, null, runId);
     if (completion.usage) {
-      queryCostUsd = costUsd("gpt-4o-2024-08-06", completion.usage);
+      queryCostUsd = costUsd(resolved.model, completion.usage);
     }
     const content = completion.choices[0]?.message?.content;
     if (content) {

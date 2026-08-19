@@ -5,6 +5,8 @@ import { renderSlide, type SlideSpec, type SlideLayout } from "@/app/lib/slidesh
 import { getTheme, DEFAULT_ART_STYLE, type ArtStyleId } from "@/app/lib/slideshowThemes";
 import { generateAIImage, type ImageStyle, type AIImageOrientation } from "@/app/lib/ai-image";
 import { recordUsage, recordAssetCost, recordSlideCosts, costUsd } from "@/app/lib/usage";
+import { modelFor } from "@/app/lib/tool-model";
+import { forSdk } from "@/app/lib/models";
 import { isToolEnabled } from "@/app/lib/tool-availability";
 import {
   checkAllGates,
@@ -1080,8 +1082,11 @@ export async function POST(req: NextRequest) {
         };
 
         const client = getOpenAI();
+        // Resolved once and reused for the cost rollup below, so the deck is
+        // priced with the model that actually ran.
+        const deckModel = await modelFor("generate-slideshow", "gpt-4o-2024-08-06");
         const stream = await client.chat.completions.create({
-          model: "gpt-4o-2024-08-06",
+          ...forSdk(deckModel),
           messages: [
             { role: "system", content: "You are a senior pedagogical lesson designer creating UK classroom slideshows. Your output is structured JSON. Your style is vivid, specific, and memorable — every slide should feel like it was designed by a thoughtful teacher who understands their audience." },
             { role: "user", content: buildPrompt(body) },
@@ -1290,7 +1295,7 @@ export async function POST(req: NextRequest) {
         // constants, so this figure can't drift from what recordUsage() writes
         // to token_usage — and so cached prompt tokens get their discount
         // instead of being billed at the full input rate.
-        const textCostUsd = chatUsage ? costUsd("gpt-4o-2024-08-06", chatUsage) : 0;
+        const textCostUsd = chatUsage ? costUsd(deckModel.model, chatUsage) : 0;
         // Persist the exact text-call usage to the report table (images/audio are
         // priced per-unit, not per-token, so they're excluded here). Fire-and-
         // forget — recordUsage never throws and lots of work still follows.
@@ -1302,7 +1307,8 @@ export async function POST(req: NextRequest) {
         // the stream closes (below) — this is the row the free-plan gate counts,
         // so losing it means an uncounted generation.
         const deckTextUsageTask = recordUsage(
-          "generate-slideshow", "gpt-4o-2024-08-06", chatUsage, "Deck text", user.id, runId,
+          "generate-slideshow", deckModel.model, chatUsage, "Deck text", user.id, runId,
+          { effort: deckModel.reasoning_effort, verbosity: deckModel.verbosity },
         );
 
         // Local aliases to keep the audio/video code below readable.

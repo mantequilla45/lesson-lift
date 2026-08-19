@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getOpenAI } from "@/app/lib/openai";
 import { buildSystem } from "@/app/lib/systemPrompt";
-import { recordUsage } from "@/app/lib/usage";
+import { createCompletion } from "@/app/lib/usage";
+import { modelFor } from "@/app/lib/tool-model";
 
 export interface QuizQuestion {
   question: string;
@@ -124,7 +124,6 @@ function parseQuestions(text: string): QuizQuestion[] {
 }
 
 export async function POST(req: NextRequest) {
-  const client = getOpenAI();
   const body: RequestBody = await req.json();
 
   if (!body.action) {
@@ -153,16 +152,15 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const message = await client.chat.completions.create({
-      model: "gpt-4o",
-      max_tokens: 4096,
+    const message = await createCompletion({
+      toolSlug: "quiz-generator",
+      ...(await modelFor("quiz-generator", "gpt-4o")),
+      max_completion_tokens: 4096,
       messages: [
         { role: "system", content: buildSystem("You are an expert UK teacher and assessment specialist creating multiple choice quizzes for school pupils across all year groups and subjects. You have a thorough understanding of what constitutes a well-designed multiple choice question: a clear, unambiguous stem; exactly one unambiguously correct answer; plausible distractors based on common misconceptions; and options that are grammatically parallel. You always return valid JSON exactly as requested, with no additional text, markdown, or code fences. Your questions are subject-accurate, age-appropriate, and test genuine curriculum knowledge rather than trivial recall.") },
         { role: "user", content: prompt },
       ],
-      stream: false,
     });
-    await recordUsage("quiz-generator", "gpt-4o", message.usage);
 
     const text = message.choices[0]?.message?.content ?? "";
     if (!text) {

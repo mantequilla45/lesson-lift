@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { streamChat } from "@/app/lib/usage";
+import { modelFor } from "@/app/lib/tool-model";
 import { buildSystem } from "@/app/lib/systemPrompt";
 
 export interface MediumTermPlannerRequest {
@@ -61,8 +62,8 @@ Rules:
 
   return streamChat({
     toolSlug: "medium-term-planner",
-    model: "gpt-4o",
-    max_tokens: 8192,
+    ...(await modelFor("medium-term-planner", "gpt-4o")),
+    max_completion_tokens: 8192,
     messages: [
       { role: "system", content: buildSystem("You are an expert UK teacher, head of department, and curriculum designer with extensive experience writing medium-term plans across primary and secondary phases. You have a deep understanding of curriculum sequencing, knowledge-rich teaching, and the expectations of Ofsted's Education Inspection Framework. You know how to build a coherent sequence of lessons that develops pupils' knowledge and understanding cumulatively. You write in precise, professional UK English and produce planning that reflects genuine subject expertise.") },
       { role: "user", content: userPrompt },

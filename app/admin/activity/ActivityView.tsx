@@ -2,7 +2,8 @@
 
 import { downloadCsv, toCsv } from "@/app/lib/csv";
 import { typeLabel } from "@/app/lib/toolRunDisplay";
-import { fmtDateTime, nf } from "../format";
+import { cheapModelTone } from "@/app/lib/models";
+import { fmtDateTime, nf, penceFromUsd } from "../format";
 import {
   Btn,
   C,
@@ -24,9 +25,17 @@ export interface RunRow {
   tool_slug: string;
   title: string | null;
   created_at: string;
+  /** Every model this run used. A slideshow fans out to several sub-routes, so
+   *  one run can legitimately span more than one. */
+  models: string[];
+  cost_usd: number;
+  /** False when the cost was matched by a ±1 minute timestamp window rather
+   *  than a run_id — true for runs recorded before run_id existed. Surfaced
+   *  rather than hidden, so an approximation is never read as precise. */
+  cost_is_exact: boolean;
 }
 
-const EXPORT_HEADERS = ["When", "Tool", "Title", "User"];
+const EXPORT_HEADERS = ["When", "Tool", "Title", "User", "Model", "Cost (USD)", "Cost exact"];
 
 export default function ActivityView({ rows }: { rows: RunRow[] }) {
   const [toastNode, fire] = useToast();
@@ -42,6 +51,11 @@ export default function ActivityView({ rows }: { rows: RunRow[] }) {
           typeLabel(r.tool_slug),
           r.title ?? "",
           r.email ?? "",
+          (r.models ?? []).join(" + "),
+          // Raw USD, not the pence-formatted display string: an export is for
+          // spreadsheets, which need a number they can sum.
+          Number(r.cost_usd ?? 0).toFixed(6),
+          r.cost_is_exact ? "yes" : "approx",
         ]),
       ),
       `jooma-activity-${new Date().toISOString().slice(0, 10)}.csv`,
@@ -74,6 +88,8 @@ export default function ActivityView({ rows }: { rows: RunRow[] }) {
                   <Th>Tool</Th>
                   <Th>Title</Th>
                   <Th>User</Th>
+                  <Th>Model</Th>
+                  <Th align="right">Cost</Th>
                   <Th align="right">When</Th>
                 </tr>
               </thead>
@@ -93,6 +109,41 @@ export default function ActivityView({ rows }: { rows: RunRow[] }) {
                     <Td>
                       <span style={{ color: C.ink2 }}>{r.email || "—"}</span>
                     </Td>
+                    <Td>
+                      {(r.models ?? []).length > 0 ? (
+                        <div className="flex flex-wrap gap-1">
+                          {r.models.map((m) => (
+                            <Tag key={m} tone={cheapModelTone(m)}>
+                              {m}
+                            </Tag>
+                          ))}
+                        </div>
+                      ) : (
+                        // No token_usage matched this run — an image-only run,
+                        // or one whose telemetry never landed.
+                        <span className="text-xs" style={{ color: C.muted }}>
+                          —
+                        </span>
+                      )}
+                    </Td>
+                    <Td align="right" mono>
+                      {Number(r.cost_usd) > 0 ? (
+                        <>
+                          {penceFromUsd(Number(r.cost_usd))}
+                          {!r.cost_is_exact && (
+                            <span
+                              title="Matched to this run by timestamp, not run id — approximate."
+                              style={{ color: C.muted }}
+                            >
+                              {" "}
+                              ~
+                            </span>
+                          )}
+                        </>
+                      ) : (
+                        <span style={{ color: C.muted }}>—</span>
+                      )}
+                    </Td>
                     <Td align="right">
                       <span className="text-xs whitespace-nowrap" style={{ color: C.muted }}>
                         {fmtDateTime(r.created_at)}
@@ -107,7 +158,9 @@ export default function ActivityView({ rows }: { rows: RunRow[] }) {
                 <Tag>{nf.format(rows.length)} shown</Tag>
                 <span>
                   Every generation across the platform, newest first. Per-teacher history
-                  lives on their account under People.
+                  lives on their account under People. A <b style={{ color: C.ink }}>~</b> on a
+                  cost means it was matched to the run by timestamp rather than run id, so it
+                  is approximate.
                 </span>
               </div>
             </CardFooter>

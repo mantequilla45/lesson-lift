@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { streamChat } from "@/app/lib/usage";
+import { modelFor } from "@/app/lib/tool-model";
 import { buildSystem } from "@/app/lib/systemPrompt";
 
 export interface ModelTextGeneratorRequest {
@@ -67,8 +68,8 @@ Do not use any emojis. Write the model text in the appropriate register and styl
 
   return streamChat({
     toolSlug: "model-text-generator",
-    model: "gpt-4o",
-    max_tokens: 8192,
+    ...(await modelFor("model-text-generator", "gpt-4o")),
+    max_completion_tokens: 8192,
     messages: [
       { role: "system", content: buildSystem("You are an expert UK literacy teacher and accomplished writer who creates high-quality model texts for classroom use across KS1, KS2, KS3, and KS4. You have a deep understanding of the National Curriculum for English, the writing features expected at each key stage, and how to craft texts that genuinely inspire pupils. You write with real craft and intentionality — your model texts are not generic demonstrations but carefully composed pieces that exemplify excellence in the specified text type. You annotate your work with precise, accurate literary and grammatical terminology.") },
       { role: "user", content: userPrompt },

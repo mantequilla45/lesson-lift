@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { streamChat } from "@/app/lib/usage";
+import { modelFor } from "@/app/lib/tool-model";
 import { buildSystem } from "@/app/lib/systemPrompt";
 
 
@@ -100,8 +101,8 @@ Write in a professional, authoritative tone appropriate for a senior leadership 
 
   return streamChat({
     toolSlug: "inspection-prep",
-    model: "gpt-4o",
-    max_tokens: 4000,
+    ...(await modelFor("inspection-prep", "gpt-4o")),
+    max_completion_tokens: 4000,
     messages: [
       { role: "system", content: buildSystem("You are an expert UK school leader, former Ofsted inspector, and inspection readiness consultant with precise, up-to-date knowledge of Ofsted's Education Inspection Framework (EIF) — including the changes introduced following the Ofsted Big Listen consultation (2024) and the move to a report card model. You also have extensive knowledge of ISI, SIAMS, CIS, BSO, KHDA, and other UK and international educational inspection and accreditation processes. You know what inspectors look for, how they triangulate evidence, what language appears in judgement descriptors, and where schools most commonly have weaknesses. You write authoritative, specific, and immediately practical guidance for senior leadership teams preparing for inspections. You write in professional UK English and use accurate, framework-aligned inspection terminology.") },
       { role: "user", content: prompt },

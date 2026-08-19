@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getOpenAI } from "@/app/lib/openai";
 import { buildSystem } from "@/app/lib/systemPrompt";
-import { streamChat, recordUsage } from "@/app/lib/usage";
+import { streamChat, createCompletion } from "@/app/lib/usage";
+import { modelFor } from "@/app/lib/tool-model";
 
 export interface LessonSlideData {
   type: "title" | "content" | "two-column" | "activity" | "key-fact";
@@ -130,7 +130,6 @@ function parseSlides(text: string): LessonSlideData[] {
 }
 
 export async function POST(req: NextRequest) {
-  const client = getOpenAI();
   const body: RequestBody = await req.json();
 
   if (!body.action) {
@@ -144,8 +143,8 @@ export async function POST(req: NextRequest) {
 
     return streamChat({
       toolSlug: "lesson-slideshow",
-      model: "gpt-4o",
-      max_tokens: 8192,
+      ...(await modelFor("lesson-slideshow", "gpt-4o")),
+      max_completion_tokens: 8192,
       messages: [
         {
           role: "system",
@@ -164,9 +163,10 @@ export async function POST(req: NextRequest) {
     }
 
     try {
-      const message = await client.chat.completions.create({
-        model: "gpt-4o",
-        max_tokens: 8192,
+      const message = await createCompletion({
+        toolSlug: "lesson-slideshow",
+        ...(await modelFor("lesson-slideshow", "gpt-4o")),
+        max_completion_tokens: 8192,
         messages: [
           {
             role: "system",
@@ -176,9 +176,7 @@ export async function POST(req: NextRequest) {
           },
           { role: "user", content: buildRefinePrompt(body) },
         ],
-        stream: false,
       });
-      await recordUsage("lesson-slideshow", "gpt-4o", message.usage);
 
       const text = message.choices[0]?.message?.content ?? "";
       if (!text) return NextResponse.json({ error: "No response from AI" }, { status: 500 });

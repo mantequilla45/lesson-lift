@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { buildSystem } from "@/app/lib/systemPrompt";
 import { streamChat } from "@/app/lib/usage";
+import { modelFor } from "@/app/lib/tool-model";
 
 
 
@@ -77,8 +78,8 @@ export async function POST(req: NextRequest) {
 
     return streamChat({
       toolSlug: "policy-generator",
-      model: "gpt-4o",
-      max_tokens: 8192,
+      ...(await modelFor("policy-generator", "gpt-4o")),
+      max_completion_tokens: 8192,
       messages: [
         { role: "system", content: buildSystem("You are an expert UK school policy writer and school governor with comprehensive knowledge of UK education legislation, statutory guidance, and Ofsted requirements. Return only the updated policy in markdown format with no preamble or explanation.") },
         { role: "user", content: buildRefinePrompt(result, instruction) },
@@ -94,8 +95,8 @@ export async function POST(req: NextRequest) {
 
   return streamChat({
     toolSlug: "policy-generator",
-    model: "gpt-4o",
-    max_tokens: 8192,
+    ...(await modelFor("policy-generator", "gpt-4o")),
+    max_completion_tokens: 8192,
     messages: [
       { role: "system", content: buildSystem("You are an expert UK school policy writer and governance specialist with comprehensive knowledge of UK education legislation, statutory DfE guidance, Ofsted's inspection framework, and best practice in school governance. You produce professional, legally accurate, and Ofsted-ready policy documents that would be credible in any UK school. Output only the policy document in markdown format. No preamble, no explanation, no code fences.") },
       { role: "user", content: buildPrompt(curriculum, policy, additionalRequirements, outputType) },

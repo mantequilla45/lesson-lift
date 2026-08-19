@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { buildSystem } from "@/app/lib/systemPrompt";
 import { streamChat } from "@/app/lib/usage";
+import { modelFor } from "@/app/lib/tool-model";
 
 
 function buildPrompt(body: {
@@ -189,11 +190,11 @@ CRITICAL: Each table cell must contain only a single line of text — no line br
 Return the full updated plan in the same markdown table format. Apply only the changes described. No preamble.`;
 }
 
-function streamText(system: string, userContent: string) {
+async function streamText(system: string, userContent: string) {
   return streamChat({
     toolSlug: "behaviour-support-plan",
-    model: "gpt-4o",
-    max_tokens: 8192,
+    ...(await modelFor("behaviour-support-plan", "gpt-4o")),
+    max_completion_tokens: 8192,
     messages: [
       { role: "system", content: system },
       { role: "user", content: userContent },

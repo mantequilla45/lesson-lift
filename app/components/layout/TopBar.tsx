@@ -1,8 +1,9 @@
 "use client";
 
 import { useRef, useState, useEffect } from "react";
+import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { ChevronDown, Bell, UserCircle, LogOut } from "lucide-react";
+import { ChevronDown, Bell, UserCircle, LogOut, Shield, BarChart3 } from "lucide-react";
 import { CiSearch } from "react-icons/ci";
 import { TOOLS } from "@/app/lib/tools";
 import { createClient } from "@/app/lib/auth/client";
@@ -32,16 +33,43 @@ export default function TopBar({ title, onSearchChange }: TopBarProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [announceUnread, setAnnounceUnread] = useState(0);
   const profileRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
 
+  // Who's signed in, and may they see the Admin link.
+  //
+  // is_admin() is asked of the database directly rather than passed in as a
+  // prop. TopBar is mounted in eleven places, several of them loading.tsx
+  // skeletons that exist only to paint a grey box and have no data access at
+  // all — threading a permissions prop through those would put a billing
+  // concern somewhere it has no business being. The RPC is a security-definer
+  // SQL function already granted to `authenticated`, so this is one round trip
+  // on a component that already makes one for the unread count.
+  //
+  // THIS GATE IS UX ONLY. requireAdmin() and the is_admin() re-check inside
+  // every admin_* RPC are the real boundary — see the header comments in
+  // app/lib/auth/admin.ts and admin-route.ts. Forging this flag in devtools
+  // reveals a menu item that leads straight to a redirect.
   useEffect(() => {
-    const supabase = createClient();
-    supabase.auth.getUser().then(({ data }) => {
-      setUserEmail(data.user?.email ?? null);
-    });
+    let cancelled = false;
+    void (async () => {
+      const supabase = createClient();
+      const [{ data: userData }, { data: admin }] = await Promise.all([
+        supabase.auth.getUser(),
+        supabase.rpc("is_admin"),
+      ]);
+      if (cancelled) return;
+      setUserEmail(userData.user?.email ?? null);
+      // Starts false and stays false unless the DB says otherwise, so the item
+      // is absent on first paint rather than flashing in and out.
+      setIsAdmin(admin === true);
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Unread announcements. Keyed on pathname so it re-checks on navigation and
@@ -246,6 +274,27 @@ export default function TopBar({ title, onSearchChange }: TopBarProps) {
                   <p className="text-sm font-medium text-gray-900 truncate">{userEmail}</p>
                 </div>
               )}
+              {/* Same items, same order, same classes as the landing page's
+                  NavAuth dropdown, so the two are learnable as one menu rather
+                  than two that happen to overlap. No "Go to dashboard" here:
+                  this bar IS the app chrome, so it would link to where you
+                  already are. */}
+              {isAdmin && (
+                <Link
+                  href="/admin"
+                  className="w-full flex items-center gap-2 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  <Shield className="w-4 h-4" />
+                  Admin
+                </Link>
+              )}
+              <Link
+                href="/account/billing"
+                className="w-full flex items-center gap-2 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                <BarChart3 className="w-4 h-4" />
+                Usage &amp; Billing
+              </Link>
               <button
                 type="button"
                 onClick={handleSignOut}

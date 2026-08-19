@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { buildSystem } from "@/app/lib/systemPrompt";
 import { streamChat } from "@/app/lib/usage";
+import { modelFor } from "@/app/lib/tool-model";
 
 export interface ExamQuestionGeneratorRequest {
   curriculum: string;
@@ -93,8 +94,8 @@ Do not add any text before the title or after the last section. Write in a profe
 
   return streamChat({
     toolSlug: "exam-question-generator",
-    model: "gpt-4o",
-    max_tokens: 8192,
+    ...(await modelFor("exam-question-generator", "gpt-4o")),
+    max_completion_tokens: 8192,
     messages: [
       { role: "system", content: buildSystem(`You are an expert UK examiner and assessment specialist with extensive experience writing examination papers across all subjects, key stages, and examination types including GCSE, A-level, Functional Skills, and internal assessments. You write questions with precision and clarity, ensure mark allocations reflect the cognitive demand of each question, and produce mark schemes that are both fair and detailed. Your examination papers reflect the style, rigour, and language conventions of the specified examination type. You write in professional UK English.`) },
       { role: "user", content: userPrompt },

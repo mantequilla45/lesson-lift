@@ -102,12 +102,14 @@ export default function NavAuth({ name, email, isAdmin = false }: NavAuthProps) 
               Admin
             </Link>
           )}
+          {/* Straight to the canonical route, not the /account/usage redirect:
+              prefetching a route that immediately redirects is wasted work. */}
           <Link
-            href="/account/usage"
+            href="/account/billing"
             className="w-full flex items-center gap-2 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
           >
             <BarChart3 className="w-4 h-4" />
-            Usage
+            Usage &amp; Billing
           </Link>
           <button
             type="button"

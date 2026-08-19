@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { streamChat } from "@/app/lib/usage";
+import { labModelFor } from "@/app/lib/model-lab";
 import { buildSystem } from "@/app/lib/systemPrompt";
 
 export interface LessonPlanRequest {
@@ -149,8 +150,8 @@ Do not use any emojis. Write in a professional, teacher-friendly tone appropriat
 
   return streamChat({
     toolSlug: "lesson-planner",
-    model: "gpt-4o",
-    max_tokens: 8192,
+    ...(await labModelFor(body, "lesson-planner", "gpt-4o")),
+    max_completion_tokens: 8192,
     messages: [
       { role: "system", content: buildSystem("You are an expert UK secondary and primary school teacher and curriculum designer with deep knowledge of the National Curriculum, Ofsted's Education Inspection Framework, and the Teachers' Standards. You specialise in creating detailed, pedagogically rigorous lesson plans that reflect best practice in curriculum sequencing, formative assessment, and adaptive teaching. You write in precise, professional UK English and produce plans detailed enough to be taught by any competent colleague without modification.") },
       { role: "user", content: userPrompt },
