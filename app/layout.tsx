@@ -8,6 +8,7 @@ import {
   Archivo_Black,
 } from "next/font/google";
 import NextTopLoader from "nextjs-toploader";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
 const bricolage = Bricolage_Grotesque({
@@ -68,6 +69,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col" style={{ backgroundColor: "#F1EFE3" }} suppressHydrationWarning>
         <NextTopLoader color="#1a1a1a" showSpinner={false} />
         {children}
+        <Analytics />
       </body>
     </html>
   );
