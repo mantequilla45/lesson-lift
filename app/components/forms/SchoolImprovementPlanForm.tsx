@@ -17,6 +17,7 @@ import ResetButton from "@/app/components/ui/ResetButton";
 import Card from "@/app/components/ui/Card";
 import ToolHistoryPanel from "@/app/components/ToolHistoryPanel";
 import type { ToolRun } from "@/app/lib/toolRuns";
+import PrefilledBadge from "@/app/components/assistant/PrefilledBadge";
 import { useToolLaunch, type ToolLaunchParams } from "@/app/lib/useToolLaunch";
 
 const TOOL_SLUG = "school-improvement-plan";
@@ -66,7 +67,16 @@ export default function SchoolImprovementPlanForm({
   };
 
   // `?run=` reopens a saved run from Dashboard, Folders or Analytics.
-  useToolLaunch({ params: launch, onRestore: restore });
+  const { prefilled } = useToolLaunch({
+    params: launch,
+    onRestore: restore,
+    prefill: {
+      areasToImprove: (v) => setAreasToImprove(v as string),
+      schoolType: (v) => setSchoolType(v as string),
+      planTimeframe: (v) => setPlanTimeframe(v as number),
+      outputFormat: (v) => setOutputFormat(v as "table" | "narrative"),
+    },
+  });
 
   const canGenerate = areasToImprove.trim();
   const formSnapshot = JSON.stringify({ schoolType, areasToImprove, schoolContext, planTimeframe, outputFormat });
@@ -135,6 +145,7 @@ export default function SchoolImprovementPlanForm({
 
         <div className="lg:col-span-2">
           <Card className="space-y-6">
+            {prefilled && <PrefilledBadge />}
 
             <SIPSchoolTypeField value={schoolType} onChange={setSchoolType} />
 

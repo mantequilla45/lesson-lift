@@ -17,6 +17,7 @@ import ResetButton from "@/app/components/ui/ResetButton";
 import Card from "@/app/components/ui/Card";
 import ToolHistoryPanel from "@/app/components/ToolHistoryPanel";
 import type { ToolRun } from "@/app/lib/toolRuns";
+import PrefilledBadge from "@/app/components/assistant/PrefilledBadge";
 import { useToolLaunch, type ToolLaunchParams } from "@/app/lib/useToolLaunch";
 
 const TOOL_SLUG = "ect-report-writer";
@@ -70,7 +71,15 @@ export default function ECTReportWriterForm({
   };
 
   // `?run=` reopens a saved run from Dashboard, Folders or Analytics.
-  useToolLaunch({ params: launch, onRestore: restore });
+  const { prefilled } = useToolLaunch({
+    params: launch,
+    onRestore: restore,
+    prefill: {
+      ectName: (v) => setEctName(v as string),
+      subject: (v) => setSubject(v as string),
+      includePDP: (v) => setIncludePDP(v as boolean),
+    },
+  });
 
   const handleGenerate = async () => {
     setError(null);
@@ -145,6 +154,7 @@ export default function ECTReportWriterForm({
 
         <div className="lg:col-span-2">
           <Card className="space-y-6">
+            {prefilled && <PrefilledBadge />}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <CurriculumField value={curriculum} onChange={setCurriculum} />

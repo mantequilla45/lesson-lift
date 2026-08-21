@@ -14,6 +14,7 @@ import ResetButton from "@/app/components/ui/ResetButton";
 import Card from "@/app/components/ui/Card";
 import ToolHistoryPanel from "@/app/components/ToolHistoryPanel";
 import type { ToolRun } from "@/app/lib/toolRuns";
+import PrefilledBadge from "@/app/components/assistant/PrefilledBadge";
 import { useToolLaunch, type ToolLaunchParams } from "@/app/lib/useToolLaunch";
 
 const TOOL_SLUG = "pupil-premium-planner";
@@ -58,7 +59,14 @@ export default function PupilPremiumPlannerForm({
   };
 
   // `?run=` reopens a saved run from Dashboard, Folders or Analytics.
-  useToolLaunch({ params: launch, onRestore: restore });
+  const { prefilled } = useToolLaunch({
+    params: launch,
+    onRestore: restore,
+    prefill: {
+      challenges: (v) => setChallenges(v as string),
+      educationPhase: (v) => setEducationPhase(v as string),
+    },
+  });
 
   const canGenerate = challenges.trim();
   const formSnapshot = JSON.stringify({ challenges, educationPhase });
@@ -127,6 +135,7 @@ export default function PupilPremiumPlannerForm({
 
         <div className="lg:col-span-2">
           <Card className="space-y-6">
+            {prefilled && <PrefilledBadge />}
 
             <PupilPremiumChallengesField value={challenges} onChange={setChallenges} />
 

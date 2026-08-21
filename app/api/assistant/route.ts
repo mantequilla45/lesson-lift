@@ -168,13 +168,10 @@ async function selectTool(
           role: "system",
           content: `You decide whether a teacher's message should open one of Jooma's tools, prefilled.
 
-Call prefill_tool ONLY when the teacher is asking for a resource to be produced — a lesson plan, worksheet, quiz, comprehension, letter or homework task. Otherwise do not call it: answer requests for advice, explanation, ideas or discussion in conversation instead.
+Call prefill_tool ONLY when the teacher is asking for something to be PRODUCED — a document, resource, plan, report or presentation. The tools available to you, and what each is for, are listed in the prefill_tool description; choose from those.
 
-Do not call it when the teacher is asking a question ABOUT teaching rather than asking for a document. "How do I get parents more involved?" is a conversation. "Write a letter to parents about the trip" is the Letter Writer.
+Do not call it when the teacher is asking a question ABOUT teaching rather than asking for an artefact. "How do I get parents more involved?" is a conversation. "Write a letter to parents about the trip" is the Letter Writer. When in doubt, answer conversationally — a wrong tool is more annoying than no tool.
 
-Fill in every field the teacher stated or clearly implied, and leave the rest out — a missing field is far better than an invented one. Use the exact enum values given.
-
-Tool fields:
 ${toolSchemaDigest()}`,
         },
         // Only the recent turns: the decision is about what is being asked now,

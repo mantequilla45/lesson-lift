@@ -16,6 +16,7 @@ import ResetButton from "@/app/components/ui/ResetButton";
 import Card from "@/app/components/ui/Card";
 import ToolHistoryPanel from "@/app/components/ToolHistoryPanel";
 import type { ToolRun } from "@/app/lib/toolRuns";
+import PrefilledBadge from "@/app/components/assistant/PrefilledBadge";
 import { useToolLaunch, type ToolLaunchParams } from "@/app/lib/useToolLaunch";
 
 const TOOL_SLUG = "assembly-planner";
@@ -64,7 +65,15 @@ export default function AssemblyPlannerForm({
   };
 
   // `?run=` reopens a saved run from Dashboard, Folders or Analytics.
-  useToolLaunch({ params: launch, onRestore: restore });
+  const { prefilled } = useToolLaunch({
+    params: launch,
+    onRestore: restore,
+    prefill: {
+      theme: (v) => setTheme(v as string),
+      stageOfSchool: (v) => setStageOfSchool(v as string),
+      lengthMinutes: (v) => setLengthMinutes(v as number),
+    },
+  });
 
   const canGenerate = theme.trim();
   const formSnapshot = JSON.stringify({ theme, stageOfSchool, lengthMinutes, additionalNotes });
@@ -133,6 +142,7 @@ export default function AssemblyPlannerForm({
 
         <div className="lg:col-span-2">
           <Card className="space-y-6">
+            {prefilled && <PrefilledBadge />}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <AssemblyStageField value={stageOfSchool} onChange={setStageOfSchool} />

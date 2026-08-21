@@ -16,6 +16,7 @@ import ResetButton from "@/app/components/ui/ResetButton";
 import Card from "@/app/components/ui/Card";
 import ToolHistoryPanel from "@/app/components/ToolHistoryPanel";
 import type { ToolRun } from "@/app/lib/toolRuns";
+import PrefilledBadge from "@/app/components/assistant/PrefilledBadge";
 import { useToolLaunch, type ToolLaunchParams } from "@/app/lib/useToolLaunch";
 
 const TOOL_SLUG = "newsletter-writer";
@@ -66,7 +67,20 @@ export default function NewsletterWriterForm({
   };
 
   // `?run=` reopens a saved run from Dashboard, Folders or Analytics.
-  useToolLaunch({ params: launch, onRestore: restore });
+  const { prefilled } = useToolLaunch({
+    params: launch,
+    onRestore: restore,
+    prefill: {
+      newsletterTitle: (v) => setNewsletterTitle(v as string),
+      schoolName: (v) => setSchoolName(v as string),
+      tone: (v) => setTone(v as string),
+      // Synthetic: the form's real state is `sections: string[]`, which the
+      // prefill payload cannot carry (scalars only) — and Generate stays
+      // disabled until a section is non-empty. Wrapping it here is what keeps
+      // the button usable. The teacher adds further sections themselves.
+      firstSection: (v) => setSections([v as string]),
+    },
+  });
 
   const canGenerate = sections.some((s) => s.trim()) && tone;
   const formSnapshot = JSON.stringify({ newsletterTitle, schoolName, tone, sections });
@@ -145,6 +159,7 @@ export default function NewsletterWriterForm({
 
         <div className="lg:col-span-2">
           <Card className="space-y-6">
+            {prefilled && <PrefilledBadge />}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <NewsletterTitleField value={newsletterTitle} onChange={setNewsletterTitle} />

@@ -10,6 +10,7 @@ import Card from "@/app/components/ui/Card";
 import DropdownMenu from "@/app/components/ui/DropdownMenu";
 import ToolHistoryPanel from "@/app/components/ToolHistoryPanel";
 import { saveToolRun, type ToolRun } from "@/app/lib/toolRuns";
+import PrefilledBadge from "@/app/components/assistant/PrefilledBadge";
 import { useToolLaunch, type ToolLaunchParams } from "@/app/lib/useToolLaunch";
 
 const TOOL_SLUG = "cpd-slideshow";
@@ -948,7 +949,17 @@ export default function CpdSlideshowForm({
   };
 
   // `?run=` reopens a saved run from Dashboard, Folders or Analytics.
-  useToolLaunch({ params: launch, onRestore: restore });
+  const { prefilled } = useToolLaunch({
+    params: launch,
+    onRestore: restore,
+    prefill: {
+      topic: (v) => setTopic(v as string),
+      slideCount: (v) => setSlideCount(v as number),
+      presentationFocus: (v) => setPresentationFocus(v as PresentationFocus),
+      contentFormat: (v) => setContentFormat(v as ContentFormat),
+      includeImageSuggestions: (v) => setIncludeImageSuggestions(v as boolean),
+    },
+  });
 
   const userScrolledUp = useRef(false);
   const isGeneratingRef = useRef(isGenerating || isRefining);
@@ -1099,6 +1110,7 @@ export default function CpdSlideshowForm({
 
         <div className="lg:col-span-2">
           <Card className="space-y-6">
+            {prefilled && <PrefilledBadge />}
 
             <TopicField
               value={topic}

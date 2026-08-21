@@ -20,6 +20,7 @@ import Card from "@/app/components/ui/Card";
 import GenerateOutlineButton from "@/app/components/ui/GenerateOutlineButton";
 import ToolHistoryPanel from "@/app/components/ToolHistoryPanel";
 import type { ToolRun } from "@/app/lib/toolRuns";
+import PrefilledBadge from "@/app/components/assistant/PrefilledBadge";
 import { useToolLaunch, type ToolLaunchParams } from "@/app/lib/useToolLaunch";
 
 const TOOL_SLUG = "cover-lesson";
@@ -75,7 +76,18 @@ export default function CoverLessonForm({
   };
 
   // `?run=` reopens a saved run from Dashboard, Folders or Analytics.
-  useToolLaunch({ params: launch, onRestore: restore });
+  const { prefilled } = useToolLaunch({
+    params: launch,
+    onRestore: restore,
+    prefill: {
+      curriculum: (v) => setCurriculum(v as string),
+      yearGroup: (v) => setYearGroup(v as string),
+      subject: (v) => setSubject(v as string),
+      topic: (v) => setTopic(v as string),
+      lessonLength: (v) => setLessonLength(v as string),
+      resources: (v) => setResources(v as string),
+    },
+  });
 
   const canGenerate = curriculum && (mixed || yearGroup) && subject.trim() && topic.trim() && lessonLength && resources;
 
@@ -169,6 +181,7 @@ export default function CoverLessonForm({
 
         <div className="lg:col-span-2">
           <Card className="space-y-6">
+            {prefilled && <PrefilledBadge />}
 
             <CurriculumYearFields
               curriculum={curriculum} onCurriculumChange={setCurriculum}

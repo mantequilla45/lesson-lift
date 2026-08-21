@@ -11,6 +11,7 @@ import GenerateButton from "@/app/components/ui/GenerateButton";
 import ResetButton from "@/app/components/ui/ResetButton";
 import ToolHistoryPanel from "@/app/components/ToolHistoryPanel";
 import type { ToolRun } from "@/app/lib/toolRuns";
+import PrefilledBadge from "@/app/components/assistant/PrefilledBadge";
 import { useToolLaunch, type ToolLaunchParams } from "@/app/lib/useToolLaunch";
 
 const TOOL_SLUG = "eyfs-planner";
@@ -58,7 +59,17 @@ export default function EYFSPlannerForm({
   };
 
   // `?run=` reopens a saved run from Dashboard, Folders or Analytics.
-  useToolLaunch({ params: launch, onRestore: restore });
+  const { prefilled } = useToolLaunch({
+    params: launch,
+    onRestore: restore,
+    prefill: {
+      topic: (v) => setTopic(v as string),
+      numberOfWeeks: (v) => setNumberOfWeeks(v as string),
+      includeBookList: (v) => setIncludeBookList(v as boolean),
+      includeHomeLearning: (v) => setIncludeHomeLearning(v as boolean),
+      includeWeeklyOverview: (v) => setIncludeWeeklyOverview(v as boolean),
+    },
+  });
 
   const handleGenerate = async () => {
     setError(null);
@@ -110,6 +121,7 @@ export default function EYFSPlannerForm({
 
         <div className="lg:col-span-2">
           <Card className="space-y-6">
+            {prefilled && <PrefilledBadge />}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <div className="space-y-1.5">

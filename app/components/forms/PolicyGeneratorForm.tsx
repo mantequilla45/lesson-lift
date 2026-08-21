@@ -13,6 +13,7 @@ import ResetButton from "@/app/components/ui/ResetButton";
 import { useLocalStorage } from "@/app/lib/useLocalStorage";
 import ToolHistoryPanel from "@/app/components/ToolHistoryPanel";
 import type { ToolRun } from "@/app/lib/toolRuns";
+import PrefilledBadge from "@/app/components/assistant/PrefilledBadge";
 import { useToolLaunch, type ToolLaunchParams } from "@/app/lib/useToolLaunch";
 
 const TOOL_SLUG = "policy-generator";
@@ -183,7 +184,15 @@ export default function PolicyGeneratorForm({
   };
 
   // `?run=` reopens a saved run from Dashboard, Folders or Analytics.
-  useToolLaunch({ params: launch, onRestore: restore });
+  const { prefilled } = useToolLaunch({
+    params: launch,
+    onRestore: restore,
+    prefill: {
+      curriculum: (v) => setCurriculum(v as string),
+      policy: (v) => setPolicy(v as string),
+      outputType: (v) => setOutputType(v as "full" | "structure"),
+    },
+  });
 
   const streamResponse = async (url: string, body: object, onChunk: (chunk: string) => void) => {
     const res = await fetch(url, {
@@ -251,6 +260,7 @@ export default function PolicyGeneratorForm({
 
         <div className="lg:col-span-2">
           <Card className="space-y-6">
+            {prefilled && <PrefilledBadge />}
 
             <CurriculumField value={curriculum} onChange={setCurriculum} />
 

@@ -18,6 +18,7 @@ import ResetButton from "@/app/components/ui/ResetButton";
 import Card from "@/app/components/ui/Card";
 import ToolHistoryPanel from "@/app/components/ToolHistoryPanel";
 import type { ToolRun } from "@/app/lib/toolRuns";
+import PrefilledBadge from "@/app/components/assistant/PrefilledBadge";
 import { useToolLaunch, type ToolLaunchParams } from "@/app/lib/useToolLaunch";
 
 const TOOL_SLUG = "meeting-planner";
@@ -181,7 +182,18 @@ export default function MeetingPlannerForm({
   };
 
   // `?run=` reopens a saved run from Dashboard, Folders or Analytics.
-  useToolLaunch({ params: launch, onRestore: restore });
+  const { prefilled } = useToolLaunch({
+    params: launch,
+    onRestore: restore,
+    prefill: {
+      purpose: (v) => setPurpose(v as string),
+      participants: (v) => setParticipants(v as string),
+      topics: (v) => setTopics(v as string),
+      duration: (v) => setDuration(v as string),
+      includeIcebreaker: (v) => setIncludeIcebreaker(v as boolean),
+      includeActionItems: (v) => setIncludeActionItems(v as boolean),
+    },
+  });
 
   const handleGenerate = async () => {
     setError(null);
@@ -250,6 +262,7 @@ export default function MeetingPlannerForm({
 
         <div className="lg:col-span-2">
           <Card className="space-y-6">
+            {prefilled && <PrefilledBadge />}
 
             <MeetingPurposeField value={purpose} onChange={setPurpose} />
 

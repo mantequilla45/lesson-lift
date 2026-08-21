@@ -15,6 +15,7 @@ import Card from "@/app/components/ui/Card";
 import { useLocalStorage } from "@/app/lib/useLocalStorage";
 import ToolHistoryPanel from "@/app/components/ToolHistoryPanel";
 import type { ToolRun } from "@/app/lib/toolRuns";
+import PrefilledBadge from "@/app/components/assistant/PrefilledBadge";
 import { useToolLaunch, type ToolLaunchParams } from "@/app/lib/useToolLaunch";
 
 const TOOL_SLUG = "eyfs-action-plan";
@@ -61,7 +62,14 @@ export default function EYFSActionPlanForm({
   };
 
   // `?run=` reopens a saved run from Dashboard, Folders or Analytics.
-  useToolLaunch({ params: launch, onRestore: restore });
+  const { prefilled } = useToolLaunch({
+    params: launch,
+    onRestore: restore,
+    prefill: {
+      curriculum: (v) => setCurriculum(v as string),
+      objective: (v) => setObjective(v as string),
+    },
+  });
 
   const handleGenerate = async () => {
     setError(null);
@@ -129,6 +137,7 @@ export default function EYFSActionPlanForm({
 
         <div className="lg:col-span-2">
           <Card className="space-y-6">
+            {prefilled && <PrefilledBadge />}
 
             <CurriculumField value={curriculum} onChange={setCurriculum} />
 

@@ -15,6 +15,7 @@ import ResetButton from "@/app/components/ui/ResetButton";
 import Card from "@/app/components/ui/Card";
 import ToolHistoryPanel from "@/app/components/ToolHistoryPanel";
 import type { ToolRun } from "@/app/lib/toolRuns";
+import PrefilledBadge from "@/app/components/assistant/PrefilledBadge";
 import { useToolLaunch, type ToolLaunchParams } from "@/app/lib/useToolLaunch";
 
 const TOOL_SLUG = "inspection-prep";
@@ -66,7 +67,17 @@ export default function InspectionPrepForm({
   };
 
   // `?run=` reopens a saved run from Dashboard, Folders or Analytics.
-  useToolLaunch({ params: launch, onRestore: restore });
+  const { prefilled } = useToolLaunch({
+    params: launch,
+    onRestore: restore,
+    prefill: {
+      inspectionBody: (v) => setInspectionBody(v as string),
+      inspectionFocus: (v) => setInspectionFocus(v as string),
+      includeEvidence: (v) => setIncludeEvidence(v as boolean),
+      includeSuccessCriteria: (v) => setIncludeSuccessCriteria(v as boolean),
+      includePolicyChanges: (v) => setIncludePolicyChanges(v as boolean),
+    },
+  });
 
   const handleGenerate = async () => {
     setError(null);
@@ -134,6 +145,7 @@ export default function InspectionPrepForm({
 
         <div className="lg:col-span-2">
           <Card className="space-y-6">
+            {prefilled && <PrefilledBadge />}
 
             <InspectionBodyField value={inspectionBody} onChange={setInspectionBody} />
 

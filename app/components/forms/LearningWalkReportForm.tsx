@@ -20,6 +20,7 @@ import Card from "@/app/components/ui/Card";
 import { useLocalStorage } from "@/app/lib/useLocalStorage";
 import ToolHistoryPanel from "@/app/components/ToolHistoryPanel";
 import type { ToolRun } from "@/app/lib/toolRuns";
+import PrefilledBadge from "@/app/components/assistant/PrefilledBadge";
 import { useToolLaunch, type ToolLaunchParams } from "@/app/lib/useToolLaunch";
 
 const TOOL_SLUG = "learning-walk-report";
@@ -181,7 +182,17 @@ export default function LearningWalkReportForm({
   };
 
   // `?run=` reopens a saved run from Dashboard, Folders or Analytics.
-  useToolLaunch({ params: launch, onRestore: restore });
+  const { prefilled } = useToolLaunch({
+    params: launch,
+    onRestore: restore,
+    prefill: {
+      curriculum: (v) => setCurriculum(v as string),
+      focus: (v) => setFocus(v as string),
+      classesVisited: (v) => setClassesVisited(v as string),
+      includeRecommendations: (v) => setIncludeRecommendations(v as boolean),
+      includeNextSteps: (v) => setIncludeNextSteps(v as boolean),
+    },
+  });
 
   const handleGenerate = async () => {
     setError(null);
@@ -250,6 +261,7 @@ export default function LearningWalkReportForm({
 
         <div className="lg:col-span-2">
           <Card className="space-y-6">
+            {prefilled && <PrefilledBadge />}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <CurriculumField value={curriculum} onChange={setCurriculum} />

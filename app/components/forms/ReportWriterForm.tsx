@@ -14,6 +14,7 @@ import ResetButton from "@/app/components/ui/ResetButton";
 import Card from "@/app/components/ui/Card";
 import ToolHistoryPanel from "@/app/components/ToolHistoryPanel";
 import type { ToolRun } from "@/app/lib/toolRuns";
+import PrefilledBadge from "@/app/components/assistant/PrefilledBadge";
 import { useToolLaunch, type ToolLaunchParams } from "@/app/lib/useToolLaunch";
 
 const TOOL_SLUG = "report-writer";
@@ -169,7 +170,21 @@ export default function ReportWriterForm({
   };
 
   // `?run=` reopens a saved run from Dashboard, Folders or Analytics.
-  useToolLaunch({ params: launch, onRestore: restore });
+  const { prefilled } = useToolLaunch({
+    params: launch,
+    onRestore: restore,
+    prefill: {
+      name: (v) => setName(v as string),
+      gender: (v) => setGender(v as string),
+      tone: (v) => setTone(v as string),
+      wordCount: (v) => setWordCount(v as string),
+      includeTargets: (v) => setIncludeTargets(v as boolean),
+      // Synthetic, same reasoning as newsletter's firstSection: the real state
+      // is `subjects: SubjectFocus[]` and Generate needs one with a non-empty
+      // name. The teacher fills in the strengths and targets themselves.
+      firstSubject: (v) => setSubjects([{ ...emptySubject(), subject: v as string }]),
+    },
+  });
 
   const updateSubject = (index: number, field: keyof SubjectFocus, value: string) => {
     setSubjects((prev) => prev.map((s, i) => (i === index ? { ...s, [field]: value } : s)));
@@ -223,6 +238,7 @@ export default function ReportWriterForm({
 
         <div className="lg:col-span-2 space-y-4">
           <Card className="space-y-6">
+            {prefilled && <PrefilledBadge />}
 
             <div className="grid grid-cols-2 gap-4">
               <PupilNameField value={name} onChange={setName} />

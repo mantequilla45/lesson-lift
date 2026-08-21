@@ -11,6 +11,7 @@ import ConfirmModal from "@/app/components/ConfirmModal";
 import Card from "@/app/components/ui/Card";
 import ToolHistoryPanel from "@/app/components/ToolHistoryPanel";
 import type { ToolRun } from "@/app/lib/toolRuns";
+import PrefilledBadge from "@/app/components/assistant/PrefilledBadge";
 import { useToolLaunch, type ToolLaunchParams } from "@/app/lib/useToolLaunch";
 
 const TOOL_SLUG = "phonics-support";
@@ -66,7 +67,15 @@ export default function PhonicsForm({
   };
 
   // `?run=` reopens a saved run from Dashboard, Folders or Analytics.
-  useToolLaunch({ params: launch, onRestore: restore });
+  const { prefilled } = useToolLaunch({
+    params: launch,
+    onRestore: restore,
+    prefill: {
+      curriculum: (v) => setCurriculum(v as string),
+      grapheme: (v) => setGrapheme(v as string),
+      age: (v) => setAge(v as number),
+    },
+  });
 
   const handleAgeChange = (delta: number) => {
     setAge((prev) => Math.min(18, Math.max(3, prev + delta)));
@@ -139,6 +148,7 @@ export default function PhonicsForm({
 
         <div className="lg:col-span-2">
           <Card className="space-y-6">
+            {prefilled && <PrefilledBadge />}
 
             {/* Curriculum + Age row */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
