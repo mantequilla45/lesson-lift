@@ -13,7 +13,10 @@ const NAV = [
   { label: "Dashboard", icon: "/icons/dashboard.svg", href: "/dashboard" },
   { label: "Tools", icon: "/icons/tools.svg", href: "/tools" },
   { label: "Folders", icon: "/icons/folders.svg", href: "/folders" },
-  { label: "AI assistant", icon: "/icons/ai-assistant.svg", href: "#" },
+  // Reachable on every plan. Free accounts land on a locked state that sells
+  // the upgrade — greying it out here would hide the feature from the people
+  // it is meant to convert. proxy.ts is what actually enforces the gate.
+  { label: "AI assistant", icon: "/icons/ai-assistant.svg", href: "/assistant" },
 ];
 
 export default function SideNav() {

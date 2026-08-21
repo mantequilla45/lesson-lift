@@ -19,13 +19,21 @@ import ConfirmModal from "@/app/components/ConfirmModal";
 import GenerateButton from "@/app/components/ui/GenerateButton";
 import ResetButton from "@/app/components/ui/ResetButton";
 import Card from "@/app/components/ui/Card";
-import WorksheetNav from "@/app/components/WorksheetNav";
+import OutputOutline from "@/app/components/OutputOutline";
 import ToolHistoryPanel from "@/app/components/ToolHistoryPanel";
+import PrefilledBadge from "@/app/components/assistant/PrefilledBadge";
+import { useToolLaunch, type ToolLaunchParams } from "@/app/lib/useToolLaunch";
 import type { ToolRun } from "@/app/lib/toolRuns";
 
 const TOOL_SLUG = "worksheet-generator";
 
-export default function WorksheetGeneratorForm({ sidebar }: { sidebar: React.ReactNode }) {
+export default function WorksheetGeneratorForm({
+  sidebar,
+  launch,
+}: {
+  sidebar: React.ReactNode;
+  launch?: ToolLaunchParams;
+}) {
   const { curriculum, setCurriculum, yearGroup, setYearGroup } = useCurriculumYear();
   const [mixed, setMixed] = useState(false);
   const [subject, setSubject] = useState("");
@@ -66,6 +74,23 @@ export default function WorksheetGeneratorForm({ sidebar }: { sidebar: React.Rea
     setResult(run.output);
     setLastGenerated(JSON.stringify(i));
   };
+
+  // NOTE: no `topic` key — this form genuinely has no topic field, and the
+  // subject matter rides in learningObjective. assistant-tools.ts models it the
+  // same way, so the two cannot drift.
+  const { prefilled } = useToolLaunch({
+    params: launch,
+    onRestore: restore,
+    prefill: {
+      curriculum: (v) => setCurriculum(v as string),
+      yearGroup: (v) => setYearGroup(v as string),
+      subject: (v) => setSubject(v as string),
+      learningObjective: (v) => setLearningObjective(v as string),
+      questionCount: (v) => setQuestionCount(v as number),
+      abilityLevel: (v) => setAbilityLevel(v as string),
+      outputDetail: (v) => setOutputDetail(v as OutputDetail),
+    },
+  });
 
   const handleGenerate = async () => {
     setError(null);
@@ -118,6 +143,7 @@ export default function WorksheetGeneratorForm({ sidebar }: { sidebar: React.Rea
 
         <div className="lg:col-span-2">
           <Card className="space-y-6">
+            {prefilled && <PrefilledBadge />}
             <CurriculumYearFields
               curriculum={curriculum} onCurriculumChange={setCurriculum}
               yearGroup={yearGroup} onYearGroupChange={setYearGroup}
@@ -179,7 +205,7 @@ export default function WorksheetGeneratorForm({ sidebar }: { sidebar: React.Rea
         {result !== null && (
           <div className="w-md shrink-0">
             <div className="sticky top-8">
-              <WorksheetNav />
+              <OutputOutline markdown={result} />
             </div>
           </div>
         )}

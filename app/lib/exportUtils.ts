@@ -141,6 +141,95 @@ export async function exportToDocx(text: string, filename: string) {
   triggerDownload(blob, `${filename}.docx`);
 }
 
+// --- Real PDF export ---
+/**
+ * Download an actual .pdf file.
+ *
+ * Distinct from the "Print" action, which hands buildPdfHtml() to a hidden
+ * iframe and opens the browser's print dialog — leaving the teacher to choose
+ * "Save as PDF" themselves, and producing nothing at all if they cancel. Both
+ * are kept: printing to paper is a real use, and this is not a replacement for
+ * it.
+ *
+ * Renders the SAME html buildPdfHtml() produces, so the Jooma header, A4 print
+ * stylesheet, table styling and page-break rules are shared with Print rather
+ * than reimplemented — one template, two destinations.
+ *
+ * jspdf and html2canvas are dynamically imported, as they already are in the
+ * slideshow exporters, to keep ~500KB out of the ResultPanel chunk that every
+ * markdown tool loads. (`docx` above is a static import and already ships in
+ * it; moving that is a separate change.)
+ */
+export async function exportToPdf(
+  markdown: string,
+  filename: string,
+  docTitle?: string,
+): Promise<void> {
+  const [{ default: jsPDF }, { default: html2canvas }] = await Promise.all([
+    import("jspdf"),
+    import("html2canvas"),
+  ]);
+
+  // A4 width at 96dpi. The stylesheet is written for A4, so matching the
+  // capture width is what keeps line breaks identical to Print. The page HEIGHT
+  // comes from jsPDF below rather than being hardcoded here, so the two cannot
+  // disagree about where a page ends.
+  const PAGE_W = 794;
+
+  const doc = buildPdfHtml(markdown, filename, docTitle);
+
+  // Rendered offscreen rather than in an iframe: html2canvas needs the nodes in
+  // this document to read their computed styles. Positioned far off-canvas
+  // instead of display:none, which would give every element zero height.
+  const host = document.createElement("div");
+  host.style.cssText = `position:fixed;left:-10000px;top:0;width:${PAGE_W}px;background:#fff;`;
+  host.innerHTML = doc.replace(/^[\s\S]*?<body>/, "").replace(/<\/body>[\s\S]*$/, "");
+
+  // The stylesheet lives in that document's <head>, so it is lifted out and
+  // injected into the host — otherwise the capture is unstyled text.
+  const styleMatch = doc.match(/<style>([\s\S]*?)<\/style>/);
+  if (styleMatch) {
+    const style = document.createElement("style");
+    style.textContent = styleMatch[1];
+    host.prepend(style);
+  }
+
+  document.body.appendChild(host);
+
+  try {
+    const canvas = await html2canvas(host, {
+      scale: 2, // legible text rather than a blurry upscale
+      useCORS: true,
+      backgroundColor: "#ffffff",
+      windowWidth: PAGE_W,
+    });
+
+    const pdf = new jsPDF({ orientation: "portrait", unit: "px", format: "a4" });
+    const pdfW = pdf.internal.pageSize.getWidth();
+    const pdfH = pdf.internal.pageSize.getHeight();
+    // Height the full capture occupies once scaled to the page width.
+    const scaledH = (canvas.height * pdfW) / canvas.width;
+
+    // Slice the tall capture across pages by offsetting the same image upward
+    // on each one, which is how the slideshow exporter handles overflow too.
+    let remaining = scaledH;
+    let offset = 0;
+    const image = canvas.toDataURL("image/png");
+    while (remaining > 0) {
+      if (offset > 0) pdf.addPage();
+      pdf.addImage(image, "PNG", 0, -offset, pdfW, scaledH);
+      remaining -= pdfH;
+      offset += pdfH;
+    }
+
+    pdf.save(`${filename}.pdf`);
+  } finally {
+    // Always removed: leaving a 10,000px-offset node behind on a failed export
+    // would accumulate one per attempt.
+    document.body.removeChild(host);
+  }
+}
+
 // --- Build the full PDF HTML string ---
 export function buildPdfHtml(markdown: string, filename: string, docTitle?: string): string {
   const html = markdownToHtml(markdown);

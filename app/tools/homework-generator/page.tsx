@@ -2,9 +2,18 @@ import { BookOpen } from "lucide-react";
 import HomeworkGeneratorForm from "@/app/components/forms/HomeworkGeneratorForm";
 import ToolInfoPanel from "@/app/components/ToolInfoPanel";
 
-export default function HomeworkGeneratorPage() {
+// searchParams are read here rather than with useSearchParams() in the form:
+// that hook forces a client-side bailout needing a Suspense boundary around the
+// whole form. Same approach as app/help/page.tsx.
+export default async function HomeworkGeneratorPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ run?: string; prefill?: string }>;
+}) {
+  const launch = await searchParams;
   return (
     <HomeworkGeneratorForm
+      launch={launch}
       sidebar={
         <ToolInfoPanel
           icon={<BookOpen className="w-5 h-5 text-amber-600" />}

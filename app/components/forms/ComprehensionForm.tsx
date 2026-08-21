@@ -5,12 +5,15 @@ import CurriculumYearFields, { useCurriculumYear } from "@/app/components/Curric
 import { WordCountField } from "@/app/components/fields";
 import { Wand2, Upload, Check } from "lucide-react";
 import ResultPanel from "@/app/components/ResultPanel";
+import OutputOutline from "@/app/components/OutputOutline";
 import ConfirmModal from "@/app/components/ConfirmModal";
 import Card from "@/app/components/ui/Card";
 import GenerateButton from "@/app/components/ui/GenerateButton";
 import ResetButton from "@/app/components/ui/ResetButton";
 import ToolHistoryPanel from "@/app/components/ToolHistoryPanel";
 import type { ToolRun } from "@/app/lib/toolRuns";
+import PrefilledBadge from "@/app/components/assistant/PrefilledBadge";
+import { useToolLaunch, type ToolLaunchParams } from "@/app/lib/useToolLaunch";
 
 const TOOL_SLUG = "comprehension-generator";
 
@@ -48,7 +51,13 @@ type Complexity = typeof COMPLEXITY_LEVELS[number];
 const inputClass =
   "w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-transparent bg-white";
 
-export default function ComprehensionForm({ sidebar }: { sidebar: React.ReactNode }) {
+export default function ComprehensionForm({
+  sidebar,
+  launch,
+}: {
+  sidebar: React.ReactNode;
+  launch?: ToolLaunchParams;
+}) {
   const { curriculum, setCurriculum, yearGroup, setYearGroup } = useCurriculumYear();
   const [mixed, setMixed] = useState(false);
   const [textSource, setTextSource] = useState<"generate" | "own" | "">("");
@@ -106,6 +115,24 @@ export default function ComprehensionForm({ sidebar }: { sidebar: React.ReactNod
     setResult(run.output);
     setLastGenerated(JSON.stringify(i));
   };
+
+  const { prefilled } = useToolLaunch({
+    params: launch,
+    onRestore: restore,
+    prefill: {
+      curriculum: (v) => setCurriculum(v as string),
+      yearGroup: (v) => setYearGroup(v as string),
+      // Setting the topic without this leaves the form in a state it can never
+      // reach by hand: a topic filled in while no text source is chosen, so the
+      // passage fields stay hidden and Generate stays disabled. The assistant
+      // only ever prefills a topic, which always means "generate the passage".
+      topic: (v) => {
+        setTopic(v as string);
+        setTextSource("generate");
+      },
+      numQuestions: (v) => setNumQuestions(v as number),
+    },
+  });
 
   const handleGenerate = async () => {
     setError(null);
@@ -170,6 +197,7 @@ export default function ComprehensionForm({ sidebar }: { sidebar: React.ReactNod
 
         <div className="lg:col-span-2">
           <Card className="space-y-6">
+            {prefilled && <PrefilledBadge />}
 
             <CurriculumYearFields
               curriculum={curriculum} onCurriculumChange={setCurriculum}
@@ -393,14 +421,26 @@ export default function ComprehensionForm({ sidebar }: { sidebar: React.ReactNod
       )}
 
 
-      <ResultPanel
-        result={result}
-        isGenerating={isGenerating}
-        onChange={(md) => setResult(md)}
-        exportFilename="comprehension-activity"
-        historyMeta={{ toolSlug: TOOL_SLUG, title: topic || null, input: formState }}
-        onSaved={() => setHistoryKey((k) => k + 1)}
-      />
+      <div className={result !== null ? "flex gap-8" : ""}>
+        {result !== null && (
+          <div className="w-md shrink-0">
+            <div className="sticky top-8">
+              <OutputOutline markdown={result} />
+            </div>
+          </div>
+        )}
+        <div className="flex-1 min-w-0">
+          <ResultPanel
+            result={result}
+            isGenerating={isGenerating}
+            onChange={(md) => setResult(md)}
+            maxWidth={false}
+            exportFilename="comprehension-activity"
+            historyMeta={{ toolSlug: TOOL_SLUG, title: topic || null, input: formState }}
+            onSaved={() => setHistoryKey((k) => k + 1)}
+          />
+        </div>
+      </div>
     </div>
   );
 }

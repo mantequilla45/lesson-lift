@@ -6,6 +6,7 @@ import { SubjectField, LearningObjectiveField, AbilityLevelField, QuestionTypesF
 import { toTitleCase } from "@/app/lib/formOptions";
 import { Upload, X, Search, ImageIcon } from "lucide-react";
 import ResultPanel from "@/app/components/ResultPanel";
+import OutputOutline from "@/app/components/OutputOutline";
 import RefinePanel from "@/app/components/RefinePanel";
 import ConfirmModal from "@/app/components/ConfirmModal";
 import GenerateButton from "@/app/components/ui/GenerateButton";
@@ -13,6 +14,8 @@ import ResetButton from "@/app/components/ui/ResetButton";
 import Card from "@/app/components/ui/Card";
 import ToolHistoryPanel from "@/app/components/ToolHistoryPanel";
 import type { ToolRun } from "@/app/lib/toolRuns";
+import PrefilledBadge from "@/app/components/assistant/PrefilledBadge";
+import { useToolLaunch, type ToolLaunchParams } from "@/app/lib/useToolLaunch";
 
 const TOOL_SLUG = "homework-generator";
 
@@ -49,7 +52,13 @@ const selectClass =
 
 type ImageSource = "upload" | "search" | "";
 
-export default function HomeworkGeneratorForm({ sidebar }: { sidebar: React.ReactNode }) {
+export default function HomeworkGeneratorForm({
+  sidebar,
+  launch,
+}: {
+  sidebar: React.ReactNode;
+  launch?: ToolLaunchParams;
+}) {
   const { curriculum, setCurriculum, yearGroup, setYearGroup } = useCurriculumYear();
   const [mixed, setMixed] = useState(false);
   const [subject, setSubject] = useState("");
@@ -115,6 +124,21 @@ export default function HomeworkGeneratorForm({ sidebar }: { sidebar: React.Reac
     setResult(run.output);
     setLastGenerated(JSON.stringify(i));
   };
+
+  // Only the fields a sentence can reliably supply. homeworkType, length and
+  // questionCounts are deliberately left to the teacher: they are pedagogical
+  // choices, and a guess here would be presented as a decision already made.
+  const { prefilled } = useToolLaunch({
+    params: launch,
+    onRestore: restore,
+    prefill: {
+      curriculum: (v) => setCurriculum(v as string),
+      yearGroup: (v) => setYearGroup(v as string),
+      subject: (v) => setSubject(v as string),
+      learningObjective: (v) => setLearningObjective(v as string),
+      abilityLevel: (v) => setAbilityLevel(v as string),
+    },
+  });
 
   const handleImageFile = (file: File) => {
     setImageFile(file);
@@ -208,6 +232,7 @@ export default function HomeworkGeneratorForm({ sidebar }: { sidebar: React.Reac
 
         <div className="lg:col-span-2">
           <Card className="space-y-6">
+            {prefilled && <PrefilledBadge />}
 
             <CurriculumYearFields
               curriculum={curriculum} onCurriculumChange={setCurriculum}
@@ -409,15 +434,27 @@ export default function HomeworkGeneratorForm({ sidebar }: { sidebar: React.Reac
         <div className="sticky top-0 z-20 h-8 -mx-10" style={{ backgroundColor: "#F1EFE3" }} />
       )}
 
-      <ResultPanel
-        result={result}
-        isGenerating={isGenerating}
-        isRefining={isRefining}
-        onChange={(md) => setResult(md)}
-        exportFilename={`homework-${subject || "export"}`}
-        historyMeta={{ toolSlug: TOOL_SLUG, title: subject || learningObjective || null, input: formState }}
-        onSaved={() => setHistoryKey((k) => k + 1)}
-      />
+      <div className={result !== null ? "flex gap-8" : ""}>
+        {result !== null && (
+          <div className="w-md shrink-0">
+            <div className="sticky top-8">
+              <OutputOutline markdown={result} />
+            </div>
+          </div>
+        )}
+        <div className="flex-1 min-w-0">
+          <ResultPanel
+            result={result}
+            isGenerating={isGenerating}
+            isRefining={isRefining}
+            onChange={(md) => setResult(md)}
+            maxWidth={false}
+            exportFilename={`homework-${subject || "export"}`}
+            historyMeta={{ toolSlug: TOOL_SLUG, title: subject || learningObjective || null, input: formState }}
+            onSaved={() => setHistoryKey((k) => k + 1)}
+          />
+        </div>
+      </div>
 
       {result && !isGenerating && (
         <RefinePanel

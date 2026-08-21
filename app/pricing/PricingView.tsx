@@ -13,7 +13,10 @@ const FREE_FEATURES = [
   "1 generation a day, 5 a month",
   "Basic lesson format",
   "Limited curriculum alignment",
-  "Watermarked export",
+  // Export format is NOT a paid gate — every plan gets PDF and DOCX (see
+  // exportFormats in plans.ts). What Free carries is the watermark, not a
+  // narrower set of formats, so this line says exactly that and no more.
+  "PDF & DOC export, watermarked",
 ];
 
 // NB: "unlimited" would be a promise we don't keep — Pro carries a monthly
@@ -23,7 +26,11 @@ const PRO_FEATURES = [
   "Top up any time if you run out",
   "Full curriculum alignment",
   "Editable outputs",
-  "PDF & DOC export",
+  // Not "PDF & DOC export" — Free has that too, so listing it here read as a
+  // Pro-only benefit that isn't one. The real export difference is the
+  // watermark coming off.
+  "Export without the watermark",
+  "AI assistant",
   "Save library",
   "Priority support",
 ];

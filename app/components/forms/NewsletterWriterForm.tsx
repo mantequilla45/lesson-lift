@@ -8,6 +8,7 @@ import {
   NewsletterToneField,
 } from "@/app/components/fields";
 import ResultPanel from "@/app/components/ResultPanel";
+import OutputOutline from "@/app/components/OutputOutline";
 import RefinePanel from "@/app/components/RefinePanel";
 import ConfirmModal from "@/app/components/ConfirmModal";
 import GenerateButton from "@/app/components/ui/GenerateButton";
@@ -15,6 +16,7 @@ import ResetButton from "@/app/components/ui/ResetButton";
 import Card from "@/app/components/ui/Card";
 import ToolHistoryPanel from "@/app/components/ToolHistoryPanel";
 import type { ToolRun } from "@/app/lib/toolRuns";
+import { useToolLaunch, type ToolLaunchParams } from "@/app/lib/useToolLaunch";
 
 const TOOL_SLUG = "newsletter-writer";
 
@@ -29,7 +31,14 @@ const REFINE_CHIPS = [
 
 const sectionInputClass = "w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-transparent resize-none pr-8 bg-white";
 
-export default function NewsletterWriterForm({ sidebar }: { sidebar: React.ReactNode }) {
+export default function NewsletterWriterForm({
+  sidebar,
+  launch,
+}: {
+  sidebar: React.ReactNode;
+  /** `?run=` — reopen a saved run. */
+  launch?: ToolLaunchParams;
+}) {
   const [newsletterTitle, setNewsletterTitle] = useState("");
   const [schoolName, setSchoolName] = useState("");
   const [tone, setTone] = useState("");
@@ -55,6 +64,9 @@ export default function NewsletterWriterForm({ sidebar }: { sidebar: React.React
     setResult(run.output);
     setLastGenerated(JSON.stringify(i));
   };
+
+  // `?run=` reopens a saved run from Dashboard, Folders or Analytics.
+  useToolLaunch({ params: launch, onRestore: restore });
 
   const canGenerate = sections.some((s) => s.trim()) && tone;
   const formSnapshot = JSON.stringify({ newsletterTitle, schoolName, tone, sections });
@@ -220,15 +232,27 @@ export default function NewsletterWriterForm({ sidebar }: { sidebar: React.React
         <div className="sticky top-0 z-20 h-8 -mx-10" style={{ backgroundColor: "#F1EFE3" }} />
       )}
 
-      <ResultPanel
-        result={result}
-        isGenerating={isGenerating}
-        isRefining={isRefining}
-        onChange={(md) => setResult(md)}
-        exportFilename="newsletter"
-        historyMeta={{ toolSlug: TOOL_SLUG, title: newsletterTitle || schoolName || null, input: formState }}
-        onSaved={() => setHistoryKey((k) => k + 1)}
-      />
+      <div className={result !== null ? "flex gap-8" : ""}>
+        {result !== null && (
+          <div className="w-md shrink-0">
+            <div className="sticky top-8">
+              <OutputOutline markdown={result} />
+            </div>
+          </div>
+        )}
+        <div className="flex-1 min-w-0">
+          <ResultPanel
+            result={result}
+            isGenerating={isGenerating}
+            isRefining={isRefining}
+            onChange={(md) => setResult(md)}
+            maxWidth={false}
+            exportFilename="newsletter"
+            historyMeta={{ toolSlug: TOOL_SLUG, title: newsletterTitle || schoolName || null, input: formState }}
+            onSaved={() => setHistoryKey((k) => k + 1)}
+          />
+        </div>
+      </div>
 
       {result && !isGenerating && (
         <RefinePanel

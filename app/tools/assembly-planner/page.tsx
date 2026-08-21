@@ -2,9 +2,18 @@ import { Users } from "lucide-react";
 import AssemblyPlannerForm from "@/app/components/forms/AssemblyPlannerForm";
 import ToolInfoPanel from "@/app/components/ToolInfoPanel";
 
-export default function AssemblyPlannerPage() {
+// searchParams are read here rather than with useSearchParams() in the form:
+// that hook forces a client-side bailout needing a Suspense boundary around the
+// whole form. Same approach as app/help/page.tsx.
+export default async function AssemblyPlannerPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ run?: string; prefill?: string }>;
+}) {
+  const launch = await searchParams;
   return (
     <AssemblyPlannerForm
+      launch={launch}
       sidebar={
         <ToolInfoPanel
           icon={<Users className="w-5 h-5 text-blue-600" />}

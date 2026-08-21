@@ -2,9 +2,18 @@ import { ClipboardCheck } from "lucide-react";
 import ModelAnswerForm from "@/app/components/forms/ModelAnswerForm";
 import ToolInfoPanel from "@/app/components/ToolInfoPanel";
 
-export default function ModelAnswerGeneratorPage() {
+// searchParams are read here rather than with useSearchParams() in the form:
+// that hook forces a client-side bailout needing a Suspense boundary around the
+// whole form. Same approach as app/help/page.tsx.
+export default async function ModelAnswerGeneratorPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ run?: string; prefill?: string }>;
+}) {
+  const launch = await searchParams;
   return (
     <ModelAnswerForm
+      launch={launch}
       sidebar={
         <ToolInfoPanel
           icon={<ClipboardCheck className="w-5 h-5 text-violet-600" />}

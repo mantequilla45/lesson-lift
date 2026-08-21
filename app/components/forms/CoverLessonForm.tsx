@@ -11,6 +11,7 @@ import {
 } from "@/app/components/fields";
 import { toTitleCase } from "@/app/lib/formOptions";
 import ResultPanel from "@/app/components/ResultPanel";
+import OutputOutline from "@/app/components/OutputOutline";
 import RefinePanel from "@/app/components/RefinePanel";
 import ConfirmModal from "@/app/components/ConfirmModal";
 import GenerateButton from "@/app/components/ui/GenerateButton";
@@ -19,6 +20,7 @@ import Card from "@/app/components/ui/Card";
 import GenerateOutlineButton from "@/app/components/ui/GenerateOutlineButton";
 import ToolHistoryPanel from "@/app/components/ToolHistoryPanel";
 import type { ToolRun } from "@/app/lib/toolRuns";
+import { useToolLaunch, type ToolLaunchParams } from "@/app/lib/useToolLaunch";
 
 const TOOL_SLUG = "cover-lesson";
 
@@ -31,7 +33,14 @@ const REFINE_CHIPS = [
   "Make it suitable for SEND learners",
 ];
 
-export default function CoverLessonForm({ sidebar }: { sidebar: React.ReactNode }) {
+export default function CoverLessonForm({
+  sidebar,
+  launch,
+}: {
+  sidebar: React.ReactNode;
+  /** `?run=` — reopen a saved run. */
+  launch?: ToolLaunchParams;
+}) {
   const { curriculum, setCurriculum, yearGroup, setYearGroup } = useCurriculumYear();
   const [mixed, setMixed] = useState(false);
   const [subject, setSubject] = useState("");
@@ -64,6 +73,9 @@ export default function CoverLessonForm({ sidebar }: { sidebar: React.ReactNode 
     setResult(run.output);
     setLastGenerated(JSON.stringify(i));
   };
+
+  // `?run=` reopens a saved run from Dashboard, Folders or Analytics.
+  useToolLaunch({ params: launch, onRestore: restore });
 
   const canGenerate = curriculum && (mixed || yearGroup) && subject.trim() && topic.trim() && lessonLength && resources;
 
@@ -223,15 +235,27 @@ export default function CoverLessonForm({ sidebar }: { sidebar: React.ReactNode 
         <div className="sticky top-0 z-20 h-8 -mx-10" style={{ backgroundColor: "#F1EFE3" }} />
       )}
 
-      <ResultPanel
-        result={result}
-        isGenerating={isGenerating}
-        isRefining={isRefining}
-        onChange={(md) => setResult(md)}
-        exportFilename={`cover-lesson-${subject || "export"}`}
-        historyMeta={{ toolSlug: TOOL_SLUG, title: topic || subject || null, input: formState }}
-        onSaved={() => setHistoryKey((k) => k + 1)}
-      />
+      <div className={result !== null ? "flex gap-8" : ""}>
+        {result !== null && (
+          <div className="w-md shrink-0">
+            <div className="sticky top-8">
+              <OutputOutline markdown={result} />
+            </div>
+          </div>
+        )}
+        <div className="flex-1 min-w-0">
+          <ResultPanel
+            result={result}
+            isGenerating={isGenerating}
+            isRefining={isRefining}
+            onChange={(md) => setResult(md)}
+            maxWidth={false}
+            exportFilename={`cover-lesson-${subject || "export"}`}
+            historyMeta={{ toolSlug: TOOL_SLUG, title: topic || subject || null, input: formState }}
+            onSaved={() => setHistoryKey((k) => k + 1)}
+          />
+        </div>
+      </div>
 
       {result && !isGenerating && (
         <RefinePanel

@@ -9,9 +9,11 @@ import ConfirmModal from "@/app/components/ConfirmModal";
 import GenerateButton from "@/app/components/ui/GenerateButton";
 import ResetButton from "@/app/components/ui/ResetButton";
 import Card from "@/app/components/ui/Card";
+import DropdownMenu from "@/app/components/ui/DropdownMenu";
 import { toTitleCase } from "@/app/lib/formOptions";
 import ToolHistoryPanel from "@/app/components/ToolHistoryPanel";
 import { saveToolRun, type ToolRun } from "@/app/lib/toolRuns";
+import { useToolLaunch, type ToolLaunchParams } from "@/app/lib/useToolLaunch";
 
 const TOOL_SLUG = "lesson-slideshow";
 
@@ -604,7 +606,14 @@ async function exportSlidesToPptx(slides: LessonSlideData[], filename: string) {
 }
 
 // ── Main form ──────────────────────────────────────────────────────────────
-export default function LessonSlideshowForm({ sidebar }: { sidebar: React.ReactNode }) {
+export default function LessonSlideshowForm({
+  sidebar,
+  launch,
+}: {
+  sidebar: React.ReactNode;
+  /** `?run=` — reopen a saved run. */
+  launch?: ToolLaunchParams;
+}) {
   const { curriculum, setCurriculum, yearGroup, setYearGroup } = useCurriculumYear();
   const [mixed, setMixed] = useState(false);
   const [subject, setSubject] = useState("");
@@ -619,7 +628,10 @@ export default function LessonSlideshowForm({ sidebar }: { sidebar: React.ReactN
   const [error, setError] = useState<string | null>(null);
   const [confirmingReset, setConfirmingReset] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [showDownloadMenu, setShowDownloadMenu] = useState(false);
+  // Both exporters name the file from the topic; shared so PDF and PPTX of the
+  // same deck cannot end up named differently.
+  const slideshowFilename = () =>
+    `lesson-${topic.slice(0, 30).replace(/\s+/g, "-") || "slideshow"}`;
   const [refineInstruction, setRefineInstruction] = useState("");
   const [lastGenerated, setLastGenerated] = useState<string | null>(null);
   const [historyKey, setHistoryKey] = useState(0);
@@ -661,6 +673,9 @@ export default function LessonSlideshowForm({ sidebar }: { sidebar: React.ReactN
     }
     setLastGenerated(JSON.stringify({ topic: i.topic, subject: i.subject, yearGroup: i.yearGroup, mixed: i.mixed, slideCount: i.slideCount, additionalContext: i.additionalContext, includeImageSuggestions: i.includeImageSuggestions }));
   };
+
+  // `?run=` reopens a saved run from Dashboard, Folders or Analytics.
+  useToolLaunch({ params: launch, onRestore: restore });
 
   const userScrolledUp = useRef(false);
   const isGeneratingRef = useRef(false);
@@ -893,20 +908,29 @@ export default function LessonSlideshowForm({ sidebar }: { sidebar: React.ReactN
                   className="flex items-center gap-2 px-4 py-2 bg-[#1a1a1a] text-white rounded-xl text-sm font-medium hover:bg-gray-800 transition-colors">
                   {copied ? <><Check className="w-4 h-4" />Copied</> : <><Copy className="w-4 h-4" />Copy to clipboard</>}
                 </button>
-                <div className="relative">
-                  <button onClick={() => setShowDownloadMenu(v => !v)}
-                    className="flex items-center gap-2 px-4 py-2 bg-[#1a1a1a] text-white rounded-xl text-sm font-medium hover:bg-gray-800 transition-colors">
-                    Download <ChevronDown className="w-4 h-4" />
-                  </button>
-                  {showDownloadMenu && (
-                    <div className="absolute right-0 mt-1 w-44 bg-white border border-gray-200 rounded-md shadow-lg z-10 py-1">
-                      <button onClick={async () => { await exportSlidesToPdf(slides!, `lesson-${topic.slice(0, 30).replace(/\s+/g, "-") || "slideshow"}`); setShowDownloadMenu(false); }}
-                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Download PDF</button>
-                      <button onClick={async () => { await exportSlidesToPptx(slides!, `lesson-${topic.slice(0, 30).replace(/\s+/g, "-") || "slideshow"}`); setShowDownloadMenu(false); }}
-                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Download PPTX</button>
-                    </div>
-                  )}
-                </div>
+                <DropdownMenu
+                  ariaLabel="Download options"
+                  triggerClassName="flex items-center gap-2 px-4 py-2 bg-[#1a1a1a] text-white rounded-xl text-sm font-medium hover:bg-gray-800 transition-colors cursor-pointer"
+                  menuClassName="w-56"
+                  trigger={<>Download <ChevronDown className="w-4 h-4" /></>}
+                  items={[
+                    {
+                      label: "Download PDF",
+                      onSelect: () => void exportSlidesToPdf(slides!, slideshowFilename()),
+                    },
+                    {
+                      label: "Download PowerPoint (PPTX)",
+                      onSelect: () => void exportSlidesToPptx(slides!, slideshowFilename()),
+                    },
+                    {
+                      // Needs Google OAuth and the Slides API — same blocker as
+                      // Google Docs on the text tools.
+                      label: "Save to Google Slides",
+                      disabled: true,
+                      note: "coming soon",
+                    },
+                  ]}
+                />
               </div>
             )}
           </div>

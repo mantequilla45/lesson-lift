@@ -2,9 +2,18 @@ import { LayoutList } from "lucide-react";
 import MediumTermPlannerForm from "@/app/components/forms/MediumTermPlannerForm";
 import ToolInfoPanel from "@/app/components/ToolInfoPanel";
 
-export default function MediumTermPlannerPage() {
+// searchParams are read here rather than with useSearchParams() in the form:
+// that hook forces a client-side bailout needing a Suspense boundary around the
+// whole form. Same approach as app/help/page.tsx.
+export default async function MediumTermPlannerPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ run?: string; prefill?: string }>;
+}) {
+  const launch = await searchParams;
   return (
     <MediumTermPlannerForm
+      launch={launch}
       sidebar={
         <ToolInfoPanel
           icon={<LayoutList className="w-5 h-5 text-blue-600" />}

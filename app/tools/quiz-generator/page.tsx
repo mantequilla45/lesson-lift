@@ -2,9 +2,18 @@ import { CircleHelp } from "lucide-react";
 import QuizGeneratorForm from "@/app/components/forms/QuizGeneratorForm";
 import ToolInfoPanel from "@/app/components/ToolInfoPanel";
 
-export default function QuizGeneratorPage() {
+// searchParams are read here rather than with useSearchParams() in the form:
+// that hook forces a client-side bailout needing a Suspense boundary around the
+// whole form. Same approach as app/help/page.tsx.
+export default async function QuizGeneratorPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ run?: string; prefill?: string }>;
+}) {
+  const launch = await searchParams;
   return (
     <QuizGeneratorForm
+      launch={launch}
       sidebar={
         <ToolInfoPanel
           icon={<CircleHelp className="w-5 h-5 text-violet-600" />}

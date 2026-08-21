@@ -1,4 +1,5 @@
 import { Fragment } from "react";
+import { extractHeadings, headingIdAt } from "@/app/lib/headings";
 
 function renderInline(text: string): React.ReactNode[] {
   const parts = text.split("\u00A9").join("(c)").split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g);
@@ -28,24 +29,31 @@ export default function MarkdownResult({ text }: { text: string }) {
   const elements: React.ReactNode[] = [];
   let i = 0;
 
+  // Anchor ids for OutputOutline. Derived from the same sanitized source the
+  // outline parses, and consumed in document order by the counter below, so the
+  // two cannot disagree about which id belongs to which heading.
+  const headings = extractHeadings(sanitized);
+  let headingCount = 0;
+  const nextHeadingId = () => headingIdAt(headings, headingCount++);
+
   while (i < lines.length) {
     const line = lines[i];
 
     if (line.startsWith("### ")) {
       elements.push(
-        <h3 key={i} className="text-base font-semibold text-gray-900 mt-6 mb-2">
+        <h3 id={nextHeadingId()} key={i} className="text-base font-semibold text-gray-900 mt-6 mb-2 scroll-mt-40">
           {renderInline(line.slice(4))}
         </h3>
       );
     } else if (line.startsWith("## ")) {
       elements.push(
-        <h2 key={i} className="text-lg font-bold text-gray-900 mt-8 mb-3 pb-2 border-b border-gray-200">
+        <h2 id={nextHeadingId()} key={i} className="text-lg font-bold text-gray-900 mt-8 mb-3 pb-2 border-b border-gray-200 scroll-mt-40">
           {renderInline(line.slice(3))}
         </h2>
       );
     } else if (line.startsWith("# ")) {
       elements.push(
-        <h1 key={i} className="text-2xl font-bold text-gray-900 mb-4">
+        <h1 id={nextHeadingId()} key={i} className="text-2xl font-bold text-gray-900 mb-4 scroll-mt-40">
           {renderInline(line.slice(2))}
         </h1>
       );

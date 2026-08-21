@@ -15,7 +15,7 @@
 // round-trip.
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { AI_SPEND_CEILING_PENCE, PLAN_CREDITS, asPlanId, generationGate } from "./plans";
+import { AI_SPEND_CEILING_PENCE, PLAN_CREDITS, asPlanId, can, generationGate } from "./plans";
 
 // The API routes that count as one generation against the cap. Each is a tool's
 // primary endpoint and produces exactly one saved tool_run, so counting these
@@ -120,6 +120,15 @@ export function isGenerationRequest(method: string, pathname: string): boolean {
 // a free user's five — but they must still be blocked once a paid user has
 // exhausted their spend ceiling, or the ceiling leaks.
 const COST_BEARING_PATHS: ReadonlySet<string> = new Set([
+  // The AI assistant. Deliberately here rather than in GENERATION_PATHS: a chat
+  // turn spends real money and must stop at the spend ceiling, but it is not a
+  // saved generation and must not burn one of a Free user's 1-a-day / 5-a-month
+  // — a teacher asking three follow-up questions has not produced three
+  // resources, and would otherwise exhaust a month in one conversation.
+  //
+  // This alone does NOT cap Free, whose ceiling is null; the assistant is gated
+  // to paid plans in proxy.ts via can(plan, "assistant"). Both are required.
+  "/api/assistant",
   "/api/modify",
   "/api/generate",
   "/api/generate-image",
@@ -169,11 +178,24 @@ export function toolSlugFor(method: string, pathname: string): string | null {
   return null;
 }
 
+// ── Assistant plan gate ──────────────────────────────────────────────────────
+// Paths the assistant owns, page and API. Checked against can(plan, "assistant")
+// before the spend gates, because a plan that cannot use the feature at all
+// should not cost a gate round-trip to refuse.
+const ASSISTANT_API = "/api/assistant";
+
+/** True when this request targets the assistant API. */
+export function isAssistantRequest(method: string, pathname: string): boolean {
+  return method === "POST" && pathname === ASSISTANT_API;
+}
+
 export type QuotaBlockReason =
   | "free_daily"
   | "free_monthly"
   | "credit_exhausted"
-  | "rate_limited";
+  | "rate_limited"
+  /** The plan does not include this feature at all. Only an upgrade fixes it. */
+  | "plan_required";
 
 export interface QuotaResult {
   blocked: true;
@@ -336,6 +358,45 @@ export async function checkAllGates(
   return null;
 }
 
+/**
+ * Whether this account may use the assistant at all.
+ *
+ * Separate from checkAllGates because it is a plan ENTITLEMENT, not a quota: no
+ * amount of waiting or topping up gives a Free user the assistant, only an
+ * upgrade. Returns null when allowed.
+ *
+ * Why this exists at all: a chat turn is not a generation, so the Free count
+ * caps never see it, and AI_SPEND_CEILING_PENCE.free is null so the cost gate
+ * never fires either. Without this check the assistant would be completely
+ * unlimited on Free — the one hole neither existing gate covers.
+ *
+ * Fails OPEN on an RPC error, matching checkAllGates: a telemetry blip must not
+ * withhold a paid feature from someone paying for it.
+ */
+export async function checkAssistantAccess(
+  supabase: SupabaseClient,
+): Promise<QuotaResult | null> {
+  const { data, error } = await supabase.rpc("my_generation_gate");
+  if (error) {
+    console.warn("[generation-guard] assistant gate lookup failed:", error.message);
+    return null;
+  }
+  const row = (Array.isArray(data) ? data[0] : data) as GateRow | undefined;
+  if (!row) return null;
+  if (row.is_admin) return null; // admins bypass every gate
+
+  if (can(asPlanId(row.plan), "assistant")) return null;
+
+  return {
+    blocked: true,
+    reason: "plan_required",
+    action: "upgrade",
+    message:
+      "The AI assistant is part of Jooma Pro. Upgrade for £7.99 a month to chat " +
+      "with it and have it set your tools up for you.",
+  };
+}
+
 /** The body every gate returns. Shared so the proxy and any route that
  *  self-gates (see /api/generate-slideshow) can't drift apart. */
 export function quotaBlockBody(q: QuotaResult) {
@@ -348,7 +409,9 @@ export function quotaBlockBody(q: QuotaResult) {
         ? "ai_credit_exhausted"
         : q.reason === "rate_limited"
           ? "rate_limited"
-          : "generation_limit_reached",
+          : q.reason === "plan_required"
+            ? "plan_required"
+            : "generation_limit_reached",
     reason: q.reason,
     action: q.action,
     ...(q.used !== undefined ? { used: q.used } : {}),

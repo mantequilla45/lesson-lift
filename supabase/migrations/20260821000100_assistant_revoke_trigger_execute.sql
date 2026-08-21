@@ -1,0 +1,18 @@
+-- Close the anon EXECUTE grant on the assistant's trigger function.
+--
+-- touch_assistant_chat() is SECURITY DEFINER and inherited the default PUBLIC
+-- execute grant, which makes it reachable by the `anon` role over
+-- /rest/v1/rpc/touch_assistant_chat. The Supabase security linter flags this as
+-- `anon_security_definer_function_executable`, and it is the same finding that
+-- 20260805001500_support.sql already fixed for touch_support_thread() — that
+-- revoke simply was not carried over when this table was added.
+--
+-- Exposure is low in practice: the function takes no arguments and returns
+-- `trigger`, so a direct REST call has no NEW record and errors out. But a
+-- SECURITY DEFINER function callable by anonymous users has no business being
+-- in the exposed API surface at all, whether or not today's body happens to be
+-- harmless — the next person to edit it should not have to know that.
+--
+-- Trigger functions are invoked by Postgres itself and never need an EXECUTE
+-- grant to any API role, so revoking from all three costs nothing.
+revoke execute on function touch_assistant_chat() from anon, public, authenticated;

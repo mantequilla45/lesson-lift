@@ -8,6 +8,7 @@ import {
   AssemblyNotesField,
 } from "@/app/components/fields";
 import ResultPanel from "@/app/components/ResultPanel";
+import OutputOutline from "@/app/components/OutputOutline";
 import RefinePanel from "@/app/components/RefinePanel";
 import ConfirmModal from "@/app/components/ConfirmModal";
 import GenerateButton from "@/app/components/ui/GenerateButton";
@@ -15,6 +16,7 @@ import ResetButton from "@/app/components/ui/ResetButton";
 import Card from "@/app/components/ui/Card";
 import ToolHistoryPanel from "@/app/components/ToolHistoryPanel";
 import type { ToolRun } from "@/app/lib/toolRuns";
+import { useToolLaunch, type ToolLaunchParams } from "@/app/lib/useToolLaunch";
 
 const TOOL_SLUG = "assembly-planner";
 
@@ -27,7 +29,14 @@ const REFINE_CHIPS = [
   "Link the story to...",
 ];
 
-export default function AssemblyPlannerForm({ sidebar }: { sidebar: React.ReactNode }) {
+export default function AssemblyPlannerForm({
+  sidebar,
+  launch,
+}: {
+  sidebar: React.ReactNode;
+  /** `?run=` — reopen a saved run. */
+  launch?: ToolLaunchParams;
+}) {
   const [theme, setTheme] = useState("");
   const [stageOfSchool, setStageOfSchool] = useState("Primary");
   const [lengthMinutes, setLengthMinutes] = useState(20);
@@ -53,6 +62,9 @@ export default function AssemblyPlannerForm({ sidebar }: { sidebar: React.ReactN
     setResult(run.output);
     setLastGenerated(JSON.stringify(i));
   };
+
+  // `?run=` reopens a saved run from Dashboard, Folders or Analytics.
+  useToolLaunch({ params: launch, onRestore: restore });
 
   const canGenerate = theme.trim();
   const formSnapshot = JSON.stringify({ theme, stageOfSchool, lengthMinutes, additionalNotes });
@@ -168,15 +180,27 @@ export default function AssemblyPlannerForm({ sidebar }: { sidebar: React.ReactN
         <div className="sticky top-0 z-20 h-8 -mx-10" style={{ backgroundColor: "#F1EFE3" }} />
       )}
 
-      <ResultPanel
-        result={result}
-        isGenerating={isGenerating}
-        isRefining={isRefining}
-        onChange={(md) => setResult(md)}
-        exportFilename="assembly-plan"
-        historyMeta={{ toolSlug: TOOL_SLUG, title: theme || null, input: formState }}
-        onSaved={() => setHistoryKey((k) => k + 1)}
-      />
+      <div className={result !== null ? "flex gap-8" : ""}>
+        {result !== null && (
+          <div className="w-md shrink-0">
+            <div className="sticky top-8">
+              <OutputOutline markdown={result} />
+            </div>
+          </div>
+        )}
+        <div className="flex-1 min-w-0">
+          <ResultPanel
+            result={result}
+            isGenerating={isGenerating}
+            isRefining={isRefining}
+            onChange={(md) => setResult(md)}
+            maxWidth={false}
+            exportFilename="assembly-plan"
+            historyMeta={{ toolSlug: TOOL_SLUG, title: theme || null, input: formState }}
+            onSaved={() => setHistoryKey((k) => k + 1)}
+          />
+        </div>
+      </div>
 
       {result && !isGenerating && (
         <RefinePanel

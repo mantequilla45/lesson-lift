@@ -6,15 +6,23 @@ import { Minus, Plus } from "lucide-react";
 import ResultPanel from "@/app/components/ResultPanel";
 import ConfirmModal from "@/app/components/ConfirmModal";
 import Card from "@/app/components/ui/Card";
-import EYFSNav from "@/app/components/EYFSNav";
+import OutputOutline from "@/app/components/OutputOutline";
 import GenerateButton from "@/app/components/ui/GenerateButton";
 import ResetButton from "@/app/components/ui/ResetButton";
 import ToolHistoryPanel from "@/app/components/ToolHistoryPanel";
 import type { ToolRun } from "@/app/lib/toolRuns";
+import { useToolLaunch, type ToolLaunchParams } from "@/app/lib/useToolLaunch";
 
 const TOOL_SLUG = "eyfs-planner";
 
-export default function EYFSPlannerForm({ sidebar }: { sidebar: React.ReactNode }) {
+export default function EYFSPlannerForm({
+  sidebar,
+  launch,
+}: {
+  sidebar: React.ReactNode;
+  /** `?run=` — reopen a saved run. */
+  launch?: ToolLaunchParams;
+}) {
   const [curriculum, setCurriculum] = useState("Early Years Foundation Stage (EYFS)");
   const [topic, setTopic] = useState("");
   const [numberOfWeeks, setNumberOfWeeks] = useState("2");
@@ -48,6 +56,9 @@ export default function EYFSPlannerForm({ sidebar }: { sidebar: React.ReactNode 
     setResult(run.output);
     setLastGenerated(JSON.stringify(i));
   };
+
+  // `?run=` reopens a saved run from Dashboard, Folders or Analytics.
+  useToolLaunch({ params: launch, onRestore: restore });
 
   const handleGenerate = async () => {
     setError(null);
@@ -216,11 +227,10 @@ export default function EYFSPlannerForm({ sidebar }: { sidebar: React.ReactNode 
         {result !== null && (
           <div className="w-md shrink-0">
             <div className="sticky top-8">
-              <EYFSNav
-                includeBookList={includeBookList}
-                includeHomeLearning={includeHomeLearning}
-                includeWeeklyOverview={includeWeeklyOverview}
-              />
+              {/* The three include* toggles no longer need passing: the
+                  outline is derived from the output, so an optional section
+                  appears in it exactly when it appears in the document. */}
+              <OutputOutline markdown={result} />
             </div>
           </div>
         )}

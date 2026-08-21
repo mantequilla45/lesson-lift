@@ -9,6 +9,7 @@ import {
   SIPOutputFormatField,
 } from "@/app/components/fields";
 import ResultPanel from "@/app/components/ResultPanel";
+import OutputOutline from "@/app/components/OutputOutline";
 import RefinePanel from "@/app/components/RefinePanel";
 import ConfirmModal from "@/app/components/ConfirmModal";
 import GenerateButton from "@/app/components/ui/GenerateButton";
@@ -16,6 +17,7 @@ import ResetButton from "@/app/components/ui/ResetButton";
 import Card from "@/app/components/ui/Card";
 import ToolHistoryPanel from "@/app/components/ToolHistoryPanel";
 import type { ToolRun } from "@/app/lib/toolRuns";
+import { useToolLaunch, type ToolLaunchParams } from "@/app/lib/useToolLaunch";
 
 const TOOL_SLUG = "school-improvement-plan";
 
@@ -27,7 +29,14 @@ const REFINE_CHIPS = [
   "Translate to...",
 ];
 
-export default function SchoolImprovementPlanForm({ sidebar }: { sidebar: React.ReactNode }) {
+export default function SchoolImprovementPlanForm({
+  sidebar,
+  launch,
+}: {
+  sidebar: React.ReactNode;
+  /** `?run=` — reopen a saved run. */
+  launch?: ToolLaunchParams;
+}) {
   const [schoolType, setSchoolType] = useState("Primary");
   const [areasToImprove, setAreasToImprove] = useState("");
   const [schoolContext, setSchoolContext] = useState("");
@@ -55,6 +64,9 @@ export default function SchoolImprovementPlanForm({ sidebar }: { sidebar: React.
     setResult(run.output);
     setLastGenerated(JSON.stringify(i));
   };
+
+  // `?run=` reopens a saved run from Dashboard, Folders or Analytics.
+  useToolLaunch({ params: launch, onRestore: restore });
 
   const canGenerate = areasToImprove.trim();
   const formSnapshot = JSON.stringify({ schoolType, areasToImprove, schoolContext, planTimeframe, outputFormat });
@@ -172,15 +184,27 @@ export default function SchoolImprovementPlanForm({ sidebar }: { sidebar: React.
         <div className="sticky top-0 z-20 h-8 -mx-10" style={{ backgroundColor: "#F1EFE3" }} />
       )}
 
-      <ResultPanel
-        result={result}
-        isGenerating={isGenerating}
-        isRefining={isRefining}
-        onChange={(md) => setResult(md)}
-        exportFilename="school-improvement-plan"
-        historyMeta={{ toolSlug: TOOL_SLUG, title: areasToImprove || null, input: formState }}
-        onSaved={() => setHistoryKey((k) => k + 1)}
-      />
+      <div className={result !== null ? "flex gap-8" : ""}>
+        {result !== null && (
+          <div className="w-md shrink-0">
+            <div className="sticky top-8">
+              <OutputOutline markdown={result} />
+            </div>
+          </div>
+        )}
+        <div className="flex-1 min-w-0">
+          <ResultPanel
+            result={result}
+            isGenerating={isGenerating}
+            isRefining={isRefining}
+            onChange={(md) => setResult(md)}
+            maxWidth={false}
+            exportFilename="school-improvement-plan"
+            historyMeta={{ toolSlug: TOOL_SLUG, title: areasToImprove || null, input: formState }}
+            onSaved={() => setHistoryKey((k) => k + 1)}
+          />
+        </div>
+      </div>
 
       {result && !isGenerating && (
         <RefinePanel

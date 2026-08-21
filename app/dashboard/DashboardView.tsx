@@ -14,6 +14,8 @@ import { listRecentRuns, type ToolRun } from "@/app/lib/toolRuns";
 import { toolForSlug, typeLabel, formatDate } from "@/app/lib/toolRunDisplay";
 import type { CopyMap } from "@/app/lib/copy";
 import AnnouncementBanner from "@/app/components/AnnouncementBanner";
+import UpgradeGate from "@/app/components/UpgradeGate";
+import DashboardAssistantCard from "@/app/components/assistant/DashboardAssistantCard";
 
 // Runs are fetched client-side, so this stays a client component; the empty-state
 // wording arrives as a prop from the server wrapper in app/dashboard/page.tsx
@@ -50,6 +52,10 @@ export default function DashboardView({
 
   return (
     <div className="min-h-screen flex" style={{ backgroundColor: "#F1EFE3" }}>
+      {/* Catches a 402 from the assistant card's plan gate or spend ceiling and
+          opens the upgrade modal. The dashboard is a sibling of /tools, so it
+          does not inherit the one mounted in that layout. */}
+      <UpgradeGate />
       <SideNav />
       <SupportLauncher />
       <main className="grow flex flex-col overflow-y-auto">
@@ -92,6 +98,10 @@ export default function DashboardView({
               />
             </div>
           </Card>
+
+          {/* AI assistant — an entry point, not a second chat surface. Starting
+              a conversation here continues it at /assistant/[id]. */}
+          <DashboardAssistantCard />
 
           {/* Recently added */}
           <Card className="p-10">
@@ -141,7 +151,9 @@ export default function DashboardView({
                     return (
                       <tr
                         key={run.id}
-                        onClick={() => tool && router.push(tool.href)}
+                        // ?run= reopens THIS run. Without it the row opened an
+                        // empty tool and silently discarded what was clicked.
+                        onClick={() => tool && router.push(`${tool.href}?run=${run.id}`)}
                         className="border-b border-line/60 hover:bg-[#F1EFE3] transition-colors cursor-pointer"
                       >
                         <td className="py-3 pr-4">

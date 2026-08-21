@@ -5,11 +5,13 @@ import { CURRICULA } from "@/app/lib/formOptions";
 import { useLocalStorage } from "@/app/lib/useLocalStorage";
 import { Loader2, Sparkles, Minus, Plus } from "lucide-react";
 import ResultPanel from "@/app/components/ResultPanel";
+import OutputOutline from "@/app/components/OutputOutline";
 import RefinePanel from "@/app/components/RefinePanel";
 import ConfirmModal from "@/app/components/ConfirmModal";
 import Card from "@/app/components/ui/Card";
 import ToolHistoryPanel from "@/app/components/ToolHistoryPanel";
 import type { ToolRun } from "@/app/lib/toolRuns";
+import { useToolLaunch, type ToolLaunchParams } from "@/app/lib/useToolLaunch";
 
 const TOOL_SLUG = "phonics-support";
 
@@ -28,7 +30,14 @@ const selectClass =
 const inputClass =
   "w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-transparent bg-white";
 
-export default function PhonicsForm({ sidebar }: { sidebar: React.ReactNode }) {
+export default function PhonicsForm({
+  sidebar,
+  launch,
+}: {
+  sidebar: React.ReactNode;
+  /** `?run=` — reopen a saved run. */
+  launch?: ToolLaunchParams;
+}) {
   const [curriculum, setCurriculum] = useLocalStorage("ll:curriculum", "");
   const [age, setAge] = useState(5);
   const [grapheme, setGrapheme] = useState("");
@@ -55,6 +64,9 @@ export default function PhonicsForm({ sidebar }: { sidebar: React.ReactNode }) {
     setResult(run.output);
     setLastGenerated(JSON.stringify(i));
   };
+
+  // `?run=` reopens a saved run from Dashboard, Folders or Analytics.
+  useToolLaunch({ params: launch, onRestore: restore });
 
   const handleAgeChange = (delta: number) => {
     setAge((prev) => Math.min(18, Math.max(3, prev + delta)));
@@ -232,15 +244,27 @@ export default function PhonicsForm({ sidebar }: { sidebar: React.ReactNode }) {
         <div className="sticky top-0 z-20 h-8 -mx-10" style={{ backgroundColor: "#F1EFE3" }} />
       )}
 
-      <ResultPanel
-        result={result}
-        isGenerating={isGenerating}
-        isRefining={isRefining}
-        onChange={(md) => setResult(md)}
-        exportFilename={`phonics-support-${grapheme || "export"}`}
-        historyMeta={{ toolSlug: TOOL_SLUG, title: grapheme || null, input: formState }}
-        onSaved={() => setHistoryKey((k) => k + 1)}
-      />
+      <div className={result !== null ? "flex gap-8" : ""}>
+        {result !== null && (
+          <div className="w-md shrink-0">
+            <div className="sticky top-8">
+              <OutputOutline markdown={result} />
+            </div>
+          </div>
+        )}
+        <div className="flex-1 min-w-0">
+          <ResultPanel
+            result={result}
+            isGenerating={isGenerating}
+            isRefining={isRefining}
+            onChange={(md) => setResult(md)}
+            maxWidth={false}
+            exportFilename={`phonics-support-${grapheme || "export"}`}
+            historyMeta={{ toolSlug: TOOL_SLUG, title: grapheme || null, input: formState }}
+            onSaved={() => setHistoryKey((k) => k + 1)}
+          />
+        </div>
+      </div>
 
       {result && !isGenerating && (
         <RefinePanel

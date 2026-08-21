@@ -2,9 +2,18 @@ import { Target } from "lucide-react";
 import PerformanceManagementForm from "@/app/components/forms/PerformanceManagementForm";
 import ToolInfoPanel from "@/app/components/ToolInfoPanel";
 
-export default function PerformanceManagementPage() {
+// searchParams are read here rather than with useSearchParams() in the form:
+// that hook forces a client-side bailout needing a Suspense boundary around the
+// whole form. Same approach as app/help/page.tsx.
+export default async function PerformanceManagementPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ run?: string; prefill?: string }>;
+}) {
+  const launch = await searchParams;
   return (
     <PerformanceManagementForm
+      launch={launch}
       sidebar={
         <ToolInfoPanel
           icon={<Target className="w-5 h-5 text-rose-600" />}

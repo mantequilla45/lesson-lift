@@ -2,9 +2,18 @@ import { MdSchool } from "react-icons/md";
 import ExamQuestionGeneratorForm from "@/app/components/forms/ExamQuestionGeneratorForm";
 import ToolInfoPanel from "@/app/components/ToolInfoPanel";
 
-export default function ExamQuestionGeneratorPage() {
+// searchParams are read here rather than with useSearchParams() in the form:
+// that hook forces a client-side bailout needing a Suspense boundary around the
+// whole form. Same approach as app/help/page.tsx.
+export default async function ExamQuestionGeneratorPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ run?: string; prefill?: string }>;
+}) {
+  const launch = await searchParams;
   return (
     <ExamQuestionGeneratorForm
+      launch={launch}
       sidebar={
         <ToolInfoPanel
           icon={<MdSchool className="w-5 h-5 text-violet-600" />}

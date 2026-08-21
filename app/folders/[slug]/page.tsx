@@ -99,7 +99,9 @@ export default function FolderDetailPage() {
                     return (
                       <tr
                         key={run.id}
-                        onClick={() => tool && router.push(tool.href)}
+                        // ?run= reopens THIS run. Without it the row opened an
+                        // empty tool and silently discarded what was clicked.
+                        onClick={() => tool && router.push(`${tool.href}?run=${run.id}`)}
                         className="group border-b border-line/60 hover:bg-[#F1EFE3] transition-colors cursor-pointer"
                       >
                         <td className="py-3 pr-4">

@@ -10,13 +10,22 @@ import Card from "@/app/components/ui/Card";
 import ConfirmModal from "@/app/components/ConfirmModal";
 import GenerateButton from "@/app/components/ui/GenerateButton";
 import ResetButton from "@/app/components/ui/ResetButton";
-import LessonPlannerNav from "@/app/components/LessonPlannerNav";
+import OutputOutline from "@/app/components/OutputOutline";
 import ToolHistoryPanel from "@/app/components/ToolHistoryPanel";
+import PrefilledBadge from "@/app/components/assistant/PrefilledBadge";
+import { useToolLaunch, type ToolLaunchParams } from "@/app/lib/useToolLaunch";
 import type { ToolRun } from "@/app/lib/toolRuns";
 
 const TOOL_SLUG = "lesson-planner";
 
-export default function LessonPlannerForm({ sidebar }: { sidebar: React.ReactNode }) {
+export default function LessonPlannerForm({
+  sidebar,
+  launch,
+}: {
+  sidebar: React.ReactNode;
+  /** `?run=` / `?prefill=`, read on the server and passed down. */
+  launch?: ToolLaunchParams;
+}) {
   const { curriculum, setCurriculum, yearGroup, setYearGroup } = useCurriculumYear();
   const [mixed, setMixed] = useState(false);
   const [subject, setSubject] = useState("");
@@ -55,6 +64,23 @@ export default function LessonPlannerForm({ sidebar }: { sidebar: React.ReactNod
     setResult(run.output);
     setLastGenerated(JSON.stringify(i));
   };
+
+  // ?run= reopens a saved run; ?prefill= fills the form from the assistant.
+  // The setter map is the form-state shape — the same keys `formState` above
+  // persists, which is what /folders reads its Subject and Year facets from.
+  const { prefilled } = useToolLaunch({
+    params: launch,
+    onRestore: restore,
+    prefill: {
+      curriculum: (v) => setCurriculum(v as string),
+      yearGroup: (v) => setYearGroup(v as string),
+      subject: (v) => setSubject(v as string),
+      topic: (v) => setTopic(v as string),
+      learningObjective: (v) => setLearningObjective(v as string),
+      abilityLevel: (v) => setAbilityLevel(v as string),
+      outputDetail: (v) => setOutputDetail(v as OutputDetail),
+    },
+  });
 
   const handleGenerate = async () => {
     setError(null);
@@ -106,6 +132,7 @@ export default function LessonPlannerForm({ sidebar }: { sidebar: React.ReactNod
 
         <div className="lg:col-span-2">
           <Card className="space-y-6">
+            {prefilled && <PrefilledBadge />}
 
             <CurriculumYearFields
               curriculum={curriculum} onCurriculumChange={setCurriculum}
@@ -168,7 +195,7 @@ export default function LessonPlannerForm({ sidebar }: { sidebar: React.ReactNod
         {result !== null && (
           <div className="w-md shrink-0">
             <div className="sticky top-8">
-              <LessonPlannerNav />
+              <OutputOutline markdown={result} />
             </div>
           </div>
         )}

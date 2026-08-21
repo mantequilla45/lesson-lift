@@ -17,11 +17,13 @@ import {
 import ConfirmModal from "@/app/components/ConfirmModal";
 import Card from "@/app/components/ui/Card";
 import ResultPanel from "@/app/components/ResultPanel";
+import OutputOutline from "@/app/components/OutputOutline";
 import RefinePanel from "@/app/components/RefinePanel";
 import GenerateButton from "@/app/components/ui/GenerateButton";
 import ResetButton from "@/app/components/ui/ResetButton";
 import ToolHistoryPanel from "@/app/components/ToolHistoryPanel";
 import type { ToolRun } from "@/app/lib/toolRuns";
+import { useToolLaunch, type ToolLaunchParams } from "@/app/lib/useToolLaunch";
 
 const TOOL_SLUG = "behaviour-support-plan";
 
@@ -34,7 +36,14 @@ const REFINE_CHIPS = [
   "Add in the following strategy:",
 ];
 
-export default function BehaviourSupportPlanForm({ sidebar }: { sidebar: React.ReactNode }) {
+export default function BehaviourSupportPlanForm({
+  sidebar,
+  launch,
+}: {
+  sidebar: React.ReactNode;
+  /** `?run=` — reopen a saved run. */
+  launch?: ToolLaunchParams;
+}) {
   const { curriculum, setCurriculum, yearGroup, setYearGroup } = useCurriculumYear();
   const [mixed, setMixed] = useState(false);
 
@@ -89,6 +98,9 @@ export default function BehaviourSupportPlanForm({ sidebar }: { sidebar: React.R
     setResult(run.output);
     setLastGenerated(JSON.stringify(i));
   };
+
+  // `?run=` reopens a saved run from Dashboard, Folders or Analytics.
+  useToolLaunch({ params: launch, onRestore: restore });
 
   const streamResponse = async (body: object, onChunk: (c: string) => void) => {
     const res = await fetch("/api/behaviour-support-plan", {
@@ -277,15 +289,27 @@ export default function BehaviourSupportPlanForm({ sidebar }: { sidebar: React.R
         <div className="sticky top-0 z-20 h-8 -mx-10" style={{ backgroundColor: "#F1EFE3" }} />
       )}
 
-      <ResultPanel
-        result={result}
-        isGenerating={isGenerating}
-        isRefining={isRefining}
-        onChange={(md) => setResult(md)}
-        exportFilename={`bsp-${studentName.toLowerCase().replace(/\s+/g, "-") || "student"}`}
-        historyMeta={{ toolSlug: TOOL_SLUG, title: studentName || null, input: formState }}
-        onSaved={() => setHistoryKey((k) => k + 1)}
-      />
+      <div className={result !== null ? "flex gap-8" : ""}>
+        {result !== null && (
+          <div className="w-md shrink-0">
+            <div className="sticky top-8">
+              <OutputOutline markdown={result} />
+            </div>
+          </div>
+        )}
+        <div className="flex-1 min-w-0">
+          <ResultPanel
+            result={result}
+            isGenerating={isGenerating}
+            isRefining={isRefining}
+            onChange={(md) => setResult(md)}
+            maxWidth={false}
+            exportFilename={`bsp-${studentName.toLowerCase().replace(/\s+/g, "-") || "student"}`}
+            historyMeta={{ toolSlug: TOOL_SLUG, title: studentName || null, input: formState }}
+            onSaved={() => setHistoryKey((k) => k + 1)}
+          />
+        </div>
+      </div>
 
       {result && !isGenerating && (
         <RefinePanel
