@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { buildSystem } from "@/app/lib/systemPrompt";
+import { differentiationPrompt, type Differentiate } from "@/app/lib/differentiation";
 import { streamChat } from "@/app/lib/usage";
 import { labModelFor } from "@/app/lib/model-lab";
 
@@ -15,6 +16,8 @@ export interface GenerateRequest {
   numQuestions: number;
   complexity?: "Simple" | "Standard" | "Challenging";
   includeAnswerKey?: boolean;
+  differentiate?: Differentiate;
+  differentiationLevels?: string[];
 }
 
 
@@ -33,6 +36,8 @@ export async function POST(req: NextRequest) {
     numQuestions,
     complexity = "Standard",
     includeAnswerKey = true,
+    differentiate = "no",
+    differentiationLevels = [],
   } = body;
 
   if (!curriculum || !yearGroup || !textSource || contentDomains.length === 0) {
@@ -77,6 +82,14 @@ export async function POST(req: NextRequest) {
     ? "\nAfter the questions, include a clearly labelled Answer Key section with model answers for each question."
     : "";
 
+  // Opt-in: empty when the teacher chose not to differentiate. Distinct from
+  // `complexity`, which pitches the passage's reading demand rather than
+  // adapting the task for attainment bands.
+  const adaptation = differentiationPrompt(differentiate, differentiationLevels);
+  const adaptationInstruction = adaptation
+    ? `\n\nDIFFERENTIATION — ${adaptation} Add this as a clearly labelled "Differentiation" section after the questions.`
+    : "";
+
   const complexityInstruction =
     complexity === "Challenging"
       ? "Include at least one question per domain that requires extended written response or comparative analysis."
@@ -110,7 +123,7 @@ Formatting and quality rules:
 - Allocate marks to each question in brackets, e.g. [2 marks] — align mark allocations with the complexity of the response required
 - ${complexityInstruction}${questionTypeInstruction}
 
-${answerKeyInstruction}`
+${answerKeyInstruction}${adaptationInstruction}`
       : `Using the passage below, create a reading comprehension activity for ${yearGroup} students following the ${curriculum}.
 
 The questions should be at ${complexity.toLowerCase()} complexity level.
@@ -125,7 +138,7 @@ Formatting and quality rules:
 - Allocate marks to each question in brackets, e.g. [2 marks] — align mark allocations with the complexity of the response required
 - ${complexityInstruction}${questionTypeInstruction}
 
-${answerKeyInstruction}
+${answerKeyInstruction}${adaptationInstruction}
 
 PASSAGE:
 ${ownText}`;

@@ -4,7 +4,9 @@ import { useState } from "react";
 import {
   CurriculumField,
   EyfsObjectiveField,
+  DifferentiationField,
 } from "@/app/components/fields";
+import { restoreDifferentiation, type Differentiate } from "@/app/lib/differentiation";
 import ResultPanel from "@/app/components/ResultPanel";
 import OutputOutline from "@/app/components/OutputOutline";
 import RefinePanel from "@/app/components/RefinePanel";
@@ -39,6 +41,8 @@ export default function EYFSActionPlanForm({
 }) {
   const [curriculum, setCurriculum] = useLocalStorage("ll:curriculum", "");
   const [objective, setObjective] = useState("");
+  const [differentiate, setDifferentiate] = useState<Differentiate>("no");
+  const [differentiationLevels, setDifferentiationLevels] = useState<string[]>([]);
 
   const [result, setResult] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -48,8 +52,8 @@ export default function EYFSActionPlanForm({
   const [lastGenerated, setLastGenerated] = useState<string | null>(null);
   const [historyKey, setHistoryKey] = useState(0);
 
-  const canGenerate = curriculum && objective.trim();
-  const formState = { curriculum, objective };
+  const canGenerate = curriculum && objective.trim() && (differentiate === "no" || differentiationLevels.length > 0);
+  const formState = { curriculum, objective, differentiate, differentiationLevels };
   const formSnapshot = JSON.stringify(formState);
   const unchangedSinceGeneration = result !== null && lastGenerated === formSnapshot;
 
@@ -57,6 +61,9 @@ export default function EYFSActionPlanForm({
     const i = run.input;
     setCurriculum((i.curriculum as string) ?? "");
     setObjective((i.objective as string) ?? "");
+    const d = restoreDifferentiation(i);
+    setDifferentiate(d.differentiate);
+    setDifferentiationLevels(d.levels);
     setResult(run.output);
     setLastGenerated(JSON.stringify(i));
   };
@@ -68,6 +75,8 @@ export default function EYFSActionPlanForm({
     prefill: {
       curriculum: (v) => setCurriculum(v as string),
       objective: (v) => setObjective(v as string),
+      differentiate: (v) => setDifferentiate(v as Differentiate),
+      differentiationLevels: (v) => setDifferentiationLevels(v as string[]),
     },
   });
 
@@ -80,7 +89,7 @@ export default function EYFSActionPlanForm({
       const res = await fetch("/api/eyfs-action-plan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ curriculum, objective }),
+        body: JSON.stringify({ curriculum, objective, differentiate, differentiationLevels }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -143,6 +152,13 @@ export default function EYFSActionPlanForm({
 
             <EyfsObjectiveField value={objective} onChange={setObjective} />
 
+            <DifferentiationField
+              value={differentiate}
+              onChange={setDifferentiate}
+              levels={differentiationLevels}
+              onLevelsChange={setDifferentiationLevels}
+            />
+
             <div className="flex gap-3">
               <ResetButton onClick={() => setConfirmingReset(true)} disabled={!result} />
               <ConfirmModal
@@ -152,6 +168,8 @@ export default function EYFSActionPlanForm({
                 confirmLabel="Yes, reset"
                 onConfirm={() => {
                   setObjective("");
+                  setDifferentiate("no");
+                  setDifferentiationLevels([]);
                   setResult(null);
                   setError(null);
                   setConfirmingReset(false);

@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import CurriculumYearFields, { useCurriculumYear } from "@/app/components/CurriculumYearFields";
-import { SubjectField, TopicField, LessonCountField, ExamSpecField, AbilityLevelField } from "@/app/components/fields";
+import { SubjectField, TopicField, LessonCountField, ExamSpecField, DifferentiationField } from "@/app/components/fields";
+import { restoreDifferentiation, type Differentiate } from "@/app/lib/differentiation";
 import { toTitleCase } from "@/app/lib/formOptions";
 import ResultPanel from "@/app/components/ResultPanel";
 import OutputOutline from "@/app/components/OutputOutline";
@@ -32,7 +33,8 @@ export default function MediumTermPlannerForm({
   const [numberOfLessons, setNumberOfLessons] = useState(6);
   const [examSpec, setExamSpec] = useState<"yes" | "no">("no");
   const [examSpecText, setExamSpecText] = useState("");
-  const [abilityLevel, setAbilityLevel] = useState("EXS");
+  const [differentiate, setDifferentiate] = useState<Differentiate>("no");
+  const [differentiationLevels, setDifferentiationLevels] = useState<string[]>([]);
 
   const [result, setResult] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -42,9 +44,10 @@ export default function MediumTermPlannerForm({
   const [historyKey, setHistoryKey] = useState(0);
 
   const canGenerate =
-    curriculum && (mixed || yearGroup) && subject.trim() && topic.trim();
+    curriculum && (mixed || yearGroup) && subject.trim() && topic.trim() &&
+    (differentiate === "no" || differentiationLevels.length > 0);
 
-  const formState = { curriculum, yearGroup, mixed, subject, topic, numberOfLessons, examSpec, examSpecText, abilityLevel };
+  const formState = { curriculum, yearGroup, mixed, subject, topic, numberOfLessons, examSpec, examSpecText, differentiate, differentiationLevels };
   const formSnapshot = JSON.stringify(formState);
   const unchangedSinceGeneration = result !== null && lastGenerated === formSnapshot;
 
@@ -58,7 +61,9 @@ export default function MediumTermPlannerForm({
     setNumberOfLessons((i.numberOfLessons as number) ?? 6);
     setExamSpec((i.examSpec as "yes" | "no") ?? "no");
     setExamSpecText((i.examSpecText as string) ?? "");
-    setAbilityLevel((i.abilityLevel as string) ?? "EXS");
+    const d = restoreDifferentiation(i);
+    setDifferentiate(d.differentiate);
+    setDifferentiationLevels(d.levels);
     setResult(run.output);
     setLastGenerated(JSON.stringify(i));
   };
@@ -73,7 +78,8 @@ export default function MediumTermPlannerForm({
       subject: (v) => setSubject(v as string),
       topic: (v) => setTopic(v as string),
       numberOfLessons: (v) => setNumberOfLessons(v as number),
-      abilityLevel: (v) => setAbilityLevel(v as string),
+      differentiate: (v) => setDifferentiate(v as Differentiate),
+      differentiationLevels: (v) => setDifferentiationLevels(v as string[]),
     },
   });
 
@@ -93,7 +99,8 @@ export default function MediumTermPlannerForm({
           topic,
           numberOfLessons,
           examSpec: examSpec === "yes" ? examSpecText : null,
-          abilityLevel,
+          differentiate,
+          differentiationLevels,
         }),
       });
       if (!res.ok) {
@@ -142,7 +149,12 @@ export default function MediumTermPlannerForm({
 
             <ExamSpecField value={examSpec} onChange={setExamSpec} text={examSpecText} onTextChange={setExamSpecText} />
 
-            <AbilityLevelField value={abilityLevel} onChange={setAbilityLevel} />
+            <DifferentiationField
+              value={differentiate}
+              onChange={setDifferentiate}
+              levels={differentiationLevels}
+              onLevelsChange={setDifferentiationLevels}
+            />
 
             <div className="flex gap-3">
               <ResetButton onClick={() => setConfirmingReset(true)} disabled={!result} />
@@ -151,7 +163,7 @@ export default function MediumTermPlannerForm({
                 title="Reset form?"
                 message="This will clear your current results and reset all form inputs."
                 confirmLabel="Yes, reset"
-                onConfirm={() => { setCurriculum(""); setYearGroup(""); setMixed(false); setSubject(""); setTopic(""); setNumberOfLessons(6); setExamSpec("no"); setExamSpecText(""); setAbilityLevel("EXS"); setResult(null); setError(null); setConfirmingReset(false); }}
+                onConfirm={() => { setCurriculum(""); setYearGroup(""); setMixed(false); setSubject(""); setTopic(""); setNumberOfLessons(6); setExamSpec("no"); setExamSpecText(""); setDifferentiate("no"); setDifferentiationLevels([]); setResult(null); setError(null); setConfirmingReset(false); }}
                 onCancel={() => setConfirmingReset(false)}
               />
               <GenerateButton onClick={handleGenerate} disabled={!canGenerate || isGenerating || unchangedSinceGeneration} isGenerating={isGenerating} hasResult={result !== null} />

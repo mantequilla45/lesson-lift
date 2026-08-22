@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { streamChat } from "@/app/lib/usage";
 import { modelFor } from "@/app/lib/tool-model";
 import { buildSystem } from "@/app/lib/systemPrompt";
+import { differentiationPrompt, type Differentiate } from "@/app/lib/differentiation";
 
 export interface MediumTermPlannerRequest {
   curriculum: string;
@@ -10,14 +11,15 @@ export interface MediumTermPlannerRequest {
   topic: string;
   numberOfLessons: number;
   examSpec?: string | null;
-  abilityLevel?: string;
+  differentiate?: Differentiate;
+  differentiationLevels?: string[];
 }
 
 
 export async function POST(req: NextRequest) {
   const body: MediumTermPlannerRequest = await req.json();
 
-  const { curriculum, yearGroup, subject, topic, numberOfLessons, examSpec, abilityLevel = "EXS" } = body;
+  const { curriculum, yearGroup, subject, topic, numberOfLessons, examSpec, differentiate = "no", differentiationLevels = [] } = body;
 
   if (!curriculum || !yearGroup || !subject?.trim() || !topic?.trim() || !numberOfLessons) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -27,12 +29,9 @@ export async function POST(req: NextRequest) {
     ? `\nIncorporate the following exam specification or curriculum guidance: ${examSpec}`
     : "";
 
-  const abilityLine =
-    abilityLevel === "WTS"
-      ? "Pitch all content for Working Towards Standard (WTS) students — use accessible language, provide scaffolding, and reduce cognitive load where possible."
-      : abilityLevel === "GDS"
-      ? "Pitch all content for Greater Depth Standard (GDS) students — include higher-order thinking, extension challenges, and tasks that require deeper analysis and evaluation."
-      : "Pitch all content at the Expected Standard (EXS) — appropriate challenge for most students in this year group.";
+  // Opt-in: empty when the teacher chose not to differentiate.
+  const adaptation = differentiationPrompt(differentiate, differentiationLevels);
+  const abilityLine = adaptation ? `\n\nDIFFERENTIATION — ${adaptation}` : "";
 
   const userPrompt = `Create a detailed, coherent medium-term plan for the following:
 
@@ -40,8 +39,7 @@ export async function POST(req: NextRequest) {
 - Year Group: ${yearGroup}
 - Subject: ${subject}
 - Topic: ${topic}
-- Number of Lessons: ${numberOfLessons}
-- ${abilityLine}${examSpecSection}
+- Number of Lessons: ${numberOfLessons}${examSpecSection}${abilityLine}
 
 This medium-term plan is for a UK school. It should demonstrate clear curriculum intent — each lesson must deliberately build on the previous one, developing a coherent sequence of knowledge and skills. The plan should reflect the kind of curriculum thinking that Ofsted's Education Inspection Framework expects: a well-sequenced, knowledge-rich programme of study in which prior learning is built upon and pupils make cumulative progress.
 

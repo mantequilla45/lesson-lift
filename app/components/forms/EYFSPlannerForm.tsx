@@ -12,6 +12,8 @@ import ResetButton from "@/app/components/ui/ResetButton";
 import ToolHistoryPanel from "@/app/components/ToolHistoryPanel";
 import type { ToolRun } from "@/app/lib/toolRuns";
 import PrefilledBadge from "@/app/components/assistant/PrefilledBadge";
+import { DifferentiationField } from "@/app/components/fields";
+import { restoreDifferentiation, type Differentiate } from "@/app/lib/differentiation";
 import { useToolLaunch, type ToolLaunchParams } from "@/app/lib/useToolLaunch";
 
 const TOOL_SLUG = "eyfs-planner";
@@ -30,6 +32,8 @@ export default function EYFSPlannerForm({
   const [includeBookList, setIncludeBookList] = useState(false);
   const [includeHomeLearning, setIncludeHomeLearning] = useState(false);
   const [includeWeeklyOverview, setIncludeWeeklyOverview] = useState(false);
+  const [differentiate, setDifferentiate] = useState<Differentiate>("no");
+  const [differentiationLevels, setDifferentiationLevels] = useState<string[]>([]);
 
   const [result, setResult] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -39,10 +43,11 @@ export default function EYFSPlannerForm({
   const [historyKey, setHistoryKey] = useState(0);
 
   const weeksNum = parseInt(numberOfWeeks, 10);
-  const canGenerate = curriculum && topic.trim() && !isNaN(weeksNum) && weeksNum >= 1 && weeksNum <= 12;
+  const canGenerate = curriculum && topic.trim() && !isNaN(weeksNum) && weeksNum >= 1 && weeksNum <= 12 &&
+    (differentiate === "no" || differentiationLevels.length > 0);
 
   // Raw form state — saved as history input so a past run can refill the form.
-  const formState = { curriculum, topic, numberOfWeeks, includeBookList, includeHomeLearning, includeWeeklyOverview };
+  const formState = { curriculum, topic, numberOfWeeks, includeBookList, includeHomeLearning, includeWeeklyOverview, differentiate, differentiationLevels };
   const formSnapshot = JSON.stringify(formState);
   const unchangedSinceGeneration = result !== null && lastGenerated === formSnapshot;
 
@@ -54,6 +59,9 @@ export default function EYFSPlannerForm({
     setIncludeBookList(Boolean(i.includeBookList));
     setIncludeHomeLearning(Boolean(i.includeHomeLearning));
     setIncludeWeeklyOverview(Boolean(i.includeWeeklyOverview));
+    const d = restoreDifferentiation(i);
+    setDifferentiate(d.differentiate);
+    setDifferentiationLevels(d.levels);
     setResult(run.output);
     setLastGenerated(JSON.stringify(i));
   };
@@ -68,6 +76,8 @@ export default function EYFSPlannerForm({
       includeBookList: (v) => setIncludeBookList(v as boolean),
       includeHomeLearning: (v) => setIncludeHomeLearning(v as boolean),
       includeWeeklyOverview: (v) => setIncludeWeeklyOverview(v as boolean),
+      differentiate: (v) => setDifferentiate(v as Differentiate),
+      differentiationLevels: (v) => setDifferentiationLevels(v as string[]),
     },
   });
 
@@ -80,7 +90,7 @@ export default function EYFSPlannerForm({
       const res = await fetch("/api/eyfs-planner", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ curriculum, topic, numberOfWeeks: weeksNum, includeBookList, includeHomeLearning, includeWeeklyOverview }),
+        body: JSON.stringify({ curriculum, topic, numberOfWeeks: weeksNum, includeBookList, includeHomeLearning, includeWeeklyOverview, differentiate, differentiationLevels }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -201,6 +211,13 @@ export default function EYFSPlannerForm({
               </div>
             </div>
 
+            <DifferentiationField
+              value={differentiate}
+              onChange={setDifferentiate}
+              levels={differentiationLevels}
+              onLevelsChange={setDifferentiationLevels}
+            />
+
             <div className="flex gap-3">
               <ResetButton onClick={() => setConfirmingReset(true)} disabled={!result} />
               <ConfirmModal
@@ -215,6 +232,8 @@ export default function EYFSPlannerForm({
                   setIncludeBookList(false);
                   setIncludeHomeLearning(false);
                   setIncludeWeeklyOverview(false);
+                  setDifferentiate("no");
+                  setDifferentiationLevels([]);
                   setResult(null);
                   setError(null);
                   setConfirmingReset(false);

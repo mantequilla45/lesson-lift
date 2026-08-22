@@ -2,7 +2,8 @@
 
 import { useState, useRef } from "react";
 import CurriculumYearFields, { useCurriculumYear } from "@/app/components/CurriculumYearFields";
-import { SubjectField, LearningObjectiveField, AbilityLevelField, QuestionTypesField, AdditionalContextField } from "@/app/components/fields";
+import { SubjectField, LearningObjectiveField, DifferentiationField, QuestionTypesField, AdditionalContextField } from "@/app/components/fields";
+import { restoreDifferentiation, type Differentiate } from "@/app/lib/differentiation";
 import { toTitleCase } from "@/app/lib/formOptions";
 import { Upload, X, Search, ImageIcon } from "lucide-react";
 import ResultPanel from "@/app/components/ResultPanel";
@@ -63,7 +64,8 @@ export default function HomeworkGeneratorForm({
   const [mixed, setMixed] = useState(false);
   const [subject, setSubject] = useState("");
   const [learningObjective, setLearningObjective] = useState("");
-  const [abilityLevel, setAbilityLevel] = useState("EXS");
+  const [differentiate, setDifferentiate] = useState<Differentiate>("no");
+  const [differentiationLevels, setDifferentiationLevels] = useState<string[]>([]);
   const [questionTypes, setQuestionTypes] = useState<string[]>([]);
   const [questionCounts, setQuestionCounts] = useState<Record<string, number>>({});
   const [homeworkType, setHomeworkType] = useState("");
@@ -95,10 +97,11 @@ export default function HomeworkGeneratorForm({
     subject.trim() &&
     learningObjective.trim() &&
     homeworkType &&
-    length;
+    length &&
+    (differentiate === "no" || differentiationLevels.length > 0);
 
   const formState = {
-    curriculum, yearGroup, mixed, subject, learningObjective, abilityLevel,
+    curriculum, yearGroup, mixed, subject, learningObjective, differentiate, differentiationLevels,
     questionTypes, questionCounts, homeworkType, length, includeAnswers,
     additionalInstructions, lessonContent, imageBase64,
   };
@@ -112,7 +115,9 @@ export default function HomeworkGeneratorForm({
     setMixed(Boolean(i.mixed));
     setSubject((i.subject as string) ?? "");
     setLearningObjective((i.learningObjective as string) ?? "");
-    setAbilityLevel((i.abilityLevel as string) ?? "EXS");
+    const d = restoreDifferentiation(i);
+    setDifferentiate(d.differentiate);
+    setDifferentiationLevels(d.levels);
     setQuestionTypes((i.questionTypes as string[]) ?? []);
     setQuestionCounts((i.questionCounts as Record<string, number>) ?? {});
     setHomeworkType((i.homeworkType as string) ?? "");
@@ -136,7 +141,8 @@ export default function HomeworkGeneratorForm({
       yearGroup: (v) => setYearGroup(v as string),
       subject: (v) => setSubject(v as string),
       learningObjective: (v) => setLearningObjective(v as string),
-      abilityLevel: (v) => setAbilityLevel(v as string),
+      differentiate: (v) => setDifferentiate(v as Differentiate),
+      differentiationLevels: (v) => setDifferentiationLevels(v as string[]),
     },
   });
 
@@ -181,7 +187,8 @@ export default function HomeworkGeneratorForm({
           yearGroup: mixed ? "Mixed" : yearGroup,
           subject: toTitleCase(subject),
           learningObjective,
-          abilityLevel,
+          differentiate,
+          differentiationLevels,
           questionTypes: questionTypes.length > 0 ? questionTypes : undefined,
           questionCounts: questionTypes.length > 0 ? questionCounts : undefined,
           homeworkType,
@@ -215,7 +222,7 @@ export default function HomeworkGeneratorForm({
 
   const handleReset = () => {
     setCurriculum(""); setYearGroup(""); setMixed(false);
-    setSubject(""); setLearningObjective(""); setAbilityLevel("EXS");
+    setSubject(""); setLearningObjective(""); setDifferentiate("no"); setDifferentiationLevels([]);
     setQuestionTypes([]); setQuestionCounts({}); setHomeworkType(""); setLength("");
     setIncludeAnswers("no"); setAdditionalInstructions(""); setLessonContent("");
     setImageSource(""); clearImage();
@@ -245,7 +252,12 @@ export default function HomeworkGeneratorForm({
 
             <LearningObjectiveField value={learningObjective} onChange={setLearningObjective} />
 
-            <AbilityLevelField value={abilityLevel} onChange={setAbilityLevel} />
+            <DifferentiationField
+              value={differentiate}
+              onChange={setDifferentiate}
+              levels={differentiationLevels}
+              onLevelsChange={setDifferentiationLevels}
+            />
 
             <QuestionTypesField
               value={questionTypes}

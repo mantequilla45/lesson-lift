@@ -3,7 +3,8 @@
 import { useState, useEffect, useRef } from "react";
 import { Loader2, Copy, Check, ChevronDown } from "lucide-react";
 import CurriculumYearFields, { useCurriculumYear } from "@/app/components/CurriculumYearFields";
-import { SubjectField, TopicField, LessonCountField, AdditionalContextField } from "@/app/components/fields";
+import { SubjectField, TopicField, LessonCountField, AdditionalContextField, DifferentiationField } from "@/app/components/fields";
+import { restoreDifferentiation, type Differentiate } from "@/app/lib/differentiation";
 import GenerateOutlineButton from "@/app/components/ui/GenerateOutlineButton";
 import ConfirmModal from "@/app/components/ConfirmModal";
 import GenerateButton from "@/app/components/ui/GenerateButton";
@@ -622,6 +623,8 @@ export default function LessonSlideshowForm({
   const [slideCount, setSlideCount] = useState(8);
   const [additionalContext, setAdditionalContext] = useState("");
   const [includeImageSuggestions, setIncludeImageSuggestions] = useState(true);
+  const [differentiate, setDifferentiate] = useState<Differentiate>("no");
+  const [differentiationLevels, setDifferentiationLevels] = useState<string[]>([]);
 
   const [slides, setSlides] = useState<LessonSlideData[] | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -638,7 +641,7 @@ export default function LessonSlideshowForm({
   const [historyKey, setHistoryKey] = useState(0);
 
   // Raw form state — saved as history input so a past run can refill the form.
-  const formState = { curriculum, yearGroup, mixed, subject, topic, slideCount, additionalContext, includeImageSuggestions };
+  const formState = { curriculum, yearGroup, mixed, subject, topic, slideCount, additionalContext, includeImageSuggestions, differentiate, differentiationLevels };
 
   // Slides are a structured array, not markdown — store as JSON text.
   const persist = (s: LessonSlideData[]) => {
@@ -667,6 +670,9 @@ export default function LessonSlideshowForm({
     setSlideCount((i.slideCount as number) ?? 8);
     setAdditionalContext((i.additionalContext as string) ?? "");
     setIncludeImageSuggestions(i.includeImageSuggestions === undefined ? true : Boolean(i.includeImageSuggestions));
+    const d = restoreDifferentiation(i);
+    setDifferentiate(d.differentiate);
+    setDifferentiationLevels(d.levels);
     try {
       setSlides(JSON.parse(run.output) as LessonSlideData[]);
     } catch {
@@ -686,6 +692,8 @@ export default function LessonSlideshowForm({
       topic: (v) => setTopic(v as string),
       slideCount: (v) => setSlideCount(v as number),
       includeImageSuggestions: (v) => setIncludeImageSuggestions(v as boolean),
+      differentiate: (v) => setDifferentiate(v as Differentiate),
+      differentiationLevels: (v) => setDifferentiationLevels(v as string[]),
     },
   });
 
@@ -714,7 +722,8 @@ export default function LessonSlideshowForm({
     }
   }, [slides, isBusy]);
 
-  const canGenerate = topic.trim() && (mixed || yearGroup);
+  const canGenerate = topic.trim() && (mixed || yearGroup) &&
+    (differentiate === "no" || differentiationLevels.length > 0);
   const formSnapshot = JSON.stringify({ topic, subject, yearGroup, mixed, slideCount, additionalContext, includeImageSuggestions });
   const unchangedSinceGeneration = slides !== null && lastGenerated === formSnapshot;
 
@@ -735,6 +744,8 @@ export default function LessonSlideshowForm({
           slideCount,
           additionalContext: additionalContext.trim() || undefined,
           includeImageSuggestions,
+          differentiate,
+          differentiationLevels,
         }),
       });
       if (!res.ok) {
@@ -876,6 +887,13 @@ export default function LessonSlideshowForm({
               </label>
             </div>
 
+            <DifferentiationField
+              value={differentiate}
+              onChange={setDifferentiate}
+              levels={differentiationLevels}
+              onLevelsChange={setDifferentiationLevels}
+            />
+
             <div className="flex gap-3">
               <ResetButton onClick={() => setConfirmingReset(true)} disabled={!slides} />
               <ConfirmModal
@@ -887,6 +905,8 @@ export default function LessonSlideshowForm({
                   setCurriculum(""); setYearGroup(""); setMixed(false);
                   setSubject(""); setTopic(""); setSlideCount(8);
                   setAdditionalContext(""); setIncludeImageSuggestions(true);
+                  setDifferentiate("no"); setDifferentiationLevels([]);
+                  setDifferentiate("no"); setDifferentiationLevels([]);
                   setSlides(null); setError(null); setConfirmingReset(false);
                 }}
                 onCancel={() => setConfirmingReset(false)}

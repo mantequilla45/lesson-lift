@@ -8,7 +8,9 @@ import {
   LessonLengthField,
   CoverResourcesField,
   AdditionalContextField,
+  DifferentiationField,
 } from "@/app/components/fields";
+import { restoreDifferentiation, type Differentiate } from "@/app/lib/differentiation";
 import { toTitleCase } from "@/app/lib/formOptions";
 import ResultPanel from "@/app/components/ResultPanel";
 import OutputOutline from "@/app/components/OutputOutline";
@@ -49,6 +51,8 @@ export default function CoverLessonForm({
   const [lessonLength, setLessonLength] = useState("");
   const [resources, setResources] = useState("");
   const [additionalContext, setAdditionalContext] = useState("");
+  const [differentiate, setDifferentiate] = useState<Differentiate>("no");
+  const [differentiationLevels, setDifferentiationLevels] = useState<string[]>([]);
 
   const [result, setResult] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -59,7 +63,7 @@ export default function CoverLessonForm({
   const [historyKey, setHistoryKey] = useState(0);
 
   // Raw form state — saved as history input so a past run can refill the form.
-  const formState = { curriculum, yearGroup, mixed, subject, topic, lessonLength, resources, additionalContext };
+  const formState = { curriculum, yearGroup, mixed, subject, topic, lessonLength, resources, additionalContext, differentiate, differentiationLevels };
 
   const restore = (run: ToolRun) => {
     const i = run.input;
@@ -71,6 +75,9 @@ export default function CoverLessonForm({
     setLessonLength((i.lessonLength as string) ?? "");
     setResources((i.resources as string) ?? "");
     setAdditionalContext((i.additionalContext as string) ?? "");
+    const d = restoreDifferentiation(i);
+    setDifferentiate(d.differentiate);
+    setDifferentiationLevels(d.levels);
     setResult(run.output);
     setLastGenerated(JSON.stringify(i));
   };
@@ -86,13 +93,16 @@ export default function CoverLessonForm({
       topic: (v) => setTopic(v as string),
       lessonLength: (v) => setLessonLength(v as string),
       resources: (v) => setResources(v as string),
+      differentiate: (v) => setDifferentiate(v as Differentiate),
+      differentiationLevels: (v) => setDifferentiationLevels(v as string[]),
     },
   });
 
-  const canGenerate = curriculum && (mixed || yearGroup) && subject.trim() && topic.trim() && lessonLength && resources;
+  const canGenerate = curriculum && (mixed || yearGroup) && subject.trim() && topic.trim() && lessonLength && resources &&
+    (differentiate === "no" || differentiationLevels.length > 0);
 
   const formSnapshot = JSON.stringify({
-    curriculum, yearGroup, mixed, subject, topic, lessonLength, resources, additionalContext,
+    curriculum, yearGroup, mixed, subject, topic, lessonLength, resources, additionalContext, differentiate, differentiationLevels,
   });
   const unchangedSinceGeneration = result !== null && lastGenerated === formSnapshot;
 
@@ -112,6 +122,8 @@ export default function CoverLessonForm({
           topic,
           lessonLength,
           resources,
+          differentiate,
+          differentiationLevels,
           additionalContext: additionalContext.trim() || undefined,
         }),
       });
@@ -169,6 +181,8 @@ export default function CoverLessonForm({
     setLessonLength("");
     setResources("");
     setAdditionalContext("");
+    setDifferentiate("no");
+    setDifferentiationLevels([]);
     setResult(null);
     setError(null);
     setConfirmingReset(false);
@@ -198,6 +212,13 @@ export default function CoverLessonForm({
               <LessonLengthField value={lessonLength} onChange={setLessonLength} />
               <CoverResourcesField value={resources} onChange={setResources} />
             </div>
+
+            <DifferentiationField
+              value={differentiate}
+              onChange={setDifferentiate}
+              levels={differentiationLevels}
+              onLevelsChange={setDifferentiationLevels}
+            />
 
             <AdditionalContextField
               value={additionalContext}

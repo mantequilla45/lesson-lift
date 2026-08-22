@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { streamChat } from "@/app/lib/usage";
 import { modelFor } from "@/app/lib/tool-model";
 import { buildSystem } from "@/app/lib/systemPrompt";
+import { differentiationPrompt, type Differentiate } from "@/app/lib/differentiation";
 
 export interface ModelTextGeneratorRequest {
   curriculum: string;
@@ -9,7 +10,8 @@ export interface ModelTextGeneratorRequest {
   write: string;
   features: string;
   keywords?: string | null;
-  abilityLevel?: string;
+  differentiate?: Differentiate;
+  differentiationLevels?: string[];
   lengthWords: number;
 }
 
@@ -17,7 +19,7 @@ export interface ModelTextGeneratorRequest {
 export async function POST(req: NextRequest) {
   const body: ModelTextGeneratorRequest = await req.json();
 
-  const { curriculum, yearGroup, write, features, keywords, abilityLevel = "EXS", lengthWords } = body;
+  const { curriculum, yearGroup, write, features, keywords, differentiate = "no", differentiationLevels = [], lengthWords } = body;
 
   if (!curriculum || !yearGroup || !write?.trim()) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -31,12 +33,9 @@ export async function POST(req: NextRequest) {
     ? `\nKeywords to incorporate into the text: ${keywords}`
     : "";
 
-  const abilityLine =
-    abilityLevel === "WTS"
-      ? "Pitch the text for Working Towards Standard (WTS) pupils — use accessible vocabulary, shorter sentences, and clear structure to reduce cognitive load."
-      : abilityLevel === "GDS"
-      ? "Pitch the text for Greater Depth Standard (GDS) pupils — use sophisticated vocabulary, complex sentence structures, and high-level craft to stretch and challenge."
-      : "Pitch the text at the Expected Standard (EXS) — appropriate challenge and vocabulary for most pupils in this year group.";
+  // Opt-in: empty when the teacher chose not to differentiate.
+  const adaptation = differentiationPrompt(differentiate, differentiationLevels);
+  const abilityLine = adaptation ? `\n\nDIFFERENTIATION — ${adaptation}` : "";
 
   const userPrompt = `Write a high-quality model text for classroom use with the following specifications:
 
@@ -44,7 +43,7 @@ export async function POST(req: NextRequest) {
 - Year Group: ${yearGroup}
 - Text type / what to write: ${write}
 - Approximate length: ${lengthWords} words
-- ${abilityLine}${featuresSection}${keywordsSection}
+${featuresSection}${keywordsSection}${abilityLine}
 
 This model text is for use in a UK school and will be used as a teaching exemplar for ${yearGroup} pupils. It must be genuinely high quality — not a generic demonstration, but a carefully crafted piece that a teacher could place in front of pupils as an aspirational example of what excellence in ${write} looks like.
 

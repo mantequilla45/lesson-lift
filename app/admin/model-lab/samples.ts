@@ -129,7 +129,8 @@ export const LAB_TOOLS: LabTool[] = [
       topic: "Classification of living things",
       learningObjective:
         "To classify living things into broad groups according to observable characteristics and based on similarities and differences.",
-      abilityLevel: "EXS",
+      differentiate: "yes",
+      differentiationLevels: ["WTS", "EXS", "GDS"],
       outputDetail: "detailed",
       additionalInfo:
         "Mixed-ability class of 30. Four pupils with EAL, two with an EHCP for processing speed. One 60-minute lesson; a set of laminated organism cards is available.",

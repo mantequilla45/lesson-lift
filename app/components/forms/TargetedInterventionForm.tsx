@@ -8,7 +8,9 @@ import {
   AptitudinalDataField,
   AttainmentDataField,
   OtherDataField,
+  DifferentiationField,
 } from "@/app/components/fields";
+import { restoreDifferentiation, type Differentiate } from "@/app/lib/differentiation";
 import { toTitleCase } from "@/app/lib/formOptions";
 import ResultPanel from "@/app/components/ResultPanel";
 import OutputOutline from "@/app/components/OutputOutline";
@@ -48,6 +50,8 @@ export default function TargetedInterventionForm({
   const [aptitudinalData, setAptitudinalData] = useState("");
   const [attainmentData, setAttainmentData] = useState("");
   const [otherData, setOtherData] = useState("");
+  const [differentiate, setDifferentiate] = useState<Differentiate>("no");
+  const [differentiationLevels, setDifferentiationLevels] = useState<string[]>([]);
 
   const [result, setResult] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -57,11 +61,13 @@ export default function TargetedInterventionForm({
   const [lastGenerated, setLastGenerated] = useState<string | null>(null);
   const [historyKey, setHistoryKey] = useState(0);
 
-  const canGenerate = curriculum && (mixed || yearGroup) && subject.trim() && attitudinalData.trim();
+  const canGenerate = curriculum && (mixed || yearGroup) && subject.trim() && attitudinalData.trim() &&
+    (differentiate === "no" || differentiationLevels.length > 0);
 
   const formState = {
     curriculum, yearGroup, mixed, subject,
     attitudinalData, aptitudinalData, attainmentData, otherData,
+    differentiate, differentiationLevels,
   };
   const formSnapshot = JSON.stringify(formState);
   const unchangedSinceGeneration = result !== null && lastGenerated === formSnapshot;
@@ -76,6 +82,9 @@ export default function TargetedInterventionForm({
     setAptitudinalData((i.aptitudinalData as string) ?? "");
     setAttainmentData((i.attainmentData as string) ?? "");
     setOtherData((i.otherData as string) ?? "");
+    const d = restoreDifferentiation(i);
+    setDifferentiate(d.differentiate);
+    setDifferentiationLevels(d.levels);
     setResult(run.output);
     setLastGenerated(JSON.stringify(i));
   };
@@ -88,6 +97,8 @@ export default function TargetedInterventionForm({
       curriculum: (v) => setCurriculum(v as string),
       yearGroup: (v) => setYearGroup(v as string),
       subject: (v) => setSubject(v as string),
+      differentiate: (v) => setDifferentiate(v as Differentiate),
+      differentiationLevels: (v) => setDifferentiationLevels(v as string[]),
     },
   });
 
@@ -108,6 +119,8 @@ export default function TargetedInterventionForm({
           aptitudinalData: aptitudinalData.trim() || undefined,
           attainmentData: attainmentData.trim() || undefined,
           otherData: otherData.trim() || undefined,
+          differentiate,
+          differentiationLevels,
         }),
       });
       if (!res.ok) {
@@ -164,6 +177,8 @@ export default function TargetedInterventionForm({
     setAptitudinalData("");
     setAttainmentData("");
     setOtherData("");
+    setDifferentiate("no");
+    setDifferentiationLevels([]);
     setResult(null);
     setError(null);
     setConfirmingReset(false);
@@ -197,6 +212,13 @@ export default function TargetedInterventionForm({
             <AttainmentDataField value={attainmentData} onChange={setAttainmentData} />
 
             <OtherDataField value={otherData} onChange={setOtherData} />
+
+            <DifferentiationField
+              value={differentiate}
+              onChange={setDifferentiate}
+              levels={differentiationLevels}
+              onLevelsChange={setDifferentiationLevels}
+            />
 
             <div className="flex gap-3">
               <ResetButton onClick={() => setConfirmingReset(true)} disabled={!result} />

@@ -22,7 +22,7 @@
 // shapes really do vary: worksheet has no `topic` at all, quiz needs a
 // discriminating `action`, model-text carries its subject matter in `write`.
 //
-// ── Four rules learned the hard way, all load-bearing ───────────────────────
+// ── Five rules learned the hard way, all load-bearing ───────────────────────
 //
 //  1. `required` must list ONLY fields a sentence can plausibly supply.
 //     validatePrefill returns null when a required field is missing, so listing
@@ -34,16 +34,21 @@
 //     them "integer" hands the setter a number its `as string` cast lies about.
 //
 //  3. Enum values must match the <select> options EXACTLY, or validatePrefill
-//     drops them and the control renders blank.
+//     drops them and the control renders blank. Where an option list is shared
+//     with the control, IMPORT it rather than copying — differentiation does
+//     this via DIFFERENTIATION_VALUES, and cannot drift as a result.
 //
 //  4. `mixed` is never exposed. It is a mixed-age-class toggle no sentence
 //     implies, and setting it disables the year-group select.
+//
+//  5. Fields that only make sense together must be described that way, since
+//     nothing enforces it: `differentiate: "yes"` without differentiationLevels
+//     opens the control with no band chosen, which blocks Generate.
 import { CURRICULA, YEAR_GROUPS } from "@/app/lib/formOptions";
+import { DIFFERENTIATION_VALUES } from "@/app/lib/differentiation";
 
 const CURRICULUM_VALUES = CURRICULA.map((c) => c.value);
 
-/** Ability bands, shared by every tool that has an AbilityLevelField. */
-const ABILITY_LEVELS = ["WTS", "EXS", "GDS"] as const;
 /** Output length, shared by every tool with an OutputDetailField. */
 const OUTPUT_DETAILS = ["condensed", "standard", "detailed"] as const;
 
@@ -119,12 +124,25 @@ const curriculumFields = {
   },
 } as const;
 
-const abilityField = {
+// Differentiation is opt-in and multi-select. Both halves must be prefilled
+// together to be useful: `differentiate: "yes"` on its own opens the control
+// with no band chosen, which blocks Generate.
+const differentiateField = {
   type: "string",
-  enum: ABILITY_LEVELS,
+  enum: ["yes", "no"],
   description:
-    "Ability band: WTS (working towards), EXS (expected), GDS (greater depth). " +
-    "Omit unless the teacher signals it.",
+    "Whether to include differentiation. Set 'yes' only when the teacher signals " +
+    "adapting for attainment, and always alongside differentiationLevels. Omit otherwise.",
+} as const;
+
+const differentiationLevelsField = {
+  type: "array",
+  items: { type: "string", enum: DIFFERENTIATION_VALUES },
+  description:
+    "Attainment bands to adapt for: WBS (working below), WTS (working towards), " +
+    "EXS (expected), GDS (greater depth). Only meaningful when differentiate is " +
+    "'yes'. Pick every band the teacher implies — 'lower attainers and greater " +
+    "depth' is ['WTS','GDS'].",
 } as const;
 
 const detailField = {
@@ -156,7 +174,8 @@ export const ASSISTANT_TOOLS: AssistantTool[] = [
             "did not state it, phrased as a teacher would ('Identify the stages of " +
             "the water cycle').",
         },
-        abilityLevel: abilityField,
+        differentiate: differentiateField,
+        differentiationLevels: differentiationLevelsField,
         outputDetail: detailField,
       },
       required: ["subject", "topic"],
@@ -188,7 +207,8 @@ export const ASSISTANT_TOOLS: AssistantTool[] = [
           maximum: 40,
           description: "How many questions. Defaults to 10.",
         },
-        abilityLevel: abilityField,
+        differentiate: differentiateField,
+        differentiationLevels: differentiationLevelsField,
         outputDetail: detailField,
       },
       required: ["subject", "learningObjective"],
@@ -244,6 +264,8 @@ export const ASSISTANT_TOOLS: AssistantTool[] = [
           maximum: 20,
           description: "How many questions. Omit to use the form's default.",
         },
+        differentiate: differentiateField,
+        differentiationLevels: differentiationLevelsField,
       },
       required: ["topic"],
     },
@@ -294,7 +316,8 @@ export const ASSISTANT_TOOLS: AssistantTool[] = [
             "What the homework practises. This carries the topic — there is no " +
             "separate topic field on this tool.",
         },
-        abilityLevel: abilityField,
+        differentiate: differentiateField,
+        differentiationLevels: differentiationLevelsField,
       },
       required: ["subject", "learningObjective"],
     },
@@ -319,7 +342,6 @@ export const ASSISTANT_TOOLS: AssistantTool[] = [
           maximum: 20,
           description: "How many lessons the topic spans. Defaults to 6.",
         },
-        abilityLevel: abilityField,
       },
       required: ["subject", "topic"],
     },
@@ -342,7 +364,8 @@ export const ASSISTANT_TOOLS: AssistantTool[] = [
           maximum: 30,
           description: "Lessons in the unit. Defaults to 6.",
         },
-        abilityLevel: abilityField,
+        differentiate: differentiateField,
+        differentiationLevels: differentiationLevelsField,
         // examSpec/examSpecText are deliberately NOT exposed. examSpec is a
         // mode toggle: ExamSpecField only renders the examSpecText textarea
         // when examSpec === "yes", so prefilling the text alone would submit
@@ -380,6 +403,8 @@ export const ASSISTANT_TOOLS: AssistantTool[] = [
             "What the cover teacher will have. Required — use 'Basic stationery " +
             "only (pen and paper)' if the teacher did not say.",
         },
+        differentiate: differentiateField,
+        differentiationLevels: differentiationLevelsField,
       },
       required: ["subject", "topic", "lessonLength", "resources"],
     },
@@ -451,6 +476,8 @@ export const ASSISTANT_TOOLS: AssistantTool[] = [
         includeHomeLearning: { type: "boolean", description: "Include home learning ideas." },
         includeWeeklyOverview: { type: "boolean", description: "Include a weekly overview." },
         // curriculum omitted: this form hardcodes it to EYFS.
+        differentiate: differentiateField,
+        differentiationLevels: differentiationLevelsField,
       },
       required: ["topic"],
     },
@@ -472,6 +499,8 @@ export const ASSISTANT_TOOLS: AssistantTool[] = [
             "The improvement objective, e.g. 'Improve outdoor provision for " +
             "communication and language'.",
         },
+        differentiate: differentiateField,
+        differentiationLevels: differentiationLevelsField,
       },
       required: ["curriculum", "objective"],
     },
@@ -556,7 +585,8 @@ export const ASSISTANT_TOOLS: AssistantTool[] = [
           type: "string",
           description: "Vocabulary to include, comma-separated.",
         },
-        abilityLevel: abilityField,
+        differentiate: differentiateField,
+        differentiationLevels: differentiationLevelsField,
         // STRING, not integer (rule 2).
         lengthWords: {
           type: "string",
@@ -589,6 +619,8 @@ export const ASSISTANT_TOOLS: AssistantTool[] = [
           maximum: 11,
           description: "Pupil age in years. Defaults to 5.",
         },
+        differentiate: differentiateField,
+        differentiationLevels: differentiationLevelsField,
       },
       required: ["curriculum", "grapheme"],
     },
@@ -696,6 +728,8 @@ export const ASSISTANT_TOOLS: AssistantTool[] = [
           type: "boolean",
           description: "Suggest an image for each slide.",
         },
+        differentiate: differentiateField,
+        differentiationLevels: differentiationLevelsField,
       },
       required: ["yearGroup", "topic"],
     },
@@ -851,6 +885,8 @@ export const ASSISTANT_TOOLS: AssistantTool[] = [
           enum: EDUCATION_PHASES,
           description: "Phase of education. Defaults to Primary.",
         },
+        differentiate: differentiateField,
+        differentiationLevels: differentiationLevelsField,
       },
       required: ["challenges"],
     },
@@ -977,6 +1013,8 @@ export const ASSISTANT_TOOLS: AssistantTool[] = [
       type: "object",
       properties: {
         ...curriculumFields,
+        differentiate: differentiateField,
+        differentiationLevels: differentiationLevelsField,
       },
       required: ["curriculum", "yearGroup", "subject"],
     },

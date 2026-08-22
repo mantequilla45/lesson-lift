@@ -4,7 +4,9 @@ import { useState } from "react";
 import {
   PupilPremiumChallengesField,
   EducationPhaseField,
+  DifferentiationField,
 } from "@/app/components/fields";
+import { restoreDifferentiation, type Differentiate } from "@/app/lib/differentiation";
 import ResultPanel from "@/app/components/ResultPanel";
 import OutputOutline from "@/app/components/OutputOutline";
 import RefinePanel from "@/app/components/RefinePanel";
@@ -38,6 +40,8 @@ export default function PupilPremiumPlannerForm({
 }) {
   const [challenges, setChallenges] = useState("");
   const [educationPhase, setEducationPhase] = useState("Primary");
+  const [differentiate, setDifferentiate] = useState<Differentiate>("no");
+  const [differentiationLevels, setDifferentiationLevels] = useState<string[]>([]);
 
   const [result, setResult] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -48,12 +52,15 @@ export default function PupilPremiumPlannerForm({
   const [historyKey, setHistoryKey] = useState(0);
 
   // Raw form state — saved as history input so a past run can refill the form.
-  const formState = { challenges, educationPhase };
+  const formState = { challenges, educationPhase, differentiate, differentiationLevels };
 
   const restore = (run: ToolRun) => {
     const i = run.input;
     setChallenges((i.challenges as string) ?? "");
     setEducationPhase((i.educationPhase as string) ?? "Primary");
+    const d = restoreDifferentiation(i);
+    setDifferentiate(d.differentiate);
+    setDifferentiationLevels(d.levels);
     setResult(run.output);
     setLastGenerated(JSON.stringify(i));
   };
@@ -65,11 +72,13 @@ export default function PupilPremiumPlannerForm({
     prefill: {
       challenges: (v) => setChallenges(v as string),
       educationPhase: (v) => setEducationPhase(v as string),
+      differentiate: (v) => setDifferentiate(v as Differentiate),
+      differentiationLevels: (v) => setDifferentiationLevels(v as string[]),
     },
   });
 
-  const canGenerate = challenges.trim();
-  const formSnapshot = JSON.stringify({ challenges, educationPhase });
+  const canGenerate = challenges.trim() && (differentiate === "no" || differentiationLevels.length > 0);
+  const formSnapshot = JSON.stringify(formState);
   const unchangedSinceGeneration = result !== null && lastGenerated === formSnapshot;
 
   const handleGenerate = async () => {
@@ -81,7 +90,7 @@ export default function PupilPremiumPlannerForm({
       const res = await fetch("/api/pupil-premium-planner", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ challenges, educationPhase }),
+        body: JSON.stringify({ challenges, educationPhase, differentiate, differentiationLevels }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -141,6 +150,13 @@ export default function PupilPremiumPlannerForm({
 
             <EducationPhaseField value={educationPhase} onChange={setEducationPhase} />
 
+            <DifferentiationField
+              value={differentiate}
+              onChange={setDifferentiate}
+              levels={differentiationLevels}
+              onLevelsChange={setDifferentiationLevels}
+            />
+
             <div className="flex gap-3">
               <ResetButton onClick={() => setConfirmingReset(true)} disabled={!result} />
               <ConfirmModal
@@ -151,6 +167,8 @@ export default function PupilPremiumPlannerForm({
                 onConfirm={() => {
                   setChallenges("");
                   setEducationPhase("Primary");
+                  setDifferentiate("no");
+                  setDifferentiationLevels([]);
                   setResult(null);
                   setError(null);
                   setConfirmingReset(false);

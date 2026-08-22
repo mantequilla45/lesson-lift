@@ -14,7 +14,7 @@ import { assistantToolFor } from "@/app/lib/assistant-tools";
 /** What the assistant decided, and what the tool page consumes. */
 export interface ToolPrefill {
   slug: string;
-  fields: Record<string, string | number | boolean>;
+  fields: Record<string, string | number | boolean | string[]>;
 }
 
 /** Cap on any prefilled string. Comfortably above a real learning objective,
@@ -23,6 +23,9 @@ const MAX_STRING = 600;
 
 /** Cap on the encoded payload, checked before we bother parsing it. */
 const MAX_PAYLOAD = 8_000;
+
+/** Cap on an open-ended array field, for schemas whose items are not an enum. */
+const MAX_ARRAY = 50;
 
 /**
  * Base64url, so the payload survives a URL without percent-encoding soup.
@@ -70,11 +73,17 @@ export function validatePrefill(raw: unknown): ToolPrefill | null {
   if (!fields || typeof fields !== "object" || Array.isArray(fields)) return null;
 
   const schema = tool.fields as {
-    properties: Record<string, { type?: string; enum?: readonly unknown[]; minimum?: number; maximum?: number }>;
+    properties: Record<string, {
+      type?: string;
+      enum?: readonly unknown[];
+      minimum?: number;
+      maximum?: number;
+      items?: { type?: string; enum?: readonly unknown[] };
+    }>;
     required?: string[];
   };
 
-  const clean: Record<string, string | number | boolean> = {};
+  const clean: Record<string, string | number | boolean | string[]> = {};
 
   for (const [key, value] of Object.entries(fields as Record<string, unknown>)) {
     const spec = schema.properties[key];
@@ -104,6 +113,30 @@ export function validatePrefill(raw: unknown): ToolPrefill | null {
     if (spec.type === "boolean") {
       if (typeof value !== "boolean") continue;
       clean[key] = value;
+      continue;
+    }
+
+    // Arrays of enum strings (differentiationLevels, questionTypes,
+    // contentDomains). Same allow-list discipline as the scalar branches: keep
+    // only recognised members, and skip the field entirely if none survive
+    // rather than handing the form an empty multi-select it will render as
+    // "nothing chosen" while claiming to have been prefilled.
+    if (spec.type === "array") {
+      if (!Array.isArray(value)) continue;
+      const allowed = spec.items?.enum;
+      const seen = new Set<string>();
+      for (const item of value) {
+        if (typeof item !== "string") continue;
+        const trimmed = item.trim();
+        if (!trimmed) continue;
+        if (allowed && !allowed.includes(trimmed)) continue;
+        seen.add(trimmed.slice(0, MAX_STRING));
+      }
+      if (seen.size === 0) continue;
+      // Cap at the option count when the schema is closed, so a hand-edited URL
+      // cannot pad the array with repeats of a valid value.
+      const items = [...seen];
+      clean[key] = allowed ? items.slice(0, allowed.length) : items.slice(0, MAX_ARRAY);
     }
   }
 

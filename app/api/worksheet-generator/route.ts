@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { streamChat } from "@/app/lib/usage";
 import { modelFor } from "@/app/lib/tool-model";
 import { buildSystem } from "@/app/lib/systemPrompt";
+import { differentiationPrompt, type Differentiate } from "@/app/lib/differentiation";
 
 export interface WorksheetRequest {
   curriculum: string;
@@ -10,7 +11,8 @@ export interface WorksheetRequest {
   learningObjective: string;
   questionTypes?: string[];
   questionCount?: number;
-  abilityLevel?: string;
+  differentiate?: Differentiate;
+  differentiationLevels?: string[];
   outputDetail?: "condensed" | "standard" | "detailed";
   additionalInfo?: string | null;
 }
@@ -26,7 +28,8 @@ export async function POST(req: NextRequest) {
     learningObjective,
     questionTypes = [],
     questionCount = 10,
-    abilityLevel = "EXS",
+    differentiate = "no",
+    differentiationLevels = [],
     outputDetail = "detailed",
     additionalInfo,
   } = body;
@@ -46,12 +49,12 @@ export async function POST(req: NextRequest) {
     ? `QUESTION FORMAT CONSTRAINT — this overrides any format suggested by the section descriptions below: every question in every section must be written as one of these question types ONLY: ${questionTypes.join(", ")}. Do not use any other question format. Adapt each section's cognitive demand (recall, understanding, application, analysis) to the chosen formats — for example, a Multiple Choice question can still assess analysis through carefully designed options and distractors.`
     : "";
 
-  const abilityLine =
-    abilityLevel === "WTS"
-      ? "Pitch the questions for Working Towards Standard (WTS) students — use accessible language, provide sentence starters or scaffolding where helpful, and avoid unnecessary complexity."
-      : abilityLevel === "GDS"
-      ? "Pitch the questions for Greater Depth Standard (GDS) students — include higher-order thinking, open-ended challenge, and questions that require justification or extension beyond the objective."
-      : "Pitch the questions at the Expected Standard (EXS) — appropriate challenge for most students in this year group.";
+  // Opt-in: empty when the teacher chose not to differentiate, in which case the
+  // worksheet carries no adaptation guidance at all.
+  const adaptation = differentiationPrompt(differentiate, differentiationLevels);
+  const abilityLine = adaptation
+    ? `\n\nDIFFERENTIATION — ${adaptation}`
+    : "";
 
   const additionalLine = additionalInfo ? `\nAdditional instructions: ${additionalInfo}` : "";
 
@@ -67,8 +70,7 @@ export async function POST(req: NextRequest) {
 - Subject: ${subject}
 - Learning Objective: ${learningObjective}
 - Total questions: approximately ${questionCount}
-- ${abilityLine}
-- ${typesLine}${additionalLine}
+- ${typesLine}${additionalLine}${abilityLine}
 
 This worksheet is for use in a UK school. Questions must build progressively from knowledge recall through to higher-order thinking, in line with Bloom's Taxonomy. Number all questions sequentially within each section. When labelling sub-questions use plain text: (a), (b), (c) — never use the © symbol.
 

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { buildSystem } from "@/app/lib/systemPrompt";
+import { differentiationPrompt, type Differentiate } from "@/app/lib/differentiation";
 import { streamChat } from "@/app/lib/usage";
 import { modelFor } from "@/app/lib/tool-model";
 
@@ -11,13 +12,15 @@ export interface CoverLessonRequest {
   lessonLength: string;
   resources: string;
   additionalContext?: string;
+  differentiate?: Differentiate;
+  differentiationLevels?: string[];
 }
 
 
 export async function POST(req: NextRequest) {
   const body: CoverLessonRequest = await req.json();
 
-  const { curriculum, yearGroup, subject, topic, lessonLength, resources, additionalContext } = body;
+  const { curriculum, yearGroup, subject, topic, lessonLength, resources, additionalContext, differentiate = "no", differentiationLevels = [] } = body;
 
   if (!curriculum || !yearGroup || !subject?.trim() || !topic?.trim() || !lessonLength || !resources) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -27,6 +30,10 @@ export async function POST(req: NextRequest) {
     ? `\nAdditional context from the teacher: ${additionalContext.trim()}`
     : "";
 
+  // Opt-in: empty when the teacher chose not to differentiate.
+  const adaptation = differentiationPrompt(differentiate, differentiationLevels);
+  const adaptationSection = adaptation ? `\n\nDIFFERENTIATION — ${adaptation}` : "";
+
   const userPrompt = `Create a complete, self-contained cover lesson for the following:
 
 - Curriculum: ${curriculum}
@@ -34,7 +41,7 @@ export async function POST(req: NextRequest) {
 - Subject: ${subject}
 - Topic the class is currently studying: ${topic}
 - Lesson length: ${lessonLength}
-- Resources available: ${resources}${contextSection}
+- Resources available: ${resources}${contextSection}${adaptationSection}
 
 This cover lesson must be deliverable by a non-specialist cover teacher with NO prior knowledge of the subject. Every instruction must be explicit, clear, and require zero preparation. The cover teacher should be able to pick this up and walk into the room.
 

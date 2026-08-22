@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { buildSystem } from "@/app/lib/systemPrompt";
+import { differentiationPrompt, type Differentiate } from "@/app/lib/differentiation";
 import { streamChat } from "@/app/lib/usage";
 import { modelFor } from "@/app/lib/tool-model";
 
@@ -7,22 +8,32 @@ export interface PhonicsSupportRequest {
   curriculum: string;
   age: number;
   grapheme: string;
+  differentiate?: Differentiate;
+  differentiationLevels?: string[];
 }
 
 
 export async function POST(req: NextRequest) {
   const body: PhonicsSupportRequest = await req.json();
-  const { curriculum, age, grapheme } = body;
+  const { curriculum, age, grapheme, differentiate = "no", differentiationLevels = [] } = body;
 
   if (!curriculum || !grapheme?.trim() || typeof age !== "number") {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
   }
 
+  // Opt-in. The per-activity Differentiation block was previously hardcoded into
+  // all five activity templates; it now appears only when asked for.
+  const adaptation = differentiationPrompt(differentiate, differentiationLevels);
+  const diffBlock = adaptation
+    ? `\n**Differentiation:**\n\n- [Specific adaptations for this activity, in line with the differentiation brief above]\n`
+    : "";
+  const adaptationSection = adaptation ? `\n\nDIFFERENTIATION — ${adaptation}` : "";
+
   const userPrompt = `Generate a comprehensive classroom phonics support resource for the following:
 
 - Curriculum: ${curriculum}
 - Age of pupils: ${age}
-- Target grapheme/phoneme: '${grapheme}'
+- Target grapheme/phoneme: '${grapheme}'${adaptationSection}
 
 This resource is for use in an English primary school. It must be grounded in systematic synthetic phonics (SSP) principles as required by the National Curriculum and the DfE's guidance on teaching phonics. Grapheme-phoneme correspondences must be accurate. Word lists must be real, correctly spelled English words. Pseudo-words must be pronounceable and plausible but must not be real words.
 
@@ -134,11 +145,7 @@ List 8–10 pronounceable pseudo-words (also called nonsense words or alien word
 4. [Step]
 5. [Step — include a formative assessment checkpoint]
 
-**Differentiation:**
-
-- Support: [Specific adaptation for pupils who are not yet secure with the GPC — e.g. using phoneme frames, reducing word complexity]
-- Challenge: [Specific extension for pupils who are secure — e.g. applying the GPC in sentence context, reading multisyllabic words]
-
+${diffBlock}
 ### Activity 2: [Activity Title]
 
 **Focus:** [Phonics skill]
@@ -154,11 +161,7 @@ List 8–10 pronounceable pseudo-words (also called nonsense words or alien word
 3. [Step]
 4. [Step]
 
-**Differentiation:**
-
-- Support: [Specific adaptation]
-- Challenge: [Specific extension]
-
+${diffBlock}
 ### Activity 3: [Activity Title]
 
 **Focus:** [Phonics skill]
@@ -174,11 +177,7 @@ List 8–10 pronounceable pseudo-words (also called nonsense words or alien word
 3. [Step]
 4. [Step]
 
-**Differentiation:**
-
-- Support: [Specific adaptation]
-- Challenge: [Specific extension]
-
+${diffBlock}
 ### Activity 4: [Activity Title]
 
 **Focus:** [Phonics skill]
@@ -194,11 +193,7 @@ List 8–10 pronounceable pseudo-words (also called nonsense words or alien word
 3. [Step]
 4. [Step]
 
-**Differentiation:**
-
-- Support: [Specific adaptation]
-- Challenge: [Specific extension]
-
+${diffBlock}
 ### Activity 5: [Activity Title]
 
 **Focus:** [Phonics skill]
@@ -214,11 +209,7 @@ List 8–10 pronounceable pseudo-words (also called nonsense words or alien word
 3. [Step]
 4. [Step]
 
-**Differentiation:**
-
-- Support: [Specific adaptation]
-- Challenge: [Specific extension]
-
+${diffBlock}
 ## Common Misconceptions and Errors
 
 For each, name the specific misconception and provide a precise teaching response:

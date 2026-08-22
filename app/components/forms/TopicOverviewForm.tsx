@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import CurriculumYearFields, { useCurriculumYear } from "@/app/components/CurriculumYearFields";
-import { SubjectField, TopicField, LessonCountField, AbilityLevelField, AdditionalContextField } from "@/app/components/fields";
+import { SubjectField, TopicField, LessonCountField, AdditionalContextField } from "@/app/components/fields";
 import { toTitleCase } from "@/app/lib/formOptions";
 import ResultPanel from "@/app/components/ResultPanel";
 import OutputOutline from "@/app/components/OutputOutline";
@@ -30,7 +30,6 @@ export default function TopicOverviewForm({
   const [subject, setSubject] = useState("");
   const [topic, setTopic] = useState("");
   const [numLessons, setNumLessons] = useState(6);
-  const [abilityLevel, setAbilityLevel] = useState("EXS");
   const [additionalInfo, setAdditionalInfo] = useState("");
 
   const [result, setResult] = useState<string | null>(null);
@@ -44,7 +43,7 @@ export default function TopicOverviewForm({
     curriculum && (mixed || yearGroup) && subject.trim() && topic.trim();
 
   // Raw form state — saved as history input so a past run can refill the form.
-  const formState = { curriculum, yearGroup, mixed, subject, topic, numLessons, abilityLevel, additionalInfo };
+  const formState = { curriculum, yearGroup, mixed, subject, topic, numLessons, additionalInfo };
   const formSnapshot = JSON.stringify(formState);
   const unchangedSinceGeneration = result !== null && lastGenerated === formSnapshot;
 
@@ -56,7 +55,6 @@ export default function TopicOverviewForm({
     setSubject((i.subject as string) ?? "");
     setTopic((i.topic as string) ?? "");
     setNumLessons((i.numLessons as number) ?? 6);
-    setAbilityLevel((i.abilityLevel as string) ?? "EXS");
     setAdditionalInfo((i.additionalInfo as string) ?? "");
     setResult(run.output);
     setLastGenerated(JSON.stringify(i));
@@ -72,7 +70,6 @@ export default function TopicOverviewForm({
       subject: (v) => setSubject(v as string),
       topic: (v) => setTopic(v as string),
       numLessons: (v) => setNumLessons(v as number),
-      abilityLevel: (v) => setAbilityLevel(v as string),
     },
   });
 
@@ -91,7 +88,6 @@ export default function TopicOverviewForm({
           subject: toTitleCase(subject),
           topic,
           numLessons,
-          abilityLevel,
           additionalInfo: additionalInfo.trim() || null,
         }),
       });
@@ -139,8 +135,6 @@ export default function TopicOverviewForm({
 
             <LessonCountField value={numLessons} onChange={setNumLessons} />
 
-            <AbilityLevelField value={abilityLevel} onChange={setAbilityLevel} />
-
             <AdditionalContextField value={additionalInfo} onChange={setAdditionalInfo} />
 
             <div className="flex gap-3">
@@ -150,7 +144,7 @@ export default function TopicOverviewForm({
                 title="Reset form?"
                 message="This will clear your current results and reset all form inputs."
                 confirmLabel="Yes, reset"
-                onConfirm={() => { setCurriculum(""); setYearGroup(""); setMixed(false); setSubject(""); setTopic(""); setNumLessons(6); setAbilityLevel("EXS"); setAdditionalInfo(""); setResult(null); setError(null); setConfirmingReset(false); }}
+                onConfirm={() => { setCurriculum(""); setYearGroup(""); setMixed(false); setSubject(""); setTopic(""); setNumLessons(6); setAdditionalInfo(""); setResult(null); setError(null); setConfirmingReset(false); }}
                 onCancel={() => setConfirmingReset(false)}
               />
               <GenerateButton onClick={handleGenerate} disabled={!canGenerate || isGenerating || unchangedSinceGeneration} isGenerating={isGenerating} hasResult={result !== null} />

@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import CurriculumYearFields, { useCurriculumYear } from "@/app/components/CurriculumYearFields";
-import { AbilityLevelField, WriteField, FeaturesField, WordCountField } from "@/app/components/fields";
+import { DifferentiationField, WriteField, FeaturesField, WordCountField } from "@/app/components/fields";
+import { restoreDifferentiation, type Differentiate } from "@/app/lib/differentiation";
 import ResultPanel from "@/app/components/ResultPanel";
 import OutputOutline from "@/app/components/OutputOutline";
 import RefinePanel from "@/app/components/RefinePanel";
@@ -39,7 +40,8 @@ export default function ModelTextGeneratorForm({
   const [write, setWrite] = useState("");
   const [features, setFeatures] = useState("");
   const [keywords, setKeywords] = useState("");
-  const [abilityLevel, setAbilityLevel] = useState("EXS");
+  const [differentiate, setDifferentiate] = useState<Differentiate>("no");
+  const [differentiationLevels, setDifferentiationLevels] = useState<string[]>([]);
   const [lengthWords, setLengthWords] = useState("500");
 
   const [result, setResult] = useState<string | null>(null);
@@ -53,9 +55,10 @@ export default function ModelTextGeneratorForm({
   const lengthNum = parseInt(lengthWords, 10);
   const canGenerate =
     curriculum && (mixed || yearGroup) && write.trim() &&
-    !isNaN(lengthNum) && lengthNum >= 50 && lengthNum <= 5000;
+    !isNaN(lengthNum) && lengthNum >= 50 && lengthNum <= 5000 &&
+    (differentiate === "no" || differentiationLevels.length > 0);
 
-  const formState = { curriculum, yearGroup, mixed, write, features, keywords, abilityLevel, lengthWords };
+  const formState = { curriculum, yearGroup, mixed, write, features, keywords, differentiate, differentiationLevels, lengthWords };
   const formSnapshot = JSON.stringify(formState);
   const unchangedSinceGeneration = result !== null && lastGenerated === formSnapshot;
 
@@ -67,7 +70,9 @@ export default function ModelTextGeneratorForm({
     setWrite((i.write as string) ?? "");
     setFeatures((i.features as string) ?? "");
     setKeywords((i.keywords as string) ?? "");
-    setAbilityLevel((i.abilityLevel as string) ?? "EXS");
+    const d = restoreDifferentiation(i);
+    setDifferentiate(d.differentiate);
+    setDifferentiationLevels(d.levels);
     setLengthWords((i.lengthWords as string) ?? "500");
     setResult(run.output);
     setLastGenerated(JSON.stringify(i));
@@ -83,7 +88,8 @@ export default function ModelTextGeneratorForm({
       write: (v) => setWrite(v as string),
       features: (v) => setFeatures(v as string),
       keywords: (v) => setKeywords(v as string),
-      abilityLevel: (v) => setAbilityLevel(v as string),
+      differentiate: (v) => setDifferentiate(v as Differentiate),
+      differentiationLevels: (v) => setDifferentiationLevels(v as string[]),
       lengthWords: (v) => setLengthWords(v as string),
     },
   });
@@ -103,7 +109,8 @@ export default function ModelTextGeneratorForm({
           write,
           features,
           keywords: keywords.trim() || null,
-          abilityLevel,
+          differentiate,
+          differentiationLevels,
           lengthWords: lengthNum,
         }),
       });
@@ -160,7 +167,12 @@ export default function ModelTextGeneratorForm({
               />
             </div>
 
-            <AbilityLevelField value={abilityLevel} onChange={setAbilityLevel} />
+            <DifferentiationField
+              value={differentiate}
+              onChange={setDifferentiate}
+              levels={differentiationLevels}
+              onLevelsChange={setDifferentiationLevels}
+            />
             <WordCountField value={lengthWords} onChange={setLengthWords} />
 
             <div className="flex gap-3">
@@ -170,7 +182,7 @@ export default function ModelTextGeneratorForm({
                 title="Reset form?"
                 message="This will clear your current results and reset all form inputs."
                 confirmLabel="Yes, reset"
-                onConfirm={() => { setCurriculum(""); setYearGroup(""); setMixed(false); setWrite(""); setFeatures(""); setKeywords(""); setAbilityLevel("EXS"); setLengthWords("500"); setResult(null); setError(null); setConfirmingReset(false); }}
+                onConfirm={() => { setCurriculum(""); setYearGroup(""); setMixed(false); setWrite(""); setFeatures(""); setKeywords(""); setDifferentiate("no"); setDifferentiationLevels([]); setLengthWords("500"); setResult(null); setError(null); setConfirmingReset(false); }}
                 onCancel={() => setConfirmingReset(false)}
               />
               <GenerateButton onClick={handleGenerate} disabled={!canGenerate || isGenerating || unchangedSinceGeneration} isGenerating={isGenerating} hasResult={result !== null} />

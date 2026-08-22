@@ -2,7 +2,8 @@
 
 import { useState, useRef, useEffect } from "react";
 import CurriculumYearFields, { useCurriculumYear } from "@/app/components/CurriculumYearFields";
-import { WordCountField } from "@/app/components/fields";
+import { WordCountField, DifferentiationField } from "@/app/components/fields";
+import { restoreDifferentiation, type Differentiate } from "@/app/lib/differentiation";
 import { Wand2, Upload, Check } from "lucide-react";
 import ResultPanel from "@/app/components/ResultPanel";
 import OutputOutline from "@/app/components/OutputOutline";
@@ -66,6 +67,8 @@ export default function ComprehensionForm({
   const [questionTypes, setQuestionTypes] = useState<string[]>([]);
   const [numQuestions, setNumQuestions] = useState(5);
   const [includeAnswerKey, setIncludeAnswerKey] = useState(true);
+  const [differentiate, setDifferentiate] = useState<Differentiate>("no");
+  const [differentiationLevels, setDifferentiationLevels] = useState<string[]>([]);
   const [topic, setTopic] = useState("");
   const [passageWordCount, setPassageWordCount] = useState("300");
   const topicInputRef = useRef<HTMLInputElement>(null);
@@ -94,7 +97,7 @@ export default function ComprehensionForm({
   const toggleQuestionType = (type: string) =>
     setQuestionTypes((prev) => prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]);
 
-  const formState = { curriculum, yearGroup, mixed, textSource, topic, ownText, passageWordCount, complexity, contentDomains, questionTypes, numQuestions, includeAnswerKey };
+  const formState = { curriculum, yearGroup, mixed, textSource, topic, ownText, passageWordCount, complexity, contentDomains, questionTypes, numQuestions, includeAnswerKey, differentiate, differentiationLevels };
   const formSnapshot = JSON.stringify(formState);
   const unchangedSinceGeneration = result !== null && lastGenerated === formSnapshot;
 
@@ -112,6 +115,9 @@ export default function ComprehensionForm({
     setQuestionTypes((i.questionTypes as string[]) ?? []);
     setNumQuestions((i.numQuestions as number) ?? 5);
     setIncludeAnswerKey(i.includeAnswerKey === undefined ? true : Boolean(i.includeAnswerKey));
+    const d = restoreDifferentiation(i);
+    setDifferentiate(d.differentiate);
+    setDifferentiationLevels(d.levels);
     setResult(run.output);
     setLastGenerated(JSON.stringify(i));
   };
@@ -131,6 +137,8 @@ export default function ComprehensionForm({
         setTextSource("generate");
       },
       numQuestions: (v) => setNumQuestions(v as number),
+      differentiate: (v) => setDifferentiate(v as Differentiate),
+      differentiationLevels: (v) => setDifferentiationLevels(v as string[]),
     },
   });
 
@@ -158,6 +166,8 @@ export default function ComprehensionForm({
           numQuestions,
           complexity,
           includeAnswerKey,
+          differentiate,
+          differentiationLevels,
         }),
       });
       if (!res.ok) {
@@ -185,7 +195,8 @@ export default function ComprehensionForm({
     (mixed || yearGroup) &&
     textSource &&
     (textSource === "own" ? ownText.trim() : topic.trim()) &&
-    contentDomains.length > 0;
+    contentDomains.length > 0 &&
+    (differentiate === "no" || differentiationLevels.length > 0);
 
   return (
     <div className="space-y-8">
@@ -389,6 +400,13 @@ export default function ComprehensionForm({
               </div>
             </div>
 
+            <DifferentiationField
+              value={differentiate}
+              onChange={setDifferentiate}
+              levels={differentiationLevels}
+              onLevelsChange={setDifferentiationLevels}
+            />
+
             <div className="flex gap-3">
               <ResetButton onClick={() => setConfirmingReset(true)} disabled={!result} />
               <ConfirmModal
@@ -401,6 +419,7 @@ export default function ComprehensionForm({
                   setTextSource(""); setComplexity("Standard");
                   setContentDomains([]); setQuestionTypes([]);
                   setNumQuestions(5); setIncludeAnswerKey(true);
+                  setDifferentiate("no"); setDifferentiationLevels([]);
                   setTopic(""); setPassageWordCount("300"); setOwnText("");
                   setResult(null); setError(null); setConfirmingReset(false);
                 }}

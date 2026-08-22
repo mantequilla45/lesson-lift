@@ -2,21 +2,26 @@ import { NextRequest, NextResponse } from "next/server";
 import { streamChat } from "@/app/lib/usage";
 import { modelFor } from "@/app/lib/tool-model";
 import { buildSystem } from "@/app/lib/systemPrompt";
+import { differentiationPrompt, type Differentiate } from "@/app/lib/differentiation";
 
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const { challenges, educationPhase } = body;
+  const { challenges, educationPhase, differentiate = "no", differentiationLevels = [] } = body;
 
   if (!challenges?.trim()) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
   }
 
+  // Opt-in: empty when the teacher chose not to differentiate.
+  const adaptation = differentiationPrompt(differentiate as Differentiate, differentiationLevels as string[]);
+  const adaptationSection = adaptation ? `\n\nDIFFERENTIATION — ${adaptation}` : "";
+
   const prompt = `You are an expert school improvement adviser helping a UK school plan their Pupil Premium strategy. Generate evidence-based strategies for the challenges provided, using the DfE Pupil Premium guidance framework of Tier 1, Tier 2, and Tier 3 approaches.
 
 INPUTS:
 - Challenges: ${challenges}
-- Education phase: ${educationPhase || "Not specified"}
+- Education phase: ${educationPhase || "Not specified"}${adaptationSection}
 
 Generate a Pupil Premium Strategy Plan using the structure below. Use proper markdown formatting. No preamble, no explanation after the content.
 

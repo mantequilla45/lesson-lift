@@ -12,6 +12,8 @@ import Card from "@/app/components/ui/Card";
 import ToolHistoryPanel from "@/app/components/ToolHistoryPanel";
 import type { ToolRun } from "@/app/lib/toolRuns";
 import PrefilledBadge from "@/app/components/assistant/PrefilledBadge";
+import { DifferentiationField } from "@/app/components/fields";
+import { restoreDifferentiation, type Differentiate } from "@/app/lib/differentiation";
 import { useToolLaunch, type ToolLaunchParams } from "@/app/lib/useToolLaunch";
 
 const TOOL_SLUG = "phonics-support";
@@ -42,6 +44,8 @@ export default function PhonicsForm({
   const [curriculum, setCurriculum] = useLocalStorage("ll:curriculum", "");
   const [age, setAge] = useState(5);
   const [grapheme, setGrapheme] = useState("");
+  const [differentiate, setDifferentiate] = useState<Differentiate>("no");
+  const [differentiationLevels, setDifferentiationLevels] = useState<string[]>([]);
 
   const [result, setResult] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -51,9 +55,9 @@ export default function PhonicsForm({
   const [lastGenerated, setLastGenerated] = useState<string | null>(null);
   const [historyKey, setHistoryKey] = useState(0);
 
-  const canGenerate = curriculum && grapheme.trim();
+  const canGenerate = curriculum && grapheme.trim() && (differentiate === "no" || differentiationLevels.length > 0);
 
-  const formState = { curriculum, age, grapheme };
+  const formState = { curriculum, age, grapheme, differentiate, differentiationLevels };
   const formSnapshot = JSON.stringify(formState);
   const unchangedSinceGeneration = result !== null && lastGenerated === formSnapshot;
 
@@ -62,6 +66,9 @@ export default function PhonicsForm({
     setCurriculum((i.curriculum as string) ?? "");
     setAge((i.age as number) ?? 5);
     setGrapheme((i.grapheme as string) ?? "");
+    const d = restoreDifferentiation(i);
+    setDifferentiate(d.differentiate);
+    setDifferentiationLevels(d.levels);
     setResult(run.output);
     setLastGenerated(JSON.stringify(i));
   };
@@ -74,6 +81,8 @@ export default function PhonicsForm({
       curriculum: (v) => setCurriculum(v as string),
       grapheme: (v) => setGrapheme(v as string),
       age: (v) => setAge(v as number),
+      differentiate: (v) => setDifferentiate(v as Differentiate),
+      differentiationLevels: (v) => setDifferentiationLevels(v as string[]),
     },
   });
 
@@ -90,7 +99,7 @@ export default function PhonicsForm({
       const res = await fetch("/api/phonics-support", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ curriculum, age, grapheme: grapheme.trim() }),
+        body: JSON.stringify({ curriculum, age, grapheme: grapheme.trim(), differentiate, differentiationLevels }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -207,6 +216,13 @@ export default function PhonicsForm({
               </p>
             </div>
 
+            <DifferentiationField
+              value={differentiate}
+              onChange={setDifferentiate}
+              levels={differentiationLevels}
+              onLevelsChange={setDifferentiationLevels}
+            />
+
             <div className="flex gap-3">
               <button
                 type="button"
@@ -225,6 +241,8 @@ export default function PhonicsForm({
                   setCurriculum("");
                   setAge(5);
                   setGrapheme("");
+                  setDifferentiate("no");
+                  setDifferentiationLevels([]);
                   setResult(null);
                   setError(null);
                   setConfirmingReset(false);

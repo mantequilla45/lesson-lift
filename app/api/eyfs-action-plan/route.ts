@@ -1,21 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
 import { buildSystem } from "@/app/lib/systemPrompt";
+import { differentiationPrompt, type Differentiate } from "@/app/lib/differentiation";
 import { streamChat } from "@/app/lib/usage";
 import { modelFor } from "@/app/lib/tool-model";
 
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const { curriculum, objective } = body;
+  const { curriculum, objective, differentiate = "no", differentiationLevels = [] } = body;
 
   if (!curriculum || !objective?.trim()) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
   }
 
+  // Opt-in: empty when the teacher chose not to differentiate.
+  const adaptation = differentiationPrompt(differentiate as Differentiate, differentiationLevels as string[]);
+  const adaptationSection = adaptation ? `\n\nDIFFERENTIATION — ${adaptation}` : "";
+
   const prompt = `Write a detailed, professional EYFS Action Plan for use in an English Early Years setting.
 
 Curriculum: ${curriculum}
-EYFS Objective: ${objective}
+EYFS Objective: ${objective}${adaptationSection}
 
 This action plan is a formal school improvement document that may be reviewed by the EYFS Lead, headteacher, governors, or Ofsted inspectors. It must be specific, practical, and demonstrate the kind of systematic leadership that supports improvement in the EYFS. All references to curriculum, assessment, and practice should align with the EYFS Statutory Framework (2021) and the DfE's non-statutory guidance. Where relevant, reference the Early Learning Goals and the characteristics of effective teaching and learning.
 
