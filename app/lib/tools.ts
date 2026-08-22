@@ -22,18 +22,18 @@ export const TOOLS: Tool[] = [
     tag: "Planning",
   },
   {
+    href: "/tools/slideshow",
+    icon: "presentation",
+    label: "Slideshow Generator",
+    description: "Create a presentation from scratch with text, shapes, and images. Export to PowerPoint.",
+    tag: "Planning",
+  },
+  {
     href: "/tools/worksheet-generator",
     icon: "worksheet",
     label: "Worksheet Generator",
     description: "Create bespoke worksheets tailored to your year group, subject and learning objective.",
     tag: "Assessment",
-  },
-  {
-    href: "/tools/cover-lesson",
-    icon: "cover-lesson",
-    label: "Cover Lesson Generator",
-    description: "Generate a fully self-contained cover lesson any non-specialist can deliver — complete with a cover teacher script, timed activities, and end-of-lesson checklist.",
-    tag: "Planning",
   },
   {
     href: "/tools/topic-overview",
@@ -92,20 +92,6 @@ export const TOOLS: Tool[] = [
     tag: "Assessment",
   },
   {
-    href: "/tools/homework-generator",
-    icon: "homework",
-    label: "Homework Generator",
-    description: "Generate a structured, differentiated homework task for any year group, subject, and learning objective — with optional answers.",
-    tag: "Assessment",
-  },
-  {
-    href: "/tools/targeted-intervention",
-    icon: "intervention",
-    label: "Targeted Intervention Ideas",
-    description: "Generate personalised, evidence-based intervention strategies to close the gap for individual students based on attitudinal, aptitudinal, and attainment data.",
-    tag: "SEND",
-  },
-  {
     href: "/tools/quiz-generator",
     icon: "quiz",
     label: "Quiz Generator",
@@ -117,6 +103,13 @@ export const TOOLS: Tool[] = [
     icon: "report",
     label: "Report Writer",
     description: "Generate personalised pupil reports from strengths, areas for development, and targets across multiple subjects.",
+    tag: "Assessment",
+  },
+  {
+    href: "/tools/homework-generator",
+    icon: "homework",
+    label: "Homework Generator",
+    description: "Generate a structured, differentiated homework task for any year group, subject, and learning objective — with optional answers.",
     tag: "Assessment",
   },
   {
@@ -204,6 +197,20 @@ export const TOOLS: Tool[] = [
     tag: "Leadership",
   },
   {
+    href: "/tools/targeted-intervention",
+    icon: "intervention",
+    label: "Targeted Intervention Ideas",
+    description: "Generate personalised, evidence-based intervention strategies to close the gap for individual students based on attitudinal, aptitudinal, and attainment data.",
+    tag: "SEND",
+  },
+  {
+    href: "/tools/cover-lesson",
+    icon: "cover-lesson",
+    label: "Cover Lesson Generator",
+    description: "Generate a fully self-contained cover lesson any non-specialist can deliver — complete with a cover teacher script, timed activities, and end-of-lesson checklist.",
+    tag: "Planning",
+  },
+  {
     href: "/tools/performance-management",
     icon: "performance-management",
     label: "Performance Management Targets",
@@ -244,13 +251,6 @@ export const TOOLS: Tool[] = [
     label: "School Improvement Plans",
     description: "Draft a detailed, inspection-ready SIP with objectives, action steps, timelines, budget, monitoring schedule, and risk assessment — in table or narrative format.",
     tag: "Leadership",
-  },
-  {
-    href: "/tools/slideshow",
-    icon: "presentation",
-    label: "Slideshow Generator",
-    description: "Create a presentation from scratch with text, shapes, and images. Export to PowerPoint.",
-    tag: "Planning",
   },
 ];
 

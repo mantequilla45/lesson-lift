@@ -1,6 +1,6 @@
+/* eslint-disable @next/next/no-img-element */
 import {
   Cpu, Zap, Hexagon, BarChart3, Code2, BookOpen,
-  GraduationCap, Users, ClipboardList,
 } from "lucide-react";
 
 // Placeholder partner logos (icon + name), greyed like the mockup's logo cloud.
@@ -23,25 +23,19 @@ const PERSONAS = [
     badge: "Teacher",
     title: "Smarter lesson planning",
     desc: "Generate curriculum-aligned lessons, classroom activities, and teaching materials in minutes.",
-    icon: GraduationCap,
-    tint: "#FCEFD2",
-    ink: "#C98A00",
+    img: "/landing/svgs/persona-teacher.svg",
   },
   {
     badge: "Tutor",
     title: "Personalised learning support",
     desc: "Adapt resources, homework, and explanations to match individual learning needs instantly.",
-    icon: Users,
-    tint: "#DCEFE2",
-    ink: "#2E9D54",
+    img: "/landing/svgs/persona-tutor.svg",
   },
   {
     badge: "Teaching assistant",
     title: "AI support for daily tasks",
     desc: "Automate worksheets, quizzes, and lesson preparation with intelligent AI support.",
-    icon: ClipboardList,
-    tint: "#E5E9FB",
-    ink: "#3B6FF5",
+    img: "/landing/svgs/persona-assistant.svg",
   },
 ];
 
@@ -91,14 +85,14 @@ export default function SocialProof() {
               {p.badge}
             </span>
 
-            {/* Illustration — placeholder (swap for real artwork) */}
+            {/* Illustration */}
             <div className="h-40 flex items-center justify-center mb-6">
-              <div
-                className="w-28 h-28 rounded-full flex items-center justify-center"
-                style={{ backgroundColor: p.tint }}
-              >
-                <p.icon className="w-12 h-12" style={{ color: p.ink }} strokeWidth={1.6} />
-              </div>
+              <img
+                src={p.img}
+                alt=""
+                aria-hidden="true"
+                className="h-full w-auto max-w-full object-contain"
+              />
             </div>
 
             <h3 className="text-lg font-bold mb-2" style={{ color: "#030303" }}>{p.title}</h3>
