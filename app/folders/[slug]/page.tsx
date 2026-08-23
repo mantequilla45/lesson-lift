@@ -7,8 +7,9 @@ import SideNav from "@/app/components/layout/SideNav";
 import SupportLauncher from "@/app/components/SupportLauncher";
 import TopBar from "@/app/components/layout/TopBar";
 import Card from "@/app/components/ui/Card";
+import ToolIcon from "@/app/components/ToolIcon";
 import { listToolRuns, deleteToolRun, type ToolRun } from "@/app/lib/toolRuns";
-import { toolForSlug, typeLabel, formatDate, TAG_COLORS } from "@/app/lib/toolRunDisplay";
+import { toolForSlug, typeLabel, formatDate } from "@/app/lib/toolRunDisplay";
 import AnnouncementBanner from "@/app/components/AnnouncementBanner";
 
 export default function FolderDetailPage() {
@@ -20,7 +21,6 @@ export default function FolderDetailPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const tool = toolForSlug(slug);
-  const colors = (tool && TAG_COLORS[tool.tag]) || { bg: "bg-gray-100", icon: "text-gray-600" };
 
   useEffect(() => {
     listToolRuns(slug).then(setRuns).catch(() => setRuns([])).finally(() => setLoading(false));
@@ -59,9 +59,13 @@ export default function FolderDetailPage() {
             </button>
 
             <div className="flex items-center gap-4 mb-8">
-              <span className={`w-12 h-12 rounded-2xl ${colors.bg} flex items-center justify-center shrink-0`}>
-                <Folder className={`w-6 h-6 ${colors.icon}`} />
-              </span>
+              {tool ? (
+                <ToolIcon name={tool.icon} className="w-12 h-12 shrink-0" />
+              ) : (
+                <span className="w-12 h-12 rounded-2xl bg-gray-100 flex items-center justify-center shrink-0">
+                  <Folder className="w-6 h-6 text-gray-600" />
+                </span>
+              )}
               <div>
                 <h3 className="text-2xl font-medium">{tool?.label ?? typeLabel(slug)}</h3>
                 <p className="text-sm text-muted">{runs.length} {runs.length === 1 ? "item" : "items"}</p>
@@ -106,8 +110,11 @@ export default function FolderDetailPage() {
                       >
                         <td className="py-3 pr-4">
                           <div className="flex items-center gap-3">
-                            <span className={`w-8 h-8 rounded-lg ${colors.bg} flex items-center justify-center shrink-0`}>
-                              <FileText className={`w-4 h-4 ${colors.icon}`} />
+                            {/* Every run in this folder is the same tool, so a
+                                per-tag tint here carried no information. Neutral
+                                keeps the eye on the title. */}
+                            <span className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center shrink-0">
+                              <FileText className="w-4 h-4 text-gray-600" />
                             </span>
                             <span className="font-medium text-dark truncate max-w-xs">
                               {run.title?.trim() || "Untitled"}

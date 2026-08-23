@@ -2957,7 +2957,11 @@ export default function Editor({ presentation, generationParams }: Props) {
       if (runRecorded) return;
       runRecorded = true;
       void saveToolRun({
-        toolSlug: "generate-slideshow",
+        // The tool's own slug, NOT the API route name ("generate-slideshow").
+        // /folders matches runs to the TOOLS registry on `/tools/<slug>`, so
+        // the route name never resolved and produced a folder literally called
+        // "generate-slideshow". Cost/usage tracking still keys on the route.
+        toolSlug: "slideshow",
         title: titleRef.current || "Untitled deck",
         input: {
           presentationId: presentation.id,
