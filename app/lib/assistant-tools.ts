@@ -1150,6 +1150,34 @@ export function assistantToolFor(slug: string): AssistantTool | undefined {
  * request. `fields` is deliberately loose here — per-tool validation happens in
  * toolPrefill.ts, against the schema above, after the model has answered.
  */
+/**
+ * The exact values of the enum fields shared across nearly every tool.
+ *
+ * These have to reach the model VERBATIM. `fields` below is an open object, so
+ * the per-tool property schemas never travel in `parameters` — the model was
+ * previously asked to "use the exact enum values" it had never been shown, and
+ * guessed the format. A guess like "year 6" or "Y6" is then discarded by
+ * validatePrefill, the setter never fires, and the form keeps its previously
+ * saved value — which reads as the year group being ignored.
+ *
+ * Only the shared, closed-set fields are listed. That is a small fixed cost on
+ * the one cheap tool-select call, not a per-tool schema dump across 34 tools.
+ */
+function sharedEnumGuide(): string {
+  return [
+    "Fields shared by most tools. Use these values character-for-character:",
+    `- yearGroup: ${YEAR_GROUPS.join(" | ")}`,
+    `- curriculum: ${CURRICULUM_VALUES.join(" | ")}`,
+    `- detail: ${OUTPUT_DETAILS.join(" | ")}`,
+    `- differentiate: yes | no`,
+    `- differentiationLevels: ${DIFFERENTIATION_VALUES.join(" | ")}`,
+    "",
+    "Always set yearGroup when the teacher names a year, in the exact form above:",
+    '"a year 6 addition quiz" means yearGroup "Year 6". Omit it only when no year',
+    "is stated or implied.",
+  ].join("\n");
+}
+
 export function prefillFunctionDef() {
   // slug + description + required fields, in one place. The required list is
   // here rather than only in the per-tool schema because the model has to know
@@ -1170,7 +1198,7 @@ export function prefillFunctionDef() {
         "teacher's request. Call this ONLY when the teacher is asking for a " +
         "resource one of these tools produces. For advice, explanation, or " +
         "discussion, answer normally instead of calling this.\n\n" +
-        `Available tools:\n${summary}`,
+        `Available tools:\n${summary}\n\n${sharedEnumGuide()}`,
       parameters: {
         type: "object",
         properties: {
@@ -1199,10 +1227,13 @@ export function prefillFunctionDef() {
  *
  * Deliberately NOT a per-tool field dump. With 34 tools, listing every field and
  * its description would add thousands of tokens to EVERY turn — including the
- * majority that are ordinary questions and never call a tool. The full schemas
- * already travel in the function definition (`prefillFunctionDef`), which is
- * where the model reads them at the moment it decides to call, and the tool
- * summaries live there too.
+ * majority that are ordinary questions and never call a tool.
+ *
+ * Note that the per-tool property schemas do NOT travel in the function
+ * definition: `prefillFunctionDef` declares `fields` as an open object, and only
+ * the tool summaries and the shared enum values (`sharedEnumGuide`) reach the
+ * model. Anything a model must know character-for-character belongs in one of
+ * those two places — not here, and not left implicit.
  *
  * What remains here is the handful of cross-cutting rules the schemas cannot
  * express on their own — the ones that would otherwise produce a form the

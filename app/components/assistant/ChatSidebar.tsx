@@ -6,6 +6,11 @@ import type { AssistantChat } from "@/app/lib/assistantChats";
 
 interface Props {
   chats: AssistantChat[];
+  /** The list has not arrived yet. Distinct from an empty list — see below. */
+  loading?: boolean;
+  /** The list could not be loaded. Also distinct from an empty list. */
+  loadFailed?: boolean;
+  onRetry?: () => void;
   activeId: string | null;
   onSelect: (id: string) => void;
   onNew: () => void;
@@ -16,6 +21,9 @@ interface Props {
 
 export default function ChatSidebar({
   chats,
+  loading = false,
+  loadFailed = false,
+  onRetry,
   activeId,
   onSelect,
   onNew,
@@ -62,7 +70,9 @@ export default function ChatSidebar({
     >
       <div className="flex items-center justify-between">
         <h2 className="text-[22px] font-medium text-dark" style={{ letterSpacing: "-0.45px" }}>
-          Chats <span className="text-muted">({chats.length})</span>
+          {/* No count until there is one to show. "(0)" during a load is a
+              statement that the teacher has no chats, and it is usually wrong. */}
+          Chats {!loading && <span className="text-muted">({chats.length})</span>}
         </h2>
         <button
           type="button"
@@ -95,7 +105,26 @@ export default function ChatSidebar({
       </div>
 
       <div className="flex-1 overflow-y-auto -mx-1 px-1">
-        {filtered.length === 0 ? (
+        {loading ? (
+          // Same shapes as app/assistant/loading.tsx, so the route skeleton and
+          // this one are indistinguishable and nothing shifts between them.
+          <div className="space-y-2 animate-pulse" aria-hidden="true">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="h-12 rounded-xl" style={{ backgroundColor: "#EEECE4" }} />
+            ))}
+          </div>
+        ) : loadFailed ? (
+          <p className="text-sm text-muted py-2">
+            Couldn&apos;t load your chats.{" "}
+            <button
+              type="button"
+              onClick={onRetry}
+              className="underline hover:opacity-70 cursor-pointer"
+            >
+              Try again
+            </button>
+          </p>
+        ) : filtered.length === 0 ? (
           <p className="text-sm text-muted py-2">
             {chats.length === 0 ? "No chats yet." : "No chats match that search."}
           </p>

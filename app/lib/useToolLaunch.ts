@@ -21,6 +21,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import { getToolRun, type ToolRun } from "@/app/lib/toolRuns";
 import { decodePrefill } from "@/app/lib/toolPrefill";
+import { assistantToolFor } from "@/app/lib/assistant-tools";
 
 /** Applies one prefilled field to form state. Unknown keys are ignored. */
 export type PrefillSetters = Record<string, (value: unknown) => void>;
@@ -101,11 +102,39 @@ export function useToolLaunch(opts: {
     if (!setters) return;
 
     appliedPrefill.current = prefillParam;
-    for (const [key, value] of Object.entries(decoded.fields)) {
-      // A field this form does not have is skipped. decodePrefill already
-      // dropped anything outside the tool's schema, so this only catches a
-      // schema that has drifted ahead of its form.
-      setters[key]?.(value);
+
+    // Every registered setter is called, not just the ones the assistant filled.
+    //
+    // Several fields persist in localStorage and are shared across tools
+    // (ll:yearGroup, ll:curriculum), so a field the assistant did NOT fill would
+    // otherwise keep whatever was last chosen in some other tool. A teacher who
+    // asks for a Year 6 quiz and gets Year 5 — because that is what they picked
+    // last week — reads it as the assistant ignoring them. Clearing is the only
+    // way a prefill can mean "these are the fields, and nothing else".
+    //
+    // Only on the prefill path: ?run= restores a saved artefact, where blanking
+    // an unset field would destroy real data.
+    const schema = assistantToolFor(decoded.slug)?.fields as
+      | { properties?: Record<string, { type?: string }> }
+      | undefined;
+
+    for (const [key, setter] of Object.entries(setters)) {
+      const value = decoded.fields[key];
+      if (value !== undefined) {
+        setter(value);
+        continue;
+      }
+      // Only the field types that actually carry stale values are cleared, and
+      // only with a value of the right shape — the setters cast blindly
+      // (`v as string[]`), so the wrong shape would corrupt form state.
+      //
+      // Numbers are left alone deliberately: they are initialised to real
+      // defaults (numQuestions starts at 5, not at nothing), and there is no
+      // empty number. Blanking one would put "" into a numeric control and
+      // break Generate — a worse bug than the one being fixed.
+      const type = schema?.properties?.[key]?.type;
+      if (type === "array") setter([]);
+      else if (type === "string") setter("");
     }
   }, [decoded, prefillParam]);
 

@@ -27,6 +27,11 @@ const MAX_PAYLOAD = 8_000;
 /** Cap on an open-ended array field, for schemas whose items are not an enum. */
 const MAX_ARRAY = 50;
 
+/** Case- and whitespace-insensitive key for comparing a value to an enum member. */
+function normaliseEnum(value: string): string {
+  return value.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
 /**
  * Base64url, so the payload survives a URL without percent-encoding soup.
  *
@@ -95,7 +100,20 @@ export function validatePrefill(raw: unknown): ToolPrefill | null {
       if (!trimmed) continue;
       // An enum is a closed set; anything outside it would not match a <select>
       // option anyway and would render as an empty control.
-      if (spec.enum && !spec.enum.includes(trimmed)) continue;
+      //
+      // Matched leniently but stored canonically. The model is told the exact
+      // values, but "year 6" for "Year 6" is a common near-miss and silently
+      // dropping it left the form showing whatever was there before — which
+      // reads as the tool ignoring the teacher. Only the canonical member is
+      // ever written, so this stays a strict allow-list.
+      if (spec.enum) {
+        const match = spec.enum.find(
+          (e) => typeof e === "string" && normaliseEnum(e) === normaliseEnum(trimmed),
+        );
+        if (match === undefined) continue;
+        clean[key] = match as string;
+        continue;
+      }
       clean[key] = trimmed.slice(0, MAX_STRING);
       continue;
     }
@@ -129,7 +147,15 @@ export function validatePrefill(raw: unknown): ToolPrefill | null {
         if (typeof item !== "string") continue;
         const trimmed = item.trim();
         if (!trimmed) continue;
-        if (allowed && !allowed.includes(trimmed)) continue;
+        // Same lenient match, canonical store, as the scalar branch above.
+        if (allowed) {
+          const match = allowed.find(
+            (e) => typeof e === "string" && normaliseEnum(e) === normaliseEnum(trimmed),
+          );
+          if (match === undefined) continue;
+          seen.add(match as string);
+          continue;
+        }
         seen.add(trimmed.slice(0, MAX_STRING));
       }
       if (seen.size === 0) continue;

@@ -37,6 +37,9 @@ import { validatePrefill, type ToolPrefill } from "@/app/lib/toolPrefill";
 /** Header carrying the prefill decision. Base64 so it is header-safe. */
 const TOOL_HEADER = "x-assistant-tool";
 
+/** Set when the body is the guardrail's refusal rather than a model answer. */
+const REFUSAL_HEADER = "x-assistant-refusal";
+
 interface AssistantMessage {
   role: "user" | "assistant";
   content: string;
@@ -95,6 +98,13 @@ export async function POST(req: NextRequest) {
       headers: {
         "Content-Type": "text/plain; charset=utf-8",
         "X-Content-Type-Options": "nosniff",
+        // Marks this as a refusal rather than an answer. It is a 200 with a
+        // plain body — deliberately, so it streams like anything else — which
+        // left the client unable to tell the two apart and storing refusals as
+        // real assistant turns. Those then came back as context on the next
+        // turn and made a second refusal more likely. The client uses this to
+        // show the message without writing it to history.
+        [REFUSAL_HEADER]: "1",
       },
     });
   }

@@ -2,65 +2,40 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import SideNav from "@/app/components/layout/SideNav";
-import SupportLauncher from "@/app/components/SupportLauncher";
-import TopBar from "@/app/components/layout/TopBar";
-import AnnouncementBanner from "@/app/components/AnnouncementBanner";
-import UpgradeGate from "@/app/components/UpgradeGate";
-import ConfirmModal from "@/app/components/ConfirmModal";
-import ChatSidebar from "@/app/components/assistant/ChatSidebar";
 import ChatMessages, { type ChatTurn } from "@/app/components/assistant/ChatMessages";
 import AssistantComposer, { type Attachment } from "@/app/components/assistant/AssistantComposer";
 import AssistantLocked from "@/app/components/assistant/AssistantLocked";
-import {
-  createChat,
-  deleteChat,
-  listChats,
-  listMessages,
-  renameChat,
-  saveMessage,
-  type AssistantChat,
-} from "@/app/lib/assistantChats";
+import { useAssistantChats } from "@/app/components/assistant/AssistantShell";
+import { createChat, listMessages, saveMessage } from "@/app/lib/assistantChats";
 import { validatePrefill, type ToolPrefill } from "@/app/lib/toolPrefill";
-import { getEntitlements } from "@/app/lib/entitlements";
-import { can } from "@/app/lib/plans";
 
 /** Header the route uses to hand back a prefill decision alongside the stream. */
 const TOOL_HEADER = "x-assistant-tool";
 
+/** Set when the reply is the guardrail's refusal. Shown, but never stored. */
+const REFUSAL_HEADER = "x-assistant-refusal";
+
 export default function AssistantView({ chatId }: { chatId?: string }) {
   const router = useRouter();
 
-  const [chats, setChats] = useState<AssistantChat[]>([]);
+  // The chat list and the plan gate live in the layout, so they survive
+  // navigation between /assistant and /assistant/[id]. See AssistantShell.
+  const { addChat, allowed } = useAssistantChats();
+
   const [activeId, setActiveId] = useState<string | null>(chatId ?? null);
-  const [turns, setTurns] = useState<ChatTurn[]>([]);
+  // null = the conversation has not loaded yet, [] = it is genuinely empty.
+  // Without the distinction the "How can I help you?" splash flashes over an
+  // existing conversation while its messages are in flight.
+  const [turns, setTurns] = useState<ChatTurn[] | null>(chatId ? null : []);
   const [streaming, setStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [deleting, setDeleting] = useState<string | null>(null);
   /** A stored user message still awaiting its reply — see the loader below. */
   const [pendingReply, setPendingReply] = useState<string | null>(null);
-
-  // null = still loading. Rendering the composer before we know the plan would
-  // flash an enabled input at a Free user and then disable it.
-  const [allowed, setAllowed] = useState<boolean | null>(null);
 
   // The live turns, readable from inside the streaming loop without making it a
   // dependency — otherwise every token would rebuild the send callback.
   const turnsRef = useRef<ChatTurn[]>([]);
-  turnsRef.current = turns;
-
-  useEffect(() => {
-    getEntitlements()
-      .then((e) => setAllowed(can(e.plan, "assistant")))
-      // Fail open in the UI only. proxy.ts is the real gate, so the worst case
-      // is a Free user seeing an enabled composer and getting the upgrade modal
-      // on send — far better than locking out a paying teacher over a blip.
-      .catch(() => setAllowed(true));
-  }, []);
-
-  useEffect(() => {
-    listChats().then(setChats).catch(() => setChats([]));
-  }, []);
+  turnsRef.current = turns ?? [];
 
   // Load the conversation whenever the route changes.
   //
@@ -75,6 +50,7 @@ export default function AssistantView({ chatId }: { chatId?: string }) {
       return;
     }
     setActiveId(chatId);
+    setTurns(null);
     listMessages(chatId)
       .then((rows) => {
         setTurns(
@@ -109,6 +85,7 @@ export default function AssistantView({ chatId }: { chatId?: string }) {
 
       let reply = "";
       let toolCall: ToolPrefill | null = null;
+      let refused = false;
 
       try {
         const res = await fetch("/api/assistant", {
@@ -132,6 +109,10 @@ export default function AssistantView({ chatId }: { chatId?: string }) {
           const data = await res.json().catch(() => ({}));
           throw new Error(data.error ?? "The assistant is unavailable right now.");
         }
+
+        // A refusal is shown but never stored. Keeping it would feed it back as
+        // context on the next turn, making the next refusal more likely.
+        refused = res.headers.get(REFUSAL_HEADER) === "1";
 
         const header = res.headers.get(TOOL_HEADER);
         if (header) {
@@ -160,7 +141,7 @@ export default function AssistantView({ chatId }: { chatId?: string }) {
         setStreaming(false);
       }
 
-      if (reply.trim()) {
+      if (reply.trim() && !refused) {
         void saveMessage({ chatId: chatIdForSave, role: "assistant", content: reply, toolCall }).catch(
           () => {},
         );
@@ -186,7 +167,8 @@ export default function AssistantView({ chatId }: { chatId?: string }) {
           id = chat.id;
           isNew = true;
           setActiveId(chat.id);
-          setChats((prev) => [chat, ...prev]);
+          // Into the layout's list, so it appears in the sidebar at once.
+          addChat(chat);
         } catch {
           setError("Couldn't start that chat. Please try again.");
           return;
@@ -208,7 +190,7 @@ export default function AssistantView({ chatId }: { chatId?: string }) {
       // rather than remounting mid-stream.
       if (isNew) router.replace(`/assistant/${id}`);
     },
-    [activeId, router, streamReply],
+    [activeId, addChat, router, streamReply],
   );
 
   // Answer a chat that arrived with its opening message already stored — the
@@ -220,89 +202,41 @@ export default function AssistantView({ chatId }: { chatId?: string }) {
     void streamReply(activeId, turnsRef.current, { level: null, tone: null, attachment: null });
   }, [pendingReply, activeId, streaming, streamReply]);
 
-  const handleDelete = async (id: string) => {
-    setChats((prev) => prev.filter((c) => c.id !== id));
-    setDeleting(null);
-    try {
-      await deleteChat(id);
-    } catch {
-      // Put it back rather than leave the sidebar lying about what exists.
-      listChats().then(setChats).catch(() => {});
-      return;
-    }
-    if (id === activeId) router.replace("/assistant");
-  };
-
-  const handleRename = async (id: string, title: string) => {
-    setChats((prev) => prev.map((c) => (c.id === id ? { ...c, title } : c)));
-    try {
-      await renameChat(id, title);
-    } catch {
-      listChats().then(setChats).catch(() => {});
-    }
-  };
-
   const locked = allowed === false;
 
   return (
-    <div className="min-h-screen flex" style={{ backgroundColor: "#F1EFE3" }}>
-      {/* Catches the 402 from a spend ceiling or the plan gate and opens the
-          upgrade/top-up modal. Not inherited from a layout — /assistant is a
-          sibling of /tools, not inside it. */}
-      <UpgradeGate />
-      <SideNav />
-      <SupportLauncher />
+    <section
+      className="flex flex-1 flex-col overflow-hidden rounded-2xl"
+      style={{ backgroundColor: "#FAF9F5" }}
+    >
+      {locked ? (
+        <AssistantLocked />
+      ) : (
+        <>
+          {/* null is "still loading", and must not render the splash over a
+              conversation that is about to appear. An empty panel for a beat is
+              honest; "How can I help you?" is not. */}
+          {turns === null ? (
+            <div className="flex-1" />
+          ) : turns.length === 0 ? (
+            <EmptyState />
+          ) : (
+            <ChatMessages turns={turns} streaming={streaming} />
+          )}
 
-      <main className="grow flex flex-col overflow-hidden h-screen">
-        <TopBar title="AI assistant" />
-        <AnnouncementBanner />
-
-        <div className="flex flex-1 gap-3 overflow-hidden px-10 pb-5">
-          <ChatSidebar
-            chats={chats}
-            activeId={activeId}
-            onSelect={(id) => router.push(`/assistant/${id}`)}
-            onNew={() => router.push("/assistant")}
-            onRename={handleRename}
-            onDelete={(id) => setDeleting(id)}
-            disabled={locked}
-          />
-
-          <section
-            className="flex flex-1 flex-col overflow-hidden rounded-2xl"
-            style={{ backgroundColor: "#FAF9F5" }}
-          >
-            {locked ? (
-              <AssistantLocked />
-            ) : (
-              <>
-                {turns.length === 0 ? <EmptyState /> : <ChatMessages turns={turns} streaming={streaming} />}
-
-                <div className="px-10 pb-8 pt-2">
-                  {error && <p className="mb-2 text-sm text-red-600">{error}</p>}
-                  <AssistantComposer
-                    onSend={send}
-                    busy={streaming}
-                    disabled={allowed === null}
-                    autoFocus
-                    placeholder="Try: 'Create a Year 5 multiplication quiz'"
-                  />
-                </div>
-              </>
-            )}
-          </section>
-        </div>
-      </main>
-
-      <ConfirmModal
-        open={deleting !== null}
-        title="Delete this chat?"
-        message="This removes the conversation and its messages. It can't be undone."
-        confirmLabel="Delete"
-        onConfirm={() => deleting && handleDelete(deleting)}
-        onCancel={() => setDeleting(null)}
-      />
-    </div>
+          <div className="px-10 pb-8 pt-2">
+            {error && <p className="mb-2 text-sm text-red-600">{error}</p>}
+            <AssistantComposer
+              onSend={send}
+              busy={streaming}
+              disabled={allowed === null}
+              autoFocus
+              placeholder="Try: 'Create a Year 5 multiplication quiz'"
+            />
+          </div>
+        </>
+      )}
+    </section>
   );
 }
 
