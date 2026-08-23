@@ -177,7 +177,13 @@ export default function ResultPanel({
   return (
     <>
       <div ref={panelRef} className={`bg-white border border-gray-200 rounded-3xl shadow-sm${maxWidth ? " max-w-7xl mx-auto" : ""}`} style={{ overflow: "clip" }}>
-        <div className="sticky top-8 z-10 flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-white rounded-t-3xl">
+        {/* z-30, not z-10: sticky + z-index creates a stacking context, so the
+            export menu's z-20 cannot escape this header. RichTextEditor's
+            toolbar below is also sticky z-10 and comes later in the DOM, so at
+            equal z-index it painted over the open menu — hiding "Download PDF"
+            and making it look as though the tool had no PDF export at all.
+            This must stay above that toolbar's z-10. */}
+        <div className="sticky top-8 z-30 flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-white rounded-t-3xl">
           <div className="flex items-center gap-3">
             <h2 className="font-semibold text-gray-900 text-sm">My results</h2>
             {isGenerating && (

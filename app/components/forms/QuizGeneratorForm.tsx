@@ -9,7 +9,7 @@ import ConfirmModal from "@/app/components/ConfirmModal";
 import RefinePanel from "@/app/components/RefinePanel";
 import GenerateButton from "@/app/components/ui/GenerateButton";
 import ResetButton from "@/app/components/ui/ResetButton";
-import { exportToDocx, exportToPdf } from "@/app/lib/exportUtils";
+import { exportToDocx, exportToPdf, PAGE_BREAK } from "@/app/lib/exportUtils";
 import DropdownMenu, { type DropdownItem } from "@/app/components/ui/DropdownMenu";
 import Card from "@/app/components/ui/Card";
 import ToolHistoryPanel from "@/app/components/ToolHistoryPanel";
@@ -128,6 +128,11 @@ function downloadWaygroundCsv(questions: QuizQuestion[], subject: string) {
 
 function downloadMicrosoftFormsDocx(questions: QuizQuestion[], subject: string, topic: string) {
   // Microsoft Forms DOCX: structured Q&A formatted for easy manual entry into MS Forms
+  //
+  // Deliberately keeps answers inline, unlike quizToMarkdown which moves them
+  // to their own page. Nobody hands this to a class — it is read side by side
+  // with the Forms UI while typing each question in, so separating a question
+  // from its answer would mean flipping back and forth. Not an oversight.
   const lines: string[] = [
     `# ${topic || subject} Quiz`,
     "",
@@ -197,24 +202,45 @@ function addQuestion(form, questionText, options, correctIndex) {
   );
 }
 
+/**
+ * The student-facing export: questions only, with the answer key on its own
+ * page after them.
+ *
+ * Answers used to sit directly under each question (a ✓ on the correct option
+ * plus a "Correct answer:" line), which made the export impossible to hand out.
+ * Nothing here may reveal an answer before the PAGE_BREAK.
+ */
 function quizToMarkdown(questions: QuizQuestion[], subject: string, topic: string): string {
   const lines: string[] = [`# Quiz: ${topic || subject}`, ""];
+  if (questions.length === 0) return lines.join("\n");
+
   questions.forEach((q, i) => {
     lines.push(`## Question ${i + 1}`);
     lines.push("");
     lines.push(q.question);
     lines.push("");
     q.options.forEach((opt, j) => {
-      const label = String.fromCharCode(65 + j);
-      const correct = j === q.correctIndex ? " ✓" : "";
-      lines.push(`- ${label}) ${opt}${correct}`);
+      lines.push(`- ${String.fromCharCode(65 + j)}) ${opt}`);
     });
     lines.push("");
-    lines.push(`**Correct answer:** ${String.fromCharCode(65 + q.correctIndex)}) ${q.options[q.correctIndex]}`);
-    lines.push("");
-    lines.push("---");
-    lines.push("");
+    // No rule after the last one: it would render as a stray line at the foot
+    // of the page, immediately above the break.
+    if (i < questions.length - 1) {
+      lines.push("---");
+      lines.push("");
+    }
   });
+
+  lines.push(PAGE_BREAK);
+  lines.push("");
+  lines.push("## Answer Key");
+  lines.push("");
+  questions.forEach((q, i) => {
+    lines.push(
+      `${i + 1}. ${String.fromCharCode(65 + q.correctIndex)}) ${q.options[q.correctIndex]}`,
+    );
+  });
+
   return lines.join("\n");
 }
 

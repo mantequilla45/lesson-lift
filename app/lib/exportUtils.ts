@@ -11,7 +11,21 @@ import {
   AlignmentType,
   NumberFormat,
   BorderStyle,
+  PageBreak,
 } from "docx";
+
+/**
+ * Sentinel marking a hard page break, on a line of its own.
+ *
+ * An HTML comment rather than something like `===`, because this parser also
+ * handles LLM-written markdown from every tool: a token a consumer does not
+ * recognise has to degrade to invisible, not to visible garbage in the output.
+ *
+ * Honoured by all three destinations — PDF (measured in exportToPdf), Print
+ * (the .page-break CSS rule) and DOCX (the branch in exportToDocx).
+ */
+export const PAGE_BREAK = "<!-- pagebreak -->";
+const PAGE_BREAK_RE = /^<!--\s*pagebreak\s*-->$/;
 
 // --- Inline parser: turns **bold** / *italic* into TextRuns ---
 function parseInlineRuns(text: string): TextRun[] {
@@ -43,6 +57,8 @@ export async function exportToDocx(text: string, filename: string) {
       children.push(new Paragraph({ text: line.slice(3), heading: HeadingLevel.HEADING_2 }));
     } else if (line.startsWith("# ")) {
       children.push(new Paragraph({ text: line.slice(2), heading: HeadingLevel.HEADING_1 }));
+    } else if (PAGE_BREAK_RE.test(line.trim())) {
+      children.push(new Paragraph({ children: [new PageBreak()] }));
     } else if (/^---+$/.test(line.trim())) {
       children.push(
         new Paragraph({
@@ -170,19 +186,44 @@ export async function exportToPdf(
     import("html2canvas"),
   ]);
 
-  // A4 width at 96dpi. The stylesheet is written for A4, so matching the
-  // capture width is what keeps line breaks identical to Print. The page HEIGHT
-  // comes from jsPDF below rather than being hardcoded here, so the two cannot
-  // disagree about where a page ends.
-  const PAGE_W = 794;
+  // Built before the host so the page geometry drives the capture width, rather
+  // than the two being asserted independently and drifting apart.
+  //
+  // hotfixes:["px_scaling"] is load-bearing, not cosmetic. jsPDF's format table
+  // is in POINTS (a4 = 595.28 x 841.89) and without this hotfix `unit:"px"`
+  // divides by 96/72, so getPageWidth() reports 446 rather than 794. Every
+  // mm->px margin below would then be wrong by 1.78x, with nothing visibly
+  // broken to hint at why. With it, these are true 96dpi CSS pixels. The
+  // slideshow exporters pass the same hotfix.
+  const pdf = new jsPDF({
+    orientation: "portrait",
+    unit: "px",
+    format: "a4",
+    hotfixes: ["px_scaling"],
+  });
+  const pdfW = pdf.internal.pageSize.getWidth(); // ~793.7
+  const pdfH = pdf.internal.pageSize.getHeight(); // ~1122.5
+
+  // These MUST match the @page margins in buildPdfDocument(), or Download PDF
+  // and Print produce differently-sized pages from the same stylesheet.
+  const PX_PER_MM = 96 / 25.4;
+  const MARGIN_X = 20 * PX_PER_MM; // ~75.6
+  const MARGIN_Y = 18 * PX_PER_MM; // ~68.0
+  const contentW = pdfW - 2 * MARGIN_X; // ~642.5
+  const contentH = pdfH - 2 * MARGIN_Y; // ~986.5
 
   const doc = buildPdfHtml(markdown, filename, docTitle);
 
   // Rendered offscreen rather than in an iframe: html2canvas needs the nodes in
   // this document to read their computed styles. Positioned far off-canvas
   // instead of display:none, which would give every element zero height.
+  //
+  // Captured at the CONTENT width, not the full page width: the margins come
+  // from where the image is placed on the page below. @page cannot supply them
+  // because html2canvas ignores it — it is a print-only directive, which is why
+  // Print has always had margins and this path had none.
   const host = document.createElement("div");
-  host.style.cssText = `position:fixed;left:-10000px;top:0;width:${PAGE_W}px;background:#fff;`;
+  host.style.cssText = `position:fixed;left:-10000px;top:0;width:${contentW}px;background:#fff;`;
   host.innerHTML = doc.replace(/^[\s\S]*?<body>/, "").replace(/<\/body>[\s\S]*$/, "");
 
   // The stylesheet lives in that document's <head>, so it is lifted out and
@@ -197,30 +238,42 @@ export async function exportToPdf(
   document.body.appendChild(host);
 
   try {
+    const SCALE = 2; // legible text rather than a blurry upscale
+
+    // Measured on the live host, before html2canvas clones it into an iframe.
+    // page-break-before is print-only CSS and invisible to the rasteriser, so
+    // the sentinels have to be located by hand and handed to the slicer.
+    const hostTop = host.getBoundingClientRect().top;
+    const forcedBreaks = Array.from(host.querySelectorAll(".page-break")).map(
+      (el) => (el.getBoundingClientRect().top - hostTop) * SCALE,
+    );
+
     const canvas = await html2canvas(host, {
-      scale: 2, // legible text rather than a blurry upscale
+      scale: SCALE,
       useCORS: true,
       backgroundColor: "#ffffff",
-      windowWidth: PAGE_W,
+      windowWidth: contentW,
     });
 
-    const pdf = new jsPDF({ orientation: "portrait", unit: "px", format: "a4" });
-    const pdfW = pdf.internal.pageSize.getWidth();
-    const pdfH = pdf.internal.pageSize.getHeight();
-    // Height the full capture occupies once scaled to the page width.
-    const scaledH = (canvas.height * pdfW) / canvas.width;
+    // Page height expressed in captured-canvas pixels.
+    const pageBandH = (contentH * canvas.width) / contentW;
+    const bands = sliceCanvasToPages(canvas, pageBandH, forcedBreaks);
 
-    // Slice the tall capture across pages by offsetting the same image upward
-    // on each one, which is how the slideshow exporter handles overflow too.
-    let remaining = scaledH;
-    let offset = 0;
-    const image = canvas.toDataURL("image/png");
-    while (remaining > 0) {
-      if (offset > 0) pdf.addPage();
-      pdf.addImage(image, "PNG", 0, -offset, pdfW, scaledH);
-      remaining -= pdfH;
-      offset += pdfH;
-    }
+    bands.forEach((band, i) => {
+      if (i > 0) pdf.addPage();
+      // Placed at the margin with no negative offset. addImage does not clip,
+      // so the previous approach of drawing the whole tall image at -offset
+      // would have bled the next page's content straight through this page's
+      // bottom margin. Each band contains only its own page's pixels.
+      pdf.addImage(
+        band.dataUrl,
+        "PNG",
+        MARGIN_X,
+        MARGIN_Y,
+        contentW,
+        (band.height * contentW) / canvas.width,
+      );
+    });
 
     pdf.save(`${filename}.pdf`);
   } finally {
@@ -228,6 +281,54 @@ export async function exportToPdf(
     // would accumulate one per attempt.
     document.body.removeChild(host);
   }
+}
+
+/**
+ * Cut a tall capture into per-page bands, breaking early at any forced break.
+ *
+ * Returns real images rather than offsets so the caller can place each at the
+ * top margin: jsPDF's addImage has no clipping, so anything drawn outside the
+ * content box lands in a neighbouring page's margin.
+ *
+ * `pageBandH` and `forcedBreaks` are both in canvas pixels.
+ */
+function sliceCanvasToPages(
+  canvas: HTMLCanvasElement,
+  pageBandH: number,
+  forcedBreaks: number[],
+): { dataUrl: string; height: number }[] {
+  // A break at (or before) the very top would emit a blank leading page.
+  const breaks = Array.from(new Set(forcedBreaks.map(Math.round)))
+    .filter((b) => b > 0 && b < canvas.height)
+    .sort((a, b) => a - b);
+
+  const pages: { dataUrl: string; height: number }[] = [];
+  let cursor = 0;
+
+  while (cursor < canvas.height) {
+    const nextBreak = breaks.find((b) => b > cursor);
+    const limit = Math.min(cursor + pageBandH, nextBreak ?? Infinity, canvas.height);
+    const height = Math.round(limit - cursor);
+
+    // Guard against a zero/negative band: unlike the old fixed-decrement loop,
+    // a variable height can stall, and an infinite loop here hangs the tab.
+    if (height <= 0) break;
+
+    const band = document.createElement("canvas");
+    band.width = canvas.width;
+    band.height = height;
+    const ctx = band.getContext("2d");
+    if (!ctx) break;
+    // White, so a band shorter than a full page does not render transparent.
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, band.width, band.height);
+    ctx.drawImage(canvas, 0, cursor, canvas.width, height, 0, 0, canvas.width, height);
+
+    pages.push({ dataUrl: band.toDataURL("image/png"), height });
+    cursor += height;
+  }
+
+  return pages;
 }
 
 // --- Build the full PDF HTML string ---
@@ -284,6 +385,10 @@ function buildPdfDocument(html: string, title: string, date: string): string {
     ul, ol { padding-left: 18px; margin: 5px 0 8px; }
     li { margin: 2px 0; color: #374151; page-break-inside: avoid; }
     hr { border: none; border-top: 1px solid #e5e7eb; margin: 18px 0; }
+    /* height:0 matters — html2canvas lays this out, and any height would show
+       as phantom whitespace in the raster. exportToPdf finds these by
+       offsetTop; Print gets its break from page-break-before. */
+    .page-break { page-break-before: always; break-before: page; height: 0; }
     h2, h3 { page-break-after: avoid; }
     ul, ol { page-break-inside: avoid; }
     strong { font-weight: 600; color: #111827; }
@@ -382,6 +487,8 @@ function markdownToHtml(text: string): string {
       out.push(`<h2>${inline(line.slice(3))}</h2>`);
     } else if (line.startsWith("# ")) {
       out.push(`<h1>${inline(line.slice(2))}</h1>`);
+    } else if (PAGE_BREAK_RE.test(line.trim())) {
+      out.push('<div class="page-break"></div>');
     } else if (/^---+$/.test(line.trim())) {
       out.push("<hr />");
     } else if (line.startsWith("|")) {
