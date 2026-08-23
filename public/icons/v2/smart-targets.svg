@@ -1,0 +1,14 @@
+<svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <clipPath id="clip-smart-targets"><rect width="48" height="48" rx="12"/></clipPath>
+  </defs>
+  <g clip-path="url(#clip-smart-targets)">
+    <rect width="48" height="48" rx="12" fill="#16A34A"/>
+    <path d="M22 14 L48 40 L48 48 L30 48 L10 28 Z" fill="#000" opacity="0.12"/>
+    <circle cx="21" cy="27" r="12" fill="#FFFFFF"/>
+    <circle cx="21" cy="27" r="8" fill="none" stroke="#EF233C" stroke-width="2.5"/>
+    <circle cx="21" cy="27" r="3.5" fill="#EF233C"/>
+    <path d="M21 27L36 12" stroke="#1E3C54" stroke-width="3" stroke-linecap="round"/>
+    <path d="M31 11h8v8z" fill="#FFDC21"/>
+  </g>
+</svg>

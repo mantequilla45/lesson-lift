@@ -38,10 +38,21 @@ const TOOL_ICON_PATHS: Record<string, string> = {
   "presentation":           "/icons/tool-slideshow.svg",
 };
 
+/**
+ * Redesigned flat icons. Every key above has a matching `/icons/v2/<key>.svg`,
+ * so the path is derived rather than mapped a second time — a new tool only
+ * needs its key added above and a file dropped in.
+ * See `docs/tool-icon-style.md` for the design rules.
+ */
+function iconSrc(name: string): string | undefined {
+  if (!(name in TOOL_ICON_PATHS)) return undefined;
+  return `/icons/v2/${name}.svg`;
+}
+
 export const TOOL_ICONS = TOOL_ICON_PATHS;
 
 export default function ToolIcon({ name, className }: { name: string; className?: string }) {
-  const src = TOOL_ICON_PATHS[name];
+  const src = iconSrc(name);
   if (!src) return null;
   const sizeClass = (className ?? "")
     .split(" ")
