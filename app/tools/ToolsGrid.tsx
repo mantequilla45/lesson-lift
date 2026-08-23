@@ -117,14 +117,19 @@ function ToolCard({
   return (
     // Link is a SIBLING overlay (not a parent), so clicking the pin button never
     // hits the anchor element — that's what prevents nextjs-toploader from firing.
-    <div className="group relative flex gap-4 items-start p-5 border border-line rounded-2xl hover:bg-[#F1EFE3] hover:border-[#F1EFE3]">
+    // `title` carries the full description: it is clamped to two lines below, and
+    // the browser's own tooltip is the way to read the rest.
+    <div
+      title={tool.description}
+      className="group relative flex gap-4 items-start p-5 border border-line rounded-2xl transition-all duration-200 ease-out hover:bg-[#F1EFE3] hover:border-[#F1EFE3] hover:-translate-y-0.5 hover:shadow-[0_6px_16px_-6px_rgba(28,27,27,0.25)]"
+    >
       <Link
         href={tool.href}
         aria-label={tool.label}
         className="absolute inset-0 rounded-2xl z-0"
       />
       <div className="relative z-10 shrink-0 pointer-events-none">
-        <ToolIcon name={tool.icon} className="w-10 h-10 transition-all group-hover:brightness-[1.05]" />
+        <ToolIcon name={tool.icon} className="w-10 h-10 transition-transform duration-200 ease-out group-hover:scale-110 group-hover:-rotate-3" />
       </div>
       <div className="relative z-10 min-w-0 flex-1 pointer-events-none">
         <h5 className="font-semibold text-md mb-0.5">{tool.label}</h5>

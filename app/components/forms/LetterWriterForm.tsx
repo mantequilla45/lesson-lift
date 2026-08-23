@@ -8,6 +8,7 @@ import {
   LetterToneField,
 } from "@/app/components/fields";
 import ResultPanel from "@/app/components/ResultPanel";
+import OutputOutline from "@/app/components/OutputOutline";
 import RefinePanel from "@/app/components/RefinePanel";
 import ConfirmModal from "@/app/components/ConfirmModal";
 import GenerateButton from "@/app/components/ui/GenerateButton";
@@ -15,6 +16,8 @@ import ResetButton from "@/app/components/ui/ResetButton";
 import Card from "@/app/components/ui/Card";
 import ToolHistoryPanel from "@/app/components/ToolHistoryPanel";
 import type { ToolRun } from "@/app/lib/toolRuns";
+import PrefilledBadge from "@/app/components/assistant/PrefilledBadge";
+import { useToolLaunch, type ToolLaunchParams } from "@/app/lib/useToolLaunch";
 
 const TOOL_SLUG = "letter-writer";
 
@@ -26,7 +29,13 @@ const REFINE_CHIPS = [
   "Also include...",
 ];
 
-export default function LetterWriterForm({ sidebar }: { sidebar: React.ReactNode }) {
+export default function LetterWriterForm({
+  sidebar,
+  launch,
+}: {
+  sidebar: React.ReactNode;
+  launch?: ToolLaunchParams;
+}) {
   const [recipient, setRecipient] = useState("");
   const [content, setContent] = useState("");
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
@@ -54,6 +63,19 @@ export default function LetterWriterForm({ sidebar }: { sidebar: React.ReactNode
     setResult(run.output);
     setLastGenerated(JSON.stringify(i));
   };
+
+  // `date` is not prefillable: the form already defaults it to today, which is
+  // right for virtually every letter, and a date inferred from a sentence is a
+  // good way to send something dated wrongly.
+  const { prefilled } = useToolLaunch({
+    params: launch,
+    onRestore: restore,
+    prefill: {
+      recipient: (v) => setRecipient(v as string),
+      content: (v) => setContent(v as string),
+      tone: (v) => setTone(v as string),
+    },
+  });
 
   const handleGenerate = async () => {
     setError(null);
@@ -121,6 +143,7 @@ export default function LetterWriterForm({ sidebar }: { sidebar: React.ReactNode
 
         <div className="lg:col-span-2">
           <Card className="space-y-6">
+            {prefilled && <PrefilledBadge />}
 
             <LetterRecipientField value={recipient} onChange={setRecipient} />
 
@@ -168,15 +191,27 @@ export default function LetterWriterForm({ sidebar }: { sidebar: React.ReactNode
         <div className="sticky top-0 z-20 h-8 -mx-10" style={{ backgroundColor: "#F1EFE3" }} />
       )}
 
-      <ResultPanel
-        result={result}
-        isGenerating={isGenerating}
-        isRefining={isRefining}
-        onChange={(md) => setResult(md)}
-        exportFilename={`letter-${recipient.slice(0, 20).replace(/\s+/g, "-") || "draft"}`}
-        historyMeta={{ toolSlug: TOOL_SLUG, title: recipient || null, input: formState }}
-        onSaved={() => setHistoryKey((k) => k + 1)}
-      />
+      <div className={result !== null ? "flex gap-8" : ""}>
+        {result !== null && (
+          <div className="w-md shrink-0">
+            <div className="sticky top-8">
+              <OutputOutline markdown={result} />
+            </div>
+          </div>
+        )}
+        <div className="flex-1 min-w-0">
+          <ResultPanel
+            result={result}
+            isGenerating={isGenerating}
+            isRefining={isRefining}
+            onChange={(md) => setResult(md)}
+            maxWidth={false}
+            exportFilename={`letter-${recipient.slice(0, 20).replace(/\s+/g, "-") || "draft"}`}
+            historyMeta={{ toolSlug: TOOL_SLUG, title: recipient || null, input: formState }}
+            onSaved={() => setHistoryKey((k) => k + 1)}
+          />
+        </div>
+      </div>
 
       {result && !isGenerating && (
         <RefinePanel

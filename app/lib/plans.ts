@@ -5,7 +5,11 @@
 
 export type PlanId = "free" | "pro" | "max" | "school";
 
-export type ExportFormat = "pdf" | "docx" | "pptx";
+// "gdocs" is offered in the export menu but rendered disabled ("coming soon") —
+// a real Google Docs export needs OAuth, a Drive client and consent-screen
+// verification. It lives in the union so the menu and the plan arrays can name
+// it without a cast the day it ships.
+export type ExportFormat = "pdf" | "docx" | "pptx" | "gdocs";
 
 export interface PlanLimits {
   /**
@@ -25,7 +29,21 @@ export interface PlanLimits {
   aiImageSlideshows: number;
   /** Exported files carry a "Made with Jooma" watermark. */
   watermark: boolean;
-  /** Export formats this plan may use. */
+  /**
+   * Export formats this plan may use.
+   *
+   * EVERY PLAN GETS EVERY FORMAT, deliberately. Export is not a paid gate:
+   * once a teacher has spent a generation on a resource, how they get it out of
+   * Jooma is their business, and metering the file type would be a petty
+   * restriction on work they have already paid for (in credits or in the free
+   * allowance). What a plan limits is how MUCH you can generate, not what you
+   * can do with the result.
+   *
+   * Kept as a field rather than deleted so the pricing page can still enumerate
+   * formats, and so the shape is here if the policy is ever revisited. The
+   * arrays are identical across plans on purpose — if you find yourself
+   * narrowing one, read canExport() below first.
+   */
   exportFormats: ExportFormat[];
   /** Curriculum alignment depth. */
   curriculumAlignment: "limited" | "full";
@@ -35,6 +53,19 @@ export interface PlanLimits {
   saveLibrary: boolean;
   /** Priority support queue. */
   prioritySupport: boolean;
+  /**
+   * The conversational AI assistant (/assistant, and the dashboard card).
+   *
+   * Paid plans only, and this is a margin guard rather than a feature tier.
+   * Free is capped by generation COUNT, not by spend — AI_SPEND_CEILING_PENCE.free
+   * is null and the daily/monthly caps only apply to GENERATION_PATHS. A chat
+   * turn is deliberately not a generation (three follow-up questions are not
+   * three resources), so on Free it would hit no cap at all and be unlimited.
+   *
+   * Free users still SEE the assistant — locked, with an upgrade prompt — so the
+   * page can do the selling. proxy.ts is what actually enforces this.
+   */
+  assistant: boolean;
   // ── School-only capabilities ──
   multiUser: boolean;
   sharedLibrary: boolean;
@@ -83,11 +114,13 @@ export const PLANS: Record<PlanId, Plan> = {
       monthlyGenerations: 5,
       aiImageSlideshows: 0,
       watermark: true,
-      exportFormats: ["pdf"],
+      // Same formats as every paid plan — see the note on exportFormats above.
+      exportFormats: ["pdf", "docx", "pptx", "gdocs"],
       curriculumAlignment: "limited",
       editableOutputs: false,
       saveLibrary: false,
       prioritySupport: false,
+      assistant: false,
       multiUser: false,
       sharedLibrary: false,
       adminDashboard: false,
@@ -112,11 +145,12 @@ export const PLANS: Record<PlanId, Plan> = {
       monthlyGenerations: null,
       aiImageSlideshows: 12,
       watermark: false,
-      exportFormats: ["pdf", "docx", "pptx"],
+      exportFormats: ["pdf", "docx", "pptx", "gdocs"],
       curriculumAlignment: "full",
       editableOutputs: true,
       saveLibrary: true,
       prioritySupport: true,
+      assistant: true,
       multiUser: false,
       sharedLibrary: false,
       adminDashboard: false,
@@ -145,11 +179,12 @@ export const PLANS: Record<PlanId, Plan> = {
       monthlyGenerations: null,
       aiImageSlideshows: 25,
       watermark: false,
-      exportFormats: ["pdf", "docx", "pptx"],
+      exportFormats: ["pdf", "docx", "pptx", "gdocs"],
       curriculumAlignment: "full",
       editableOutputs: true,
       saveLibrary: true,
       prioritySupport: true,
+      assistant: true,
       multiUser: false,
       sharedLibrary: false,
       adminDashboard: false,
@@ -186,11 +221,12 @@ export const PLANS: Record<PlanId, Plan> = {
       monthlyGenerations: null,
       aiImageSlideshows: 3,
       watermark: false,
-      exportFormats: ["pdf", "docx", "pptx"],
+      exportFormats: ["pdf", "docx", "pptx", "gdocs"],
       curriculumAlignment: "full",
       editableOutputs: true,
       saveLibrary: true,
       prioritySupport: true,
+      assistant: true,
       multiUser: true,
       sharedLibrary: true,
       adminDashboard: true,
@@ -317,7 +353,19 @@ export function can(plan: PlanId, gate: BooleanGate): boolean {
   return PLANS[plan].limits[gate];
 }
 
-/** True if the plan may export to the given format. */
+/**
+ * True if the plan may export to the given format.
+ *
+ * Currently returns true for every plan/format pair, because every plan carries
+ * the same exportFormats array — export is deliberately not a paid gate (see
+ * the note on exportFormats above). Nothing calls this, and the export menus
+ * offer every format to everyone.
+ *
+ * Kept because it is the right place for the check to live IF the policy ever
+ * changes. Wiring it up today would be a no-op; wiring it up after narrowing a
+ * plan's array would silently withdraw a format teachers already use, so change
+ * the arrays and the UI together, and say so to the people affected.
+ */
 export function canExport(plan: PlanId, format: ExportFormat): boolean {
   return PLANS[plan].limits.exportFormats.includes(format);
 }

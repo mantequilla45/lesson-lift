@@ -1,27 +1,30 @@
 "use client";
+/* eslint-disable @next/next/no-img-element */
 
 import { useState } from "react";
 import Link from "next/link";
 import { Sparkles, ArrowUpRight } from "lucide-react";
 
-// Image placeholders — swap the gradient divs for <img className="absolute
-// inset-0 w-full h-full object-cover" /> when the real photography is ready.
-// Each card carries the copy revealed when it slides open.
+// The gradient sits behind the photo — it keeps the card looking intentional while the
+// image loads. Each card carries the copy revealed when it slides open.
 const CARDS = [
   {
     gradient: "linear-gradient(160deg,#F6C61E,#E5A100)",
+    img: "/landing/scenes/why-learner.jpg",
     title: "Built for Every Learner",
     desc: "Create engaging, personalised learning experiences that support students at every level.",
     cta: "Create Lessons",
   },
   {
     gradient: "linear-gradient(160deg,#C3B7A2,#9E9079)",
+    img: "/landing/scenes/why-laptop.jpg",
     title: "AI-Powered Creation",
     desc: "Generate worksheets, quizzes, and lesson plans instantly with smart tools designed for modern classrooms.",
     cta: "Try Now",
   },
   {
     gradient: "linear-gradient(160deg,#C0392B,#94251A)",
+    img: "/landing/scenes/why-educator.jpg",
     title: "Built for Busy Educators",
     desc: "Reduce hours spent planning lessons, creating worksheets, and organising classroom materials.",
     cta: "Start Planning",
@@ -89,6 +92,14 @@ export default function WhyJooma() {
                   className="relative rounded-2xl overflow-hidden cursor-pointer outline-none transition-all duration-450 ease-[cubic-bezier(0.16,1,0.3,1)] focus-visible:ring-2 focus-visible:ring-offset-2"
                   style={{ background: c.gradient, flexGrow: isActive ? 3 : 1, flexBasis: 0 }}
                 >
+                  {/* Photo — object-cover so it crops as the card flexes open */}
+                  <img
+                    src={c.img}
+                    alt=""
+                    aria-hidden="true"
+                    className="absolute inset-0 w-full h-full object-cover"
+                  />
+
                   {/* Bottom scrim for text legibility */}
                   <div
                     className="absolute inset-0 pointer-events-none"

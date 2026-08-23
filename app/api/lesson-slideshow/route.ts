@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { buildSystem } from "@/app/lib/systemPrompt";
+import { differentiationPrompt, type Differentiate } from "@/app/lib/differentiation";
 import { streamChat, createCompletion } from "@/app/lib/usage";
 import { modelFor } from "@/app/lib/tool-model";
 
@@ -35,6 +36,8 @@ interface GenerateBody {
   slideCount: number;
   additionalContext?: string;
   includeImageSuggestions: boolean;
+  differentiate?: Differentiate;
+  differentiationLevels?: string[];
 }
 
 interface RefineBody {
@@ -59,8 +62,13 @@ function buildGeneratePrompt(body: GenerateBody): string {
     ? `\nCurriculum context and learning objectives provided by the teacher:\n${body.additionalContext}\nUse this to shape the content and ensure it aligns with what pupils need to learn.\n`
     : "";
 
+  // Opt-in. Slides are pupil-facing, so the differentiation shapes how the
+  // content is pitched rather than adding a teacher-facing section.
+  const adaptation = differentiationPrompt(body.differentiate, body.differentiationLevels);
+  const adaptationLine = adaptation ? `\nDIFFERENTIATION — ${adaptation}\n` : "";
+
   return `Create a high-quality lesson presentation for pupils on: "${body.topic}".
-${context ? `${context}\n` : ""}${additionalLine}
+${context ? `${context}\n` : ""}${additionalLine}${adaptationLine}
 This is a classroom-facing lesson slideshow — content must be accurate, age-appropriate, and engaging for pupils. Use curriculum-accurate terminology. Write as if you are a subject expert and experienced teacher.
 
 Output exactly ${body.slideCount} slides. Always start with 1 title slide.

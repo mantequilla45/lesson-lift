@@ -2,13 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { streamChat } from "@/app/lib/usage";
 import { modelFor } from "@/app/lib/tool-model";
 import { buildSystem } from "@/app/lib/systemPrompt";
+import { differentiationPrompt, differentiationSummary, type Differentiate } from "@/app/lib/differentiation";
 
 export interface HomeworkRequest {
   curriculum: string;
   yearGroup: string;
   subject: string;
   learningObjective: string;
-  abilityLevel: string;
+  differentiate?: Differentiate;
+  differentiationLevels?: string[];
   questionTypes?: string[];
   questionCounts?: Record<string, number>;
   homeworkType: string;
@@ -21,12 +23,6 @@ export interface HomeworkRequest {
 }
 
 
-const ABILITY_LABELS: Record<string, string> = {
-  WTS: "Working Towards Standard — provide additional scaffolding, simpler language, and smaller steps",
-  EXS: "Expected Standard — pitch at the expected level for the year group",
-  GDS: "Greater Depth Standard — extend with greater challenge, open-ended reasoning, and deeper thinking",
-};
-
 export async function POST(req: NextRequest) {
   const body: HomeworkRequest = await req.json();
 
@@ -35,7 +31,8 @@ export async function POST(req: NextRequest) {
     yearGroup,
     subject,
     learningObjective,
-    abilityLevel,
+    differentiate = "no",
+    differentiationLevels = [],
     questionTypes,
     questionCounts,
     homeworkType,
@@ -74,20 +71,25 @@ export async function POST(req: NextRequest) {
     ? "Include a full answer sheet / mark scheme at the end, clearly separated from the pupil-facing content."
     : "Do NOT include answers — this is a student-only version.";
 
-  const abilityNote = ABILITY_LABELS[abilityLevel] ?? ABILITY_LABELS["EXS"];
+  // Opt-in. When off, the task carries no Support/Core/Challenge split and no
+  // differentiation line in the brief — the homework is simply pitched at the
+  // year group.
+  const adaptation = differentiationPrompt(differentiate, differentiationLevels);
+  const summary = differentiationSummary(differentiate, differentiationLevels);
+  const differentiationBrief = summary ? `\n- Differentiation: ${summary}` : "";
+  const taskDifferentiation = adaptation ? ` ${adaptation}` : "";
 
   const userPrompt = `Create a high-quality, classroom-ready homework task for the following:
 
 - Curriculum: ${curriculum}
 - Year Group: ${yearGroup}
 - Subject: ${subject}
-- Learning Objective: ${learningObjective}
-- Differentiation level: ${abilityNote}
+- Learning Objective: ${learningObjective}${differentiationBrief}
 - Homework Type: ${homeworkType}
 - Length / Effort Level: ${length}
 - Include Answers: ${includeAnswers ? "Yes" : "No"}${questionTypesSection}${lessonContentSection}${imageSection}${additionalSection}
 
-This homework is for use in a UK school. It must be precisely pitched for ${yearGroup} students at ${abilityLevel} level and directly address the learning objective. The task should be sized to match the effort level (${length}).
+This homework is for use in a UK school. It must be precisely pitched for ${yearGroup} students and directly address the learning objective. The task should be sized to match the effort level (${length}).
 
 Structure the homework using markdown as follows:
 
@@ -118,11 +120,7 @@ List 4–6 key terms or concepts the student should know to complete this task. 
 
 ## Task
 
-Generate the main homework task appropriate for the homework type (${homeworkType})${questionTypes?.length ? ` using these question types: ${questionTypes.map((t) => { const c = questionCounts?.[t]; return c ? `${t} ×${c}` : t; }).join(", ")}` : ""}. Apply differentiation in line with ${abilityLevel}:
-
-- **Support** (for students who need extra scaffolding): a simplified version, sentence starters, or a word bank
-- **Core** (standard expectation for ${yearGroup}): the main task
-- **Challenge** (for students ready to extend): a harder question, creative extension, or deeper thinking prompt
+Generate the main homework task appropriate for the homework type (${homeworkType})${questionTypes?.length ? ` using these question types: ${questionTypes.map((t) => { const c = questionCounts?.[t]; return c ? `${t} ×${c}` : t; }).join(", ")}` : ""}.${taskDifferentiation}
 
 Ensure the task is sized to fit ${length} of work. Do not pad with unnecessary filler — every part of the task should be purposeful.
 

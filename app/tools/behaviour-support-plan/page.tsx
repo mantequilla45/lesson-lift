@@ -2,9 +2,18 @@ import { ClipboardList } from "lucide-react";
 import BehaviourSupportPlanForm from "@/app/components/forms/BehaviourSupportPlanForm";
 import ToolInfoPanel from "@/app/components/ToolInfoPanel";
 
-export default function BehaviourSupportPlanPage() {
+// searchParams are read here rather than with useSearchParams() in the form:
+// that hook forces a client-side bailout needing a Suspense boundary around the
+// whole form. Same approach as app/help/page.tsx.
+export default async function BehaviourSupportPlanPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ run?: string; prefill?: string }>;
+}) {
+  const launch = await searchParams;
   return (
     <BehaviourSupportPlanForm
+      launch={launch}
       sidebar={
         <ToolInfoPanel
           icon={<ClipboardList className="w-5 h-5 text-emerald-600" />}

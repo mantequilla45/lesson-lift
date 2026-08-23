@@ -10,7 +10,7 @@ export { default as ExamSpecField } from "./ExamSpecField";
 export { default as AdditionalContextField } from "./AdditionalContextField";
 export { default as OutputDetailField } from "./OutputDetailField";
 export type { OutputDetail } from "./OutputDetailField";
-export { default as AbilityLevelField } from "./AbilityLevelField";
+export { default as DifferentiationField } from "./DifferentiationField";
 export { default as QuestionTypesField } from "./QuestionTypesField";
 export { default as QuestionCountField } from "./QuestionCountField";
 export { default as LessonCountField } from "./LessonCountField";

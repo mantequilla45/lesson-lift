@@ -10,9 +10,11 @@ import ConfirmModal from "@/app/components/ConfirmModal";
 import Card from "@/app/components/ui/Card";
 import GenerateButton from "@/app/components/ui/GenerateButton";
 import ResetButton from "@/app/components/ui/ResetButton";
-import SensoryActivitiesNav from "@/app/components/SensoryActivitiesNav";
+import OutputOutline from "@/app/components/OutputOutline";
 import ToolHistoryPanel from "@/app/components/ToolHistoryPanel";
 import type { ToolRun } from "@/app/lib/toolRuns";
+import PrefilledBadge from "@/app/components/assistant/PrefilledBadge";
+import { useToolLaunch, type ToolLaunchParams } from "@/app/lib/useToolLaunch";
 
 const TOOL_SLUG = "sensory-activities";
 
@@ -24,7 +26,14 @@ const REFINE_CHIPS = [
   "Include activities which make use of these resources:",
 ];
 
-export default function SensoryActivitiesForm({ sidebar }: { sidebar: React.ReactNode }) {
+export default function SensoryActivitiesForm({
+  sidebar,
+  launch,
+}: {
+  sidebar: React.ReactNode;
+  /** `?run=` — reopen a saved run. */
+  launch?: ToolLaunchParams;
+}) {
   const { curriculum, setCurriculum, yearGroup, setYearGroup } = useCurriculumYear();
   const [mixed, setMixed] = useState(false);
   const [subject, setSubject] = useState("");
@@ -55,6 +64,18 @@ export default function SensoryActivitiesForm({ sidebar }: { sidebar: React.Reac
     setResult(run.output);
     setLastGenerated(JSON.stringify(i));
   };
+
+  // `?run=` reopens a saved run from Dashboard, Folders or Analytics.
+  const { prefilled } = useToolLaunch({
+    params: launch,
+    onRestore: restore,
+    prefill: {
+      curriculum: (v) => setCurriculum(v as string),
+      yearGroup: (v) => setYearGroup(v as string),
+      subject: (v) => setSubject(v as string),
+      topic: (v) => setTopic(v as string),
+    },
+  });
 
   const handleGenerate = async () => {
     setError(null);
@@ -128,6 +149,7 @@ export default function SensoryActivitiesForm({ sidebar }: { sidebar: React.Reac
 
         <div className="lg:col-span-2">
           <Card className="space-y-6">
+            {prefilled && <PrefilledBadge />}
 
             <CurriculumYearFields
               curriculum={curriculum} onCurriculumChange={setCurriculum}
@@ -167,7 +189,7 @@ export default function SensoryActivitiesForm({ sidebar }: { sidebar: React.Reac
         {result !== null && (
           <div className="w-md shrink-0">
             <div className="sticky top-8">
-              <SensoryActivitiesNav />
+              <OutputOutline markdown={result} />
             </div>
           </div>
         )}

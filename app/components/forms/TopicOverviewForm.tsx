@@ -2,25 +2,34 @@
 
 import { useState } from "react";
 import CurriculumYearFields, { useCurriculumYear } from "@/app/components/CurriculumYearFields";
-import { SubjectField, TopicField, LessonCountField, AbilityLevelField, AdditionalContextField } from "@/app/components/fields";
+import { SubjectField, TopicField, LessonCountField, AdditionalContextField } from "@/app/components/fields";
 import { toTitleCase } from "@/app/lib/formOptions";
 import ResultPanel from "@/app/components/ResultPanel";
+import OutputOutline from "@/app/components/OutputOutline";
 import ConfirmModal from "@/app/components/ConfirmModal";
 import Card from "@/app/components/ui/Card";
 import GenerateButton from "@/app/components/ui/GenerateButton";
 import ResetButton from "@/app/components/ui/ResetButton";
 import ToolHistoryPanel from "@/app/components/ToolHistoryPanel";
 import type { ToolRun } from "@/app/lib/toolRuns";
+import PrefilledBadge from "@/app/components/assistant/PrefilledBadge";
+import { useToolLaunch, type ToolLaunchParams } from "@/app/lib/useToolLaunch";
 
 const TOOL_SLUG = "topic-overview";
 
-export default function TopicOverviewForm({ sidebar }: { sidebar: React.ReactNode }) {
+export default function TopicOverviewForm({
+  sidebar,
+  launch,
+}: {
+  sidebar: React.ReactNode;
+  /** `?run=` — reopen a saved run. */
+  launch?: ToolLaunchParams;
+}) {
   const { curriculum, setCurriculum, yearGroup, setYearGroup } = useCurriculumYear();
   const [mixed, setMixed] = useState(false);
   const [subject, setSubject] = useState("");
   const [topic, setTopic] = useState("");
   const [numLessons, setNumLessons] = useState(6);
-  const [abilityLevel, setAbilityLevel] = useState("EXS");
   const [additionalInfo, setAdditionalInfo] = useState("");
 
   const [result, setResult] = useState<string | null>(null);
@@ -34,7 +43,7 @@ export default function TopicOverviewForm({ sidebar }: { sidebar: React.ReactNod
     curriculum && (mixed || yearGroup) && subject.trim() && topic.trim();
 
   // Raw form state — saved as history input so a past run can refill the form.
-  const formState = { curriculum, yearGroup, mixed, subject, topic, numLessons, abilityLevel, additionalInfo };
+  const formState = { curriculum, yearGroup, mixed, subject, topic, numLessons, additionalInfo };
   const formSnapshot = JSON.stringify(formState);
   const unchangedSinceGeneration = result !== null && lastGenerated === formSnapshot;
 
@@ -46,11 +55,23 @@ export default function TopicOverviewForm({ sidebar }: { sidebar: React.ReactNod
     setSubject((i.subject as string) ?? "");
     setTopic((i.topic as string) ?? "");
     setNumLessons((i.numLessons as number) ?? 6);
-    setAbilityLevel((i.abilityLevel as string) ?? "EXS");
     setAdditionalInfo((i.additionalInfo as string) ?? "");
     setResult(run.output);
     setLastGenerated(JSON.stringify(i));
   };
+
+  // `?run=` reopens a saved run from Dashboard, Folders or Analytics.
+  const { prefilled } = useToolLaunch({
+    params: launch,
+    onRestore: restore,
+    prefill: {
+      curriculum: (v) => setCurriculum(v as string),
+      yearGroup: (v) => setYearGroup(v as string),
+      subject: (v) => setSubject(v as string),
+      topic: (v) => setTopic(v as string),
+      numLessons: (v) => setNumLessons(v as number),
+    },
+  });
 
   const handleGenerate = async () => {
     setError(null);
@@ -67,7 +88,6 @@ export default function TopicOverviewForm({ sidebar }: { sidebar: React.ReactNod
           subject: toTitleCase(subject),
           topic,
           numLessons,
-          abilityLevel,
           additionalInfo: additionalInfo.trim() || null,
         }),
       });
@@ -101,6 +121,7 @@ export default function TopicOverviewForm({ sidebar }: { sidebar: React.ReactNod
 
         <div className="lg:col-span-2">
           <Card className="space-y-6">
+            {prefilled && <PrefilledBadge />}
 
             <CurriculumYearFields
               curriculum={curriculum} onCurriculumChange={setCurriculum}
@@ -114,8 +135,6 @@ export default function TopicOverviewForm({ sidebar }: { sidebar: React.ReactNod
 
             <LessonCountField value={numLessons} onChange={setNumLessons} />
 
-            <AbilityLevelField value={abilityLevel} onChange={setAbilityLevel} />
-
             <AdditionalContextField value={additionalInfo} onChange={setAdditionalInfo} />
 
             <div className="flex gap-3">
@@ -125,7 +144,7 @@ export default function TopicOverviewForm({ sidebar }: { sidebar: React.ReactNod
                 title="Reset form?"
                 message="This will clear your current results and reset all form inputs."
                 confirmLabel="Yes, reset"
-                onConfirm={() => { setCurriculum(""); setYearGroup(""); setMixed(false); setSubject(""); setTopic(""); setNumLessons(6); setAbilityLevel("EXS"); setAdditionalInfo(""); setResult(null); setError(null); setConfirmingReset(false); }}
+                onConfirm={() => { setCurriculum(""); setYearGroup(""); setMixed(false); setSubject(""); setTopic(""); setNumLessons(6); setAdditionalInfo(""); setResult(null); setError(null); setConfirmingReset(false); }}
                 onCancel={() => setConfirmingReset(false)}
               />
               <GenerateButton onClick={handleGenerate} disabled={!canGenerate || isGenerating || unchangedSinceGeneration} isGenerating={isGenerating} hasResult={result !== null} />
@@ -142,14 +161,26 @@ export default function TopicOverviewForm({ sidebar }: { sidebar: React.ReactNod
         <div className="sticky top-0 z-20 h-8 -mx-10" style={{ backgroundColor: "#F1EFE3" }} />
       )}
 
-      <ResultPanel
-        result={result}
-        isGenerating={isGenerating}
-        onChange={(md) => setResult(md)}
-        exportFilename={`topic-overview-${topic || subject || "export"}`}
-        historyMeta={{ toolSlug: TOOL_SLUG, title: topic || subject || null, input: formState }}
-        onSaved={() => setHistoryKey((k) => k + 1)}
-      />
+      <div className={result !== null ? "flex gap-8" : ""}>
+        {result !== null && (
+          <div className="w-md shrink-0">
+            <div className="sticky top-8">
+              <OutputOutline markdown={result} />
+            </div>
+          </div>
+        )}
+        <div className="flex-1 min-w-0">
+          <ResultPanel
+            result={result}
+            isGenerating={isGenerating}
+            onChange={(md) => setResult(md)}
+            maxWidth={false}
+            exportFilename={`topic-overview-${topic || subject || "export"}`}
+            historyMeta={{ toolSlug: TOOL_SLUG, title: topic || subject || null, input: formState }}
+            onSaved={() => setHistoryKey((k) => k + 1)}
+          />
+        </div>
+      </div>
     </div>
   );
 }

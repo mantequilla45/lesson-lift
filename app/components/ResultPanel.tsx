@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Loader2, Copy, Check, FileText, FileDown } from "lucide-react";
+import { Loader2, Copy, Check, FileText, FileDown, Download, ChevronDown, Printer } from "lucide-react";
 import RichTextEditor from "@/app/components/RichTextEditor";
 import MarkdownResult from "@/app/components/MarkdownResult";
-import { exportToDocx, buildPdfHtml } from "@/app/lib/exportUtils";
+import DropdownMenu, { type DropdownItem } from "@/app/components/ui/DropdownMenu";
+import { exportToDocx, exportToPdf, buildPdfHtml } from "@/app/lib/exportUtils";
 import { saveToolRun } from "@/app/lib/toolRuns";
 
 interface ResultPanelProps {
@@ -32,6 +33,7 @@ export default function ResultPanel({
 }: ResultPanelProps) {
   const [copied, setCopied] = useState(false);
   const [isExporting, setIsExporting] = useState<"docx" | "pdf" | null>(null);
+  const [exportError, setExportError] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const userScrolledUp = useRef(false);
@@ -103,14 +105,32 @@ export default function ResultPanel({
 
   const handleExportDocx = async () => {
     setIsExporting("docx");
+    setExportError(null);
     try {
       await exportToDocx(result, exportFilename);
+    } catch {
+      setExportError("Couldn't build that Word document. Please try again.");
     } finally {
       setIsExporting(null);
     }
   };
 
-  const handleExportPdf = () => {
+  /** A real .pdf file. Distinct from Print below, which opens the print dialog. */
+  const handleExportPdf = async () => {
+    setIsExporting("pdf");
+    setExportError(null);
+    try {
+      await exportToPdf(result, exportFilename);
+    } catch {
+      // Rendering a long document to canvas can fail on very large outputs, and
+      // a silent no-op would look like a broken button.
+      setExportError("Couldn't build that PDF. Try Print instead, and save as PDF.");
+    } finally {
+      setIsExporting(null);
+    }
+  };
+
+  const handlePrint = () => {
     const html = buildPdfHtml(result ?? "", exportFilename);
     const iframe = document.createElement("iframe");
     iframe.style.cssText = "position:fixed;visibility:hidden;top:0;left:0;width:0;height:0;border:none;";
@@ -122,10 +142,48 @@ export default function ResultPanel({
     };
   };
 
+  const exportItems: DropdownItem[] = [
+    {
+      label: "Download PDF",
+      icon: <FileDown className="w-3.5 h-3.5" />,
+      onSelect: handleExportPdf,
+    },
+    {
+      label: "Download Word (DOCX)",
+      icon: <FileText className="w-3.5 h-3.5" />,
+      onSelect: handleExportDocx,
+    },
+    {
+      // A real Google Docs export needs OAuth, a Drive client and consent-screen
+      // verification. Until then this is visibly unavailable rather than absent,
+      // so nobody hunts for a feature that was never there.
+      //
+      // Worth knowing: "Download DOCX, then open it in Google Docs" already
+      // works today and imports cleanly, which may make the integration
+      // unnecessary.
+      label: "Save to Google Docs",
+      icon: <Download className="w-3.5 h-3.5" />,
+      disabled: true,
+      note: "coming soon",
+    },
+    {
+      label: "Print",
+      icon: <Printer className="w-3.5 h-3.5" />,
+      onSelect: handlePrint,
+      separated: true,
+    },
+  ];
+
   return (
     <>
       <div ref={panelRef} className={`bg-white border border-gray-200 rounded-3xl shadow-sm${maxWidth ? " max-w-7xl mx-auto" : ""}`} style={{ overflow: "clip" }}>
-        <div className="sticky top-8 z-10 flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-white rounded-t-3xl">
+        {/* z-30, not z-10: sticky + z-index creates a stacking context, so the
+            export menu's z-20 cannot escape this header. RichTextEditor's
+            toolbar below is also sticky z-10 and comes later in the DOM, so at
+            equal z-index it painted over the open menu — hiding "Download PDF"
+            and making it look as though the tool had no PDF export at all.
+            This must stay above that toolbar's z-10. */}
+        <div className="sticky top-8 z-30 flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-white rounded-t-3xl">
           <div className="flex items-center gap-3">
             <h2 className="font-semibold text-gray-900 text-sm">My results</h2>
             {isGenerating && (
@@ -144,26 +202,24 @@ export default function ResultPanel({
           <div className="flex items-center gap-2">
 
             {!isBusy && (
-              <>
-                <button
-                  type="button"
-                  onClick={handleExportDocx}
-                  disabled={isExporting !== null}
-                  className="flex items-center gap-1.5 text-sm text-gray-600 border border-gray-300 rounded-md px-3 py-1.5 hover:bg-gray-50 transition-colors disabled:opacity-40 cursor-pointer"
-                >
-                  {isExporting === "docx" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileText className="w-3.5 h-3.5" />}
-                  DOCX
-                </button>
-                <button
-                  type="button"
-                  onClick={handleExportPdf}
-                  disabled={isExporting !== null}
-                  className="flex items-center gap-1.5 text-sm text-gray-600 border border-gray-300 rounded-md px-3 py-1.5 hover:bg-gray-50 transition-colors disabled:opacity-40 cursor-pointer"
-                >
-                  <FileDown className="w-3.5 h-3.5" />
-                  Print
-                </button>
-              </>
+              <DropdownMenu
+                ariaLabel="Export options"
+                disabled={isExporting !== null}
+                triggerClassName="flex items-center gap-1.5 text-sm text-gray-600 border border-gray-300 rounded-md px-3 py-1.5 hover:bg-gray-50 transition-colors disabled:opacity-40 cursor-pointer"
+                menuClassName="w-60"
+                trigger={
+                  <>
+                    {isExporting ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Download className="w-3.5 h-3.5" />
+                    )}
+                    {isExporting === "pdf" ? "Building PDF…" : isExporting === "docx" ? "Building…" : "Export"}
+                    <ChevronDown className="w-3.5 h-3.5" />
+                  </>
+                }
+                items={exportItems}
+              />
             )}
             <button
               type="button"
@@ -176,6 +232,10 @@ export default function ResultPanel({
             </button>
           </div>
         </div>
+
+        {exportError && (
+          <p className="px-6 py-2 text-sm text-red-600 border-b border-gray-200">{exportError}</p>
+        )}
 
         {isBusy ? (
           <div className="py-20 px-24 min-h-48">

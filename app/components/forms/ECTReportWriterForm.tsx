@@ -9,6 +9,7 @@ import {
   IncludePdpField,
 } from "@/app/components/fields";
 import ResultPanel from "@/app/components/ResultPanel";
+import OutputOutline from "@/app/components/OutputOutline";
 import RefinePanel from "@/app/components/RefinePanel";
 import ConfirmModal from "@/app/components/ConfirmModal";
 import GenerateButton from "@/app/components/ui/GenerateButton";
@@ -16,6 +17,8 @@ import ResetButton from "@/app/components/ui/ResetButton";
 import Card from "@/app/components/ui/Card";
 import ToolHistoryPanel from "@/app/components/ToolHistoryPanel";
 import type { ToolRun } from "@/app/lib/toolRuns";
+import PrefilledBadge from "@/app/components/assistant/PrefilledBadge";
+import { useToolLaunch, type ToolLaunchParams } from "@/app/lib/useToolLaunch";
 
 const TOOL_SLUG = "ect-report-writer";
 
@@ -27,7 +30,14 @@ const REFINE_CHIPS = [
   "Translate to French",
 ];
 
-export default function ECTReportWriterForm({ sidebar }: { sidebar: React.ReactNode }) {
+export default function ECTReportWriterForm({
+  sidebar,
+  launch,
+}: {
+  sidebar: React.ReactNode;
+  /** `?run=` — reopen a saved run. */
+  launch?: ToolLaunchParams;
+}) {
   const [curriculum, setCurriculum] = useState("2014 National Curriculum");
   const [ectName, setEctName] = useState("");
   const [subject, setSubject] = useState("");
@@ -59,6 +69,17 @@ export default function ECTReportWriterForm({ sidebar }: { sidebar: React.ReactN
     setResult(run.output);
     setLastGenerated(JSON.stringify(i));
   };
+
+  // `?run=` reopens a saved run from Dashboard, Folders or Analytics.
+  const { prefilled } = useToolLaunch({
+    params: launch,
+    onRestore: restore,
+    prefill: {
+      ectName: (v) => setEctName(v as string),
+      subject: (v) => setSubject(v as string),
+      includePDP: (v) => setIncludePDP(v as boolean),
+    },
+  });
 
   const handleGenerate = async () => {
     setError(null);
@@ -133,6 +154,7 @@ export default function ECTReportWriterForm({ sidebar }: { sidebar: React.ReactN
 
         <div className="lg:col-span-2">
           <Card className="space-y-6">
+            {prefilled && <PrefilledBadge />}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <CurriculumField value={curriculum} onChange={setCurriculum} />
@@ -202,15 +224,27 @@ export default function ECTReportWriterForm({ sidebar }: { sidebar: React.ReactN
         <div className="sticky top-0 z-20 h-8 -mx-10" style={{ backgroundColor: "#F1EFE3" }} />
       )}
 
-      <ResultPanel
-        result={result}
-        isGenerating={isGenerating}
-        isRefining={isRefining}
-        onChange={(md) => setResult(md)}
-        exportFilename={`ect-report-${ectName.toLowerCase().replace(/\s+/g, "-") || "export"}`}
-        historyMeta={{ toolSlug: TOOL_SLUG, title: ectName || subject || null, input: formState }}
-        onSaved={() => setHistoryKey((k) => k + 1)}
-      />
+      <div className={result !== null ? "flex gap-8" : ""}>
+        {result !== null && (
+          <div className="w-md shrink-0">
+            <div className="sticky top-8">
+              <OutputOutline markdown={result} />
+            </div>
+          </div>
+        )}
+        <div className="flex-1 min-w-0">
+          <ResultPanel
+            result={result}
+            isGenerating={isGenerating}
+            isRefining={isRefining}
+            onChange={(md) => setResult(md)}
+            maxWidth={false}
+            exportFilename={`ect-report-${ectName.toLowerCase().replace(/\s+/g, "-") || "export"}`}
+            historyMeta={{ toolSlug: TOOL_SLUG, title: ectName || subject || null, input: formState }}
+            onSaved={() => setHistoryKey((k) => k + 1)}
+          />
+        </div>
+      </div>
 
       {result && !isGenerating && (
         <RefinePanel

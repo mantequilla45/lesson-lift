@@ -2,9 +2,18 @@ import { Baby } from "lucide-react";
 import EYFSPlannerForm from "@/app/components/forms/EYFSPlannerForm";
 import ToolInfoPanel from "@/app/components/ToolInfoPanel";
 
-export default function EYFSPlannerPage() {
+// searchParams are read here rather than with useSearchParams() in the form:
+// that hook forces a client-side bailout needing a Suspense boundary around the
+// whole form. Same approach as app/help/page.tsx.
+export default async function EYFSPlannerPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ run?: string; prefill?: string }>;
+}) {
+  const launch = await searchParams;
   return (
     <EYFSPlannerForm
+      launch={launch}
       sidebar={
         <ToolInfoPanel
           icon={<Baby className="w-5 h-5 text-emerald-600" />}

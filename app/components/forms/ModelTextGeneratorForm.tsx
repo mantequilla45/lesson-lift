@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import CurriculumYearFields, { useCurriculumYear } from "@/app/components/CurriculumYearFields";
-import { AbilityLevelField, WriteField, FeaturesField, WordCountField } from "@/app/components/fields";
+import { DifferentiationField, WriteField, FeaturesField, WordCountField } from "@/app/components/fields";
+import { restoreDifferentiation, type Differentiate } from "@/app/lib/differentiation";
 import ResultPanel from "@/app/components/ResultPanel";
+import OutputOutline from "@/app/components/OutputOutline";
 import RefinePanel from "@/app/components/RefinePanel";
 import ConfirmModal from "@/app/components/ConfirmModal";
 import Card from "@/app/components/ui/Card";
@@ -11,6 +13,8 @@ import GenerateButton from "@/app/components/ui/GenerateButton";
 import ResetButton from "@/app/components/ui/ResetButton";
 import ToolHistoryPanel from "@/app/components/ToolHistoryPanel";
 import type { ToolRun } from "@/app/lib/toolRuns";
+import PrefilledBadge from "@/app/components/assistant/PrefilledBadge";
+import { useToolLaunch, type ToolLaunchParams } from "@/app/lib/useToolLaunch";
 
 const TOOL_SLUG = "model-text-generator";
 
@@ -23,13 +27,21 @@ const REFINE_CHIPS = [
   "Translate to French",
 ];
 
-export default function ModelTextGeneratorForm({ sidebar }: { sidebar: React.ReactNode }) {
+export default function ModelTextGeneratorForm({
+  sidebar,
+  launch,
+}: {
+  sidebar: React.ReactNode;
+  /** `?run=` — reopen a saved run. */
+  launch?: ToolLaunchParams;
+}) {
   const { curriculum, setCurriculum, yearGroup, setYearGroup } = useCurriculumYear();
   const [mixed, setMixed] = useState(false);
   const [write, setWrite] = useState("");
   const [features, setFeatures] = useState("");
   const [keywords, setKeywords] = useState("");
-  const [abilityLevel, setAbilityLevel] = useState("EXS");
+  const [differentiate, setDifferentiate] = useState<Differentiate>("no");
+  const [differentiationLevels, setDifferentiationLevels] = useState<string[]>([]);
   const [lengthWords, setLengthWords] = useState("500");
 
   const [result, setResult] = useState<string | null>(null);
@@ -43,9 +55,10 @@ export default function ModelTextGeneratorForm({ sidebar }: { sidebar: React.Rea
   const lengthNum = parseInt(lengthWords, 10);
   const canGenerate =
     curriculum && (mixed || yearGroup) && write.trim() &&
-    !isNaN(lengthNum) && lengthNum >= 50 && lengthNum <= 5000;
+    !isNaN(lengthNum) && lengthNum >= 50 && lengthNum <= 5000 &&
+    (differentiate === "no" || differentiationLevels.length > 0);
 
-  const formState = { curriculum, yearGroup, mixed, write, features, keywords, abilityLevel, lengthWords };
+  const formState = { curriculum, yearGroup, mixed, write, features, keywords, differentiate, differentiationLevels, lengthWords };
   const formSnapshot = JSON.stringify(formState);
   const unchangedSinceGeneration = result !== null && lastGenerated === formSnapshot;
 
@@ -57,11 +70,29 @@ export default function ModelTextGeneratorForm({ sidebar }: { sidebar: React.Rea
     setWrite((i.write as string) ?? "");
     setFeatures((i.features as string) ?? "");
     setKeywords((i.keywords as string) ?? "");
-    setAbilityLevel((i.abilityLevel as string) ?? "EXS");
+    const d = restoreDifferentiation(i);
+    setDifferentiate(d.differentiate);
+    setDifferentiationLevels(d.levels);
     setLengthWords((i.lengthWords as string) ?? "500");
     setResult(run.output);
     setLastGenerated(JSON.stringify(i));
   };
+
+  // `?run=` reopens a saved run from Dashboard, Folders or Analytics.
+  const { prefilled } = useToolLaunch({
+    params: launch,
+    onRestore: restore,
+    prefill: {
+      curriculum: (v) => setCurriculum(v as string),
+      yearGroup: (v) => setYearGroup(v as string),
+      write: (v) => setWrite(v as string),
+      features: (v) => setFeatures(v as string),
+      keywords: (v) => setKeywords(v as string),
+      differentiate: (v) => setDifferentiate(v as Differentiate),
+      differentiationLevels: (v) => setDifferentiationLevels(v as string[]),
+      lengthWords: (v) => setLengthWords(v as string),
+    },
+  });
 
   const handleGenerate = async () => {
     setError(null);
@@ -78,7 +109,8 @@ export default function ModelTextGeneratorForm({ sidebar }: { sidebar: React.Rea
           write,
           features,
           keywords: keywords.trim() || null,
-          abilityLevel,
+          differentiate,
+          differentiationLevels,
           lengthWords: lengthNum,
         }),
       });
@@ -112,6 +144,7 @@ export default function ModelTextGeneratorForm({ sidebar }: { sidebar: React.Rea
 
         <div className="lg:col-span-2">
           <Card className="space-y-6">
+            {prefilled && <PrefilledBadge />}
 
             <CurriculumYearFields
               curriculum={curriculum} onCurriculumChange={setCurriculum}
@@ -134,7 +167,12 @@ export default function ModelTextGeneratorForm({ sidebar }: { sidebar: React.Rea
               />
             </div>
 
-            <AbilityLevelField value={abilityLevel} onChange={setAbilityLevel} />
+            <DifferentiationField
+              value={differentiate}
+              onChange={setDifferentiate}
+              levels={differentiationLevels}
+              onLevelsChange={setDifferentiationLevels}
+            />
             <WordCountField value={lengthWords} onChange={setLengthWords} />
 
             <div className="flex gap-3">
@@ -144,7 +182,7 @@ export default function ModelTextGeneratorForm({ sidebar }: { sidebar: React.Rea
                 title="Reset form?"
                 message="This will clear your current results and reset all form inputs."
                 confirmLabel="Yes, reset"
-                onConfirm={() => { setCurriculum(""); setYearGroup(""); setMixed(false); setWrite(""); setFeatures(""); setKeywords(""); setAbilityLevel("EXS"); setLengthWords("500"); setResult(null); setError(null); setConfirmingReset(false); }}
+                onConfirm={() => { setCurriculum(""); setYearGroup(""); setMixed(false); setWrite(""); setFeatures(""); setKeywords(""); setDifferentiate("no"); setDifferentiationLevels([]); setLengthWords("500"); setResult(null); setError(null); setConfirmingReset(false); }}
                 onCancel={() => setConfirmingReset(false)}
               />
               <GenerateButton onClick={handleGenerate} disabled={!canGenerate || isGenerating || unchangedSinceGeneration} isGenerating={isGenerating} hasResult={result !== null} />
@@ -161,15 +199,27 @@ export default function ModelTextGeneratorForm({ sidebar }: { sidebar: React.Rea
         <div className="sticky top-0 z-20 h-8 -mx-10" style={{ backgroundColor: "#F1EFE3" }} />
       )}
 
-      <ResultPanel
-        result={result}
-        isGenerating={isGenerating}
-        isRefining={isRefining}
-        onChange={(md) => setResult(md)}
-        exportFilename={`model-text-${write.slice(0, 30).replace(/\s+/g, "-") || "export"}`}
-        historyMeta={{ toolSlug: TOOL_SLUG, title: write || null, input: formState }}
-        onSaved={() => setHistoryKey((k) => k + 1)}
-      />
+      <div className={result !== null ? "flex gap-8" : ""}>
+        {result !== null && (
+          <div className="w-md shrink-0">
+            <div className="sticky top-8">
+              <OutputOutline markdown={result} />
+            </div>
+          </div>
+        )}
+        <div className="flex-1 min-w-0">
+          <ResultPanel
+            result={result}
+            isGenerating={isGenerating}
+            isRefining={isRefining}
+            onChange={(md) => setResult(md)}
+            maxWidth={false}
+            exportFilename={`model-text-${write.slice(0, 30).replace(/\s+/g, "-") || "export"}`}
+            historyMeta={{ toolSlug: TOOL_SLUG, title: write || null, input: formState }}
+            onSaved={() => setHistoryKey((k) => k + 1)}
+          />
+        </div>
+      </div>
 
       {result && !isGenerating && (
         <RefinePanel

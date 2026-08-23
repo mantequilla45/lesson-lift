@@ -3,7 +3,9 @@ import { createServerClient } from "@supabase/ssr";
 import {
   isGenerationRequest,
   isCostBearingRequest,
+  isAssistantRequest,
   checkAllGates,
+  checkAssistantAccess,
   quotaBlockBody,
   quotaBlockHeaders,
   quotaBlockStatus,
@@ -173,6 +175,27 @@ export async function proxy(request: NextRequest) {
       const url = request.nextUrl.clone();
       url.pathname = "/tools";
       return NextResponse.redirect(url);
+    }
+  }
+
+  // The assistant is a paid-plan feature. Checked BEFORE the spend gates below
+  // because it is an entitlement, not a quota: a Free user is not near a limit,
+  // they simply do not have the feature, and no top-up would change that.
+  //
+  // This is also the only thing standing between a Free account and unlimited
+  // assistant use — a chat turn is not a generation (so the count caps never see
+  // it) and Free has no spend ceiling (so the cost gate never fires). See the
+  // note on checkAssistantAccess.
+  //
+  // 402 + x-upgrade-required, so the existing UpgradeGate shows the upsell with
+  // no new client code.
+  if (user && isAssistantRequest(request.method, pathname)) {
+    const gate = await checkAssistantAccess(supabase);
+    if (gate) {
+      return NextResponse.json(quotaBlockBody(gate), {
+        status: quotaBlockStatus(gate),
+        headers: quotaBlockHeaders(gate),
+      });
     }
   }
 

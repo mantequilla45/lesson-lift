@@ -27,6 +27,7 @@ import SlideshowLoadingAnimation from "./SlideshowLoadingAnimation";
 import PresentationViewer from "./PresentationViewer";
 import { saveToolRun } from "@/app/lib/toolRuns";
 import type { FrameShape } from "./frames";
+import MiniSlide from "./MiniSlide";
 import { SLIDE_W, SLIDE_H } from "./constants";
 import {
   BLANK_SLIDE,
@@ -2550,7 +2551,97 @@ export default function Editor({ presentation, generationParams }: Props) {
 
   // ── Export PPTX ────────────────────────────────────────────────────────────
 
-  const handleExport = useCallback(async () => {
+  /**
+   * Export the deck as a PDF, one landscape page per slide.
+   *
+   * Rasterises rather than rebuilding each shape the way the PPTX path does:
+   * a PDF is a fixed rendering, so a picture of what the editor already draws
+   * is exactly right — and it reuses MiniSlide, which is the same renderer the
+   * slide tray and the deck list use. That means the PDF cannot drift from what
+   * the teacher sees on screen, which a second hand-built layout inevitably
+   * would.
+   *
+   * The trade-off is that text is not selectable in the output. For a
+   * presentation handout that is an acceptable price for fidelity; anyone
+   * needing editable output wants the PPTX.
+   */
+  const handleExportPdf = useCallback(async () => {
+    setIsExporting(true);
+    try {
+      const [{ default: jsPDF }, { default: html2canvas }, { createRoot }] = await Promise.all([
+        import("jspdf"),
+        import("html2canvas"),
+        import("react-dom/client"),
+      ]);
+
+      const deck = slidesRef.current;
+      if (deck.length === 0) return;
+
+      // Only slides[0] carries the deck-level theme, but the callout/badge/
+      // blockquote primitives need it on every slide — so it is read once here
+      // and passed to each, exactly as the slide tray does.
+      const deckThemeId = deck[0]?.themeId ?? DEFAULT_THEME_ID;
+
+      // Rendered offscreen but attached: html2canvas reads computed styles, so
+      // the nodes must be in the document. Far off-canvas rather than hidden,
+      // which would collapse every element to zero height.
+      const host = document.createElement("div");
+      host.style.cssText = `position:fixed;left:-10000px;top:0;width:${SLIDE_W}px;`;
+      document.body.appendChild(host);
+      const root = createRoot(host);
+
+      const pdf = new jsPDF({
+        orientation: "landscape",
+        unit: "px",
+        format: [SLIDE_W, SLIDE_H],
+        hotfixes: ["px_scaling"],
+      });
+
+      try {
+        for (let i = 0; i < deck.length; i++) {
+          await new Promise<void>((resolve) => {
+            root.render(
+              <div style={{ width: SLIDE_W, height: SLIDE_H }}>
+                <MiniSlide slide={deck[i]} width={SLIDE_W} themeId={deckThemeId} />
+              </div>,
+            );
+            // Two frames: one for React to commit, one for the browser to lay
+            // out and paint before html2canvas reads the DOM.
+            requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+          });
+
+          const canvas = await html2canvas(host, {
+            scale: 2,
+            useCORS: true,
+            backgroundColor: "#ffffff",
+            width: SLIDE_W,
+            height: SLIDE_H,
+          });
+
+          if (i > 0) pdf.addPage([SLIDE_W, SLIDE_H], "landscape");
+          pdf.addImage(canvas.toDataURL("image/png"), "PNG", 0, 0, SLIDE_W, SLIDE_H);
+        }
+
+        pdf.save(`${titleRef.current || "presentation"}.pdf`);
+      } finally {
+        // Unmount before removing the host, or React keeps a reference to a
+        // detached tree. Deferred because unmounting during a commit warns.
+        setTimeout(() => {
+          root.unmount();
+          host.remove();
+        }, 0);
+      }
+    } catch (err) {
+      console.error("PDF export failed:", err);
+    } finally {
+      setIsExporting(false);
+    }
+    // Reads the deck through slidesRef, so no dependency on `slides` — which
+    // would rebuild this on every keystroke in the editor.
+  }, []);
+
+  const handleExport = useCallback(async (format: "pptx" | "pdf" = "pptx") => {
+    if (format === "pdf") return handleExportPdf();
     setIsExporting(true);
     try {
       const pptxgenMod = await import("pptxgenjs");
@@ -2739,7 +2830,8 @@ export default function Editor({ presentation, generationParams }: Props) {
     } finally {
       setIsExporting(false);
     }
-  }, []);
+    // handleExportPdf is itself stable (empty deps), so this stays stable too.
+  }, [handleExportPdf]);
 
   // ── AI generation streaming (initial deck only) ────────────────────────────
   // When generationParams is passed in (handed off from the Generate modal via
@@ -2865,7 +2957,11 @@ export default function Editor({ presentation, generationParams }: Props) {
       if (runRecorded) return;
       runRecorded = true;
       void saveToolRun({
-        toolSlug: "generate-slideshow",
+        // The tool's own slug, NOT the API route name ("generate-slideshow").
+        // /folders matches runs to the TOOLS registry on `/tools/<slug>`, so
+        // the route name never resolved and produced a folder literally called
+        // "generate-slideshow". Cost/usage tracking still keys on the route.
+        toolSlug: "slideshow",
         title: titleRef.current || "Untitled deck",
         input: {
           presentationId: presentation.id,

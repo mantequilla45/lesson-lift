@@ -1,0 +1,17 @@
+<svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <clipPath id="clip-eyfs-action-plan"><rect width="48" height="48" rx="12"/></clipPath>
+  </defs>
+  <g clip-path="url(#clip-eyfs-action-plan)">
+    <rect width="48" height="48" rx="12" fill="#059669"/>
+    <path d="M13 11 L48 46 L28 48 L13 33 Z" fill="#000" opacity="0.12"/>
+    <rect x="13" y="14" width="22" height="25" rx="3" fill="#FFFFFF"/>
+    <rect x="19" y="10" width="10" height="7" rx="2" fill="#1E3C54"/>
+    <path d="M17 23l2 2 3.5-3.8" stroke="#22C55E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    <rect x="24" y="22" width="8" height="2.5" rx="1.25" fill="#A7E3CE"/>
+    <path d="M17 30l2 2 3.5-3.8" stroke="#22C55E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    <rect x="24" y="29" width="8" height="2.5" rx="1.25" fill="#A7E3CE"/>
+    <circle cx="19" cy="35.5" r="2.2" fill="#FFDC21"/>
+    <rect x="24" y="34.5" width="8" height="2.5" rx="1.25" fill="#A7E3CE"/>
+  </g>
+</svg>

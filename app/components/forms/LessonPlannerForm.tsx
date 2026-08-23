@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import CurriculumYearFields, { useCurriculumYear } from "@/app/components/CurriculumYearFields";
-import { SubjectField, TopicField, LearningObjectiveField, AdditionalContextField, OutputDetailField, AbilityLevelField, type OutputDetail } from "@/app/components/fields";
+import { SubjectField, TopicField, LearningObjectiveField, AdditionalContextField, OutputDetailField, DifferentiationField, type OutputDetail } from "@/app/components/fields";
+import { restoreDifferentiation, type Differentiate } from "@/app/lib/differentiation";
 import GenerateOutlineButton from "@/app/components/ui/GenerateOutlineButton";
 import { toTitleCase } from "@/app/lib/formOptions";
 import ResultPanel from "@/app/components/ResultPanel";
@@ -10,19 +11,29 @@ import Card from "@/app/components/ui/Card";
 import ConfirmModal from "@/app/components/ConfirmModal";
 import GenerateButton from "@/app/components/ui/GenerateButton";
 import ResetButton from "@/app/components/ui/ResetButton";
-import LessonPlannerNav from "@/app/components/LessonPlannerNav";
+import OutputOutline from "@/app/components/OutputOutline";
 import ToolHistoryPanel from "@/app/components/ToolHistoryPanel";
+import PrefilledBadge from "@/app/components/assistant/PrefilledBadge";
+import { useToolLaunch, type ToolLaunchParams } from "@/app/lib/useToolLaunch";
 import type { ToolRun } from "@/app/lib/toolRuns";
 
 const TOOL_SLUG = "lesson-planner";
 
-export default function LessonPlannerForm({ sidebar }: { sidebar: React.ReactNode }) {
+export default function LessonPlannerForm({
+  sidebar,
+  launch,
+}: {
+  sidebar: React.ReactNode;
+  /** `?run=` / `?prefill=`, read on the server and passed down. */
+  launch?: ToolLaunchParams;
+}) {
   const { curriculum, setCurriculum, yearGroup, setYearGroup } = useCurriculumYear();
   const [mixed, setMixed] = useState(false);
   const [subject, setSubject] = useState("");
   const [topic, setTopic] = useState("");
   const [learningObjective, setLearningObjective] = useState("");
-  const [abilityLevel, setAbilityLevel] = useState<string>("EXS");
+  const [differentiate, setDifferentiate] = useState<Differentiate>("no");
+  const [differentiationLevels, setDifferentiationLevels] = useState<string[]>([]);
   const [outputDetail, setOutputDetail] = useState<OutputDetail>("detailed");
   const [additionalInfo, setAdditionalInfo] = useState("");
 
@@ -34,10 +45,11 @@ export default function LessonPlannerForm({ sidebar }: { sidebar: React.ReactNod
   const [historyKey, setHistoryKey] = useState(0);
 
   const canGenerate =
-    curriculum && (mixed || yearGroup) && subject.trim() && topic.trim() && learningObjective.trim();
+    curriculum && (mixed || yearGroup) && subject.trim() && topic.trim() && learningObjective.trim() &&
+    (differentiate === "no" || differentiationLevels.length > 0);
 
   // Raw form state — saved as history input so a past run can refill the form.
-  const formState = { curriculum, yearGroup, mixed, subject, topic, learningObjective, abilityLevel, outputDetail, additionalInfo };
+  const formState = { curriculum, yearGroup, mixed, subject, topic, learningObjective, differentiate, differentiationLevels, outputDetail, additionalInfo };
   const formSnapshot = JSON.stringify(formState);
   const unchangedSinceGeneration = result !== null && lastGenerated === formSnapshot;
 
@@ -49,12 +61,32 @@ export default function LessonPlannerForm({ sidebar }: { sidebar: React.ReactNod
     setSubject((i.subject as string) ?? "");
     setTopic((i.topic as string) ?? "");
     setLearningObjective((i.learningObjective as string) ?? "");
-    setAbilityLevel((i.abilityLevel as string) ?? "EXS");
+    const d = restoreDifferentiation(i);
+    setDifferentiate(d.differentiate);
+    setDifferentiationLevels(d.levels);
     setOutputDetail((i.outputDetail as OutputDetail) ?? "detailed");
     setAdditionalInfo((i.additionalInfo as string) ?? "");
     setResult(run.output);
     setLastGenerated(JSON.stringify(i));
   };
+
+  // ?run= reopens a saved run; ?prefill= fills the form from the assistant.
+  // The setter map is the form-state shape — the same keys `formState` above
+  // persists, which is what /folders reads its Subject and Year facets from.
+  const { prefilled } = useToolLaunch({
+    params: launch,
+    onRestore: restore,
+    prefill: {
+      curriculum: (v) => setCurriculum(v as string),
+      yearGroup: (v) => setYearGroup(v as string),
+      subject: (v) => setSubject(v as string),
+      topic: (v) => setTopic(v as string),
+      learningObjective: (v) => setLearningObjective(v as string),
+      differentiate: (v) => setDifferentiate(v as Differentiate),
+      differentiationLevels: (v) => setDifferentiationLevels(v as string[]),
+      outputDetail: (v) => setOutputDetail(v as OutputDetail),
+    },
+  });
 
   const handleGenerate = async () => {
     setError(null);
@@ -71,7 +103,8 @@ export default function LessonPlannerForm({ sidebar }: { sidebar: React.ReactNod
           subject: toTitleCase(subject),
           topic,
           learningObjective,
-          abilityLevel,
+          differentiate,
+          differentiationLevels,
           outputDetail,
           additionalInfo: additionalInfo.trim() || null,
         }),
@@ -106,6 +139,7 @@ export default function LessonPlannerForm({ sidebar }: { sidebar: React.ReactNod
 
         <div className="lg:col-span-2">
           <Card className="space-y-6">
+            {prefilled && <PrefilledBadge />}
 
             <CurriculumYearFields
               curriculum={curriculum} onCurriculumChange={setCurriculum}
@@ -118,7 +152,12 @@ export default function LessonPlannerForm({ sidebar }: { sidebar: React.ReactNod
             <LearningObjectiveField value={learningObjective} onChange={setLearningObjective} />
 
             <OutputDetailField value={outputDetail} onChange={setOutputDetail} />
-            <AbilityLevelField value={abilityLevel} onChange={setAbilityLevel} />
+            <DifferentiationField
+              value={differentiate}
+              onChange={setDifferentiate}
+              levels={differentiationLevels}
+              onLevelsChange={setDifferentiationLevels}
+            />
 
             <AdditionalContextField
               value={additionalInfo}
@@ -144,7 +183,8 @@ export default function LessonPlannerForm({ sidebar }: { sidebar: React.ReactNod
                 onConfirm={() => {
                   setCurriculum(""); setYearGroup(""); setMixed(false);
                   setSubject(""); setTopic(""); setLearningObjective("");
-                  setAbilityLevel("EXS"); setOutputDetail("detailed");
+                  setDifferentiate("no"); setDifferentiationLevels([]);
+                  setOutputDetail("detailed");
                   setAdditionalInfo("");
                   setResult(null); setError(null); setConfirmingReset(false);
                 }}
@@ -168,7 +208,7 @@ export default function LessonPlannerForm({ sidebar }: { sidebar: React.ReactNod
         {result !== null && (
           <div className="w-md shrink-0">
             <div className="sticky top-8">
-              <LessonPlannerNav />
+              <OutputOutline markdown={result} />
             </div>
           </div>
         )}

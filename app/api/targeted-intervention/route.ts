@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { streamChat } from "@/app/lib/usage";
 import { modelFor } from "@/app/lib/tool-model";
 import { buildSystem } from "@/app/lib/systemPrompt";
+import { differentiationPrompt, type Differentiate } from "@/app/lib/differentiation";
 
 export interface TargetedInterventionRequest {
   curriculum: string;
@@ -11,13 +12,15 @@ export interface TargetedInterventionRequest {
   aptitudinalData?: string;
   attainmentData?: string;
   otherData?: string;
+  differentiate?: Differentiate;
+  differentiationLevels?: string[];
 }
 
 
 export async function POST(req: NextRequest) {
   const body: TargetedInterventionRequest = await req.json();
 
-  const { curriculum, yearGroup, subject, attitudinalData, aptitudinalData, attainmentData, otherData } = body;
+  const { curriculum, yearGroup, subject, attitudinalData, aptitudinalData, attainmentData, otherData, differentiate = "no", differentiationLevels = [] } = body;
 
   if (!curriculum || !yearGroup || !subject?.trim() || !attitudinalData?.trim()) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -35,12 +38,16 @@ export async function POST(req: NextRequest) {
     ? `\n- Other relevant data: ${otherData.trim()}`
     : "";
 
+  // Opt-in: empty when the teacher chose not to differentiate.
+  const adaptation = differentiationPrompt(differentiate, differentiationLevels);
+  const adaptationSection = adaptation ? `\n\nDIFFERENTIATION — ${adaptation}` : "";
+
   const userPrompt = `You are an expert educational practitioner and intervention specialist. Generate a set of targeted, practical intervention strategies for the following student profile:
 
 - Curriculum: ${curriculum}
 - Year Group: ${yearGroup}
 - Subject: ${subject}
-- Attitudinal data: ${attitudinalData}${aptitudinalSection}${attainmentSection}${otherSection}
+- Attitudinal data: ${attitudinalData}${aptitudinalSection}${attainmentSection}${otherSection}${adaptationSection}
 
 Analyse the full student profile carefully. Identify the key strengths, gaps, and tensions in the data — then generate between 8 and 10 specific, personalised intervention strategies to close those gaps.
 

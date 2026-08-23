@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { streamChat } from "@/app/lib/usage";
 import { labModelFor } from "@/app/lib/model-lab";
 import { buildSystem } from "@/app/lib/systemPrompt";
+import { differentiationPrompt, type Differentiate } from "@/app/lib/differentiation";
 
 export interface LessonPlanRequest {
   curriculum: string;
@@ -9,7 +10,8 @@ export interface LessonPlanRequest {
   subject: string;
   topic: string;
   learningObjective: string;
-  abilityLevel?: string;
+  differentiate?: Differentiate;
+  differentiationLevels?: string[];
   outputDetail?: "condensed" | "standard" | "detailed";
   additionalInfo?: string | null;
 }
@@ -24,7 +26,8 @@ export async function POST(req: NextRequest) {
     subject,
     topic,
     learningObjective,
-    abilityLevel = "EXS",
+    differentiate = "no",
+    differentiationLevels = [],
     outputDetail = "detailed",
     additionalInfo,
   } = body;
@@ -44,12 +47,28 @@ export async function POST(req: NextRequest) {
     ? `\nAdditional context or theme to incorporate: ${additionalInfo}`
     : "";
 
-  const adaptationLevel =
-    abilityLevel === "WTS"
-      ? `**WTS – Working Towards Standard**: 2 specific scaffolding strategies — such as graphic organisers, sentence frames, partially completed examples, or modified task demands — that maintain access to the learning objective without removing cognitive challenge.`
-      : abilityLevel === "GDS"
-      ? `**GDS – Greater Depth Standard**: 2 specific extension ideas that deepen understanding rather than simply accelerate pace — including suggestions for higher-order thinking, independent enquiry, or links to examination-level challenge.`
-      : `**EXS – Expected Standard**: Describe what successful engagement looks like at the expected level. Include 1–2 strategies to keep these learners on track and appropriately challenged throughout the lesson.`;
+  // Differentiation is opt-in. When it is off the whole Adaptation Strategies
+  // section is dropped and the sections after it shift up, so the plan never
+  // shows a gap in its own numbering.
+  const adaptation = differentiationPrompt(differentiate, differentiationLevels);
+
+  const adaptationSection = adaptation
+    ? `## Section 5 – Adaptation Strategies
+
+Write in the context of the Teachers' Standards (particularly TS5: Adapt teaching to respond to the strengths and needs of all pupils) and the SEND Code of Practice.
+
+${adaptation}
+
+**Considerations for Diverse Learning Needs**: 3 bullet points addressing inclusion more broadly — covering EAL learners, pupils with SEND, and those with social, emotional, or mental health needs where relevant. Reference specific adjustments rather than generic statements.
+
+---
+
+`
+    : "";
+
+  // Section numbers for everything after the optional section.
+  const nSummative = adaptation ? 6 : 5;
+  const nResources = adaptation ? 7 : 6;
 
   const userPrompt = `${detailPreamble}Create a classroom-ready lesson plan for the following:
 
@@ -124,17 +143,7 @@ Describe two progressive activities that move from supported to independent prac
 
 ---
 
-## Section 5 – Adaptation Strategies
-
-Write in the context of the Teachers' Standards (particularly TS5: Adapt teaching to respond to the strengths and needs of all pupils) and the SEND Code of Practice.
-
-${adaptationLevel}
-
-**Considerations for Diverse Learning Needs**: 3 bullet points addressing inclusion more broadly — covering EAL learners, pupils with SEND, and those with social, emotional, or mental health needs where relevant. Reference specific adjustments rather than generic statements.
-
----
-
-## Section 6 – Summative Assessment
+${adaptationSection}## Section ${nSummative} – Summative Assessment
 
 **Assessment Opportunities**: 2 bullet points describing concrete methods for assessing whether students have met the learning objective — including both formative checks within the lesson and any summative task or homework that follows.
 **Long-term Evaluation**: 1 bullet point describing how the teacher will monitor retention and application of this learning beyond the lesson — for example, through spaced retrieval, marking of extended work, or progress tracking.
@@ -142,7 +151,7 @@ ${adaptationLevel}
 
 ---
 
-## Section 7 – Resources and Technology
+## Section ${nResources} – Resources and Technology
 
 A structured bullet list of all materials, tools, and technology required. Separate into: printed resources, digital tools, physical materials, and any teacher-facing resources (e.g. mark schemes, model answers).
 

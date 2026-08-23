@@ -3,15 +3,19 @@
 import { useState, useEffect, useRef } from "react";
 import { Loader2, Copy, Check, ChevronDown } from "lucide-react";
 import CurriculumYearFields, { useCurriculumYear } from "@/app/components/CurriculumYearFields";
-import { SubjectField, TopicField, LessonCountField, AdditionalContextField } from "@/app/components/fields";
+import { SubjectField, TopicField, LessonCountField, AdditionalContextField, DifferentiationField } from "@/app/components/fields";
+import { restoreDifferentiation, type Differentiate } from "@/app/lib/differentiation";
 import GenerateOutlineButton from "@/app/components/ui/GenerateOutlineButton";
 import ConfirmModal from "@/app/components/ConfirmModal";
 import GenerateButton from "@/app/components/ui/GenerateButton";
 import ResetButton from "@/app/components/ui/ResetButton";
 import Card from "@/app/components/ui/Card";
+import DropdownMenu from "@/app/components/ui/DropdownMenu";
 import { toTitleCase } from "@/app/lib/formOptions";
 import ToolHistoryPanel from "@/app/components/ToolHistoryPanel";
 import { saveToolRun, type ToolRun } from "@/app/lib/toolRuns";
+import PrefilledBadge from "@/app/components/assistant/PrefilledBadge";
+import { useToolLaunch, type ToolLaunchParams } from "@/app/lib/useToolLaunch";
 
 const TOOL_SLUG = "lesson-slideshow";
 
@@ -604,7 +608,14 @@ async function exportSlidesToPptx(slides: LessonSlideData[], filename: string) {
 }
 
 // ── Main form ──────────────────────────────────────────────────────────────
-export default function LessonSlideshowForm({ sidebar }: { sidebar: React.ReactNode }) {
+export default function LessonSlideshowForm({
+  sidebar,
+  launch,
+}: {
+  sidebar: React.ReactNode;
+  /** `?run=` — reopen a saved run. */
+  launch?: ToolLaunchParams;
+}) {
   const { curriculum, setCurriculum, yearGroup, setYearGroup } = useCurriculumYear();
   const [mixed, setMixed] = useState(false);
   const [subject, setSubject] = useState("");
@@ -612,6 +623,8 @@ export default function LessonSlideshowForm({ sidebar }: { sidebar: React.ReactN
   const [slideCount, setSlideCount] = useState(8);
   const [additionalContext, setAdditionalContext] = useState("");
   const [includeImageSuggestions, setIncludeImageSuggestions] = useState(true);
+  const [differentiate, setDifferentiate] = useState<Differentiate>("no");
+  const [differentiationLevels, setDifferentiationLevels] = useState<string[]>([]);
 
   const [slides, setSlides] = useState<LessonSlideData[] | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -619,13 +632,16 @@ export default function LessonSlideshowForm({ sidebar }: { sidebar: React.ReactN
   const [error, setError] = useState<string | null>(null);
   const [confirmingReset, setConfirmingReset] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [showDownloadMenu, setShowDownloadMenu] = useState(false);
+  // Both exporters name the file from the topic; shared so PDF and PPTX of the
+  // same deck cannot end up named differently.
+  const slideshowFilename = () =>
+    `lesson-${topic.slice(0, 30).replace(/\s+/g, "-") || "slideshow"}`;
   const [refineInstruction, setRefineInstruction] = useState("");
   const [lastGenerated, setLastGenerated] = useState<string | null>(null);
   const [historyKey, setHistoryKey] = useState(0);
 
   // Raw form state — saved as history input so a past run can refill the form.
-  const formState = { curriculum, yearGroup, mixed, subject, topic, slideCount, additionalContext, includeImageSuggestions };
+  const formState = { curriculum, yearGroup, mixed, subject, topic, slideCount, additionalContext, includeImageSuggestions, differentiate, differentiationLevels };
 
   // Slides are a structured array, not markdown — store as JSON text.
   const persist = (s: LessonSlideData[]) => {
@@ -654,6 +670,9 @@ export default function LessonSlideshowForm({ sidebar }: { sidebar: React.ReactN
     setSlideCount((i.slideCount as number) ?? 8);
     setAdditionalContext((i.additionalContext as string) ?? "");
     setIncludeImageSuggestions(i.includeImageSuggestions === undefined ? true : Boolean(i.includeImageSuggestions));
+    const d = restoreDifferentiation(i);
+    setDifferentiate(d.differentiate);
+    setDifferentiationLevels(d.levels);
     try {
       setSlides(JSON.parse(run.output) as LessonSlideData[]);
     } catch {
@@ -661,6 +680,22 @@ export default function LessonSlideshowForm({ sidebar }: { sidebar: React.ReactN
     }
     setLastGenerated(JSON.stringify({ topic: i.topic, subject: i.subject, yearGroup: i.yearGroup, mixed: i.mixed, slideCount: i.slideCount, additionalContext: i.additionalContext, includeImageSuggestions: i.includeImageSuggestions }));
   };
+
+  // `?run=` reopens a saved run from Dashboard, Folders or Analytics.
+  const { prefilled } = useToolLaunch({
+    params: launch,
+    onRestore: restore,
+    prefill: {
+      curriculum: (v) => setCurriculum(v as string),
+      yearGroup: (v) => setYearGroup(v as string),
+      subject: (v) => setSubject(v as string),
+      topic: (v) => setTopic(v as string),
+      slideCount: (v) => setSlideCount(v as number),
+      includeImageSuggestions: (v) => setIncludeImageSuggestions(v as boolean),
+      differentiate: (v) => setDifferentiate(v as Differentiate),
+      differentiationLevels: (v) => setDifferentiationLevels(v as string[]),
+    },
+  });
 
   const userScrolledUp = useRef(false);
   const isGeneratingRef = useRef(false);
@@ -687,7 +722,8 @@ export default function LessonSlideshowForm({ sidebar }: { sidebar: React.ReactN
     }
   }, [slides, isBusy]);
 
-  const canGenerate = topic.trim() && (mixed || yearGroup);
+  const canGenerate = topic.trim() && (mixed || yearGroup) &&
+    (differentiate === "no" || differentiationLevels.length > 0);
   const formSnapshot = JSON.stringify({ topic, subject, yearGroup, mixed, slideCount, additionalContext, includeImageSuggestions });
   const unchangedSinceGeneration = slides !== null && lastGenerated === formSnapshot;
 
@@ -708,6 +744,8 @@ export default function LessonSlideshowForm({ sidebar }: { sidebar: React.ReactN
           slideCount,
           additionalContext: additionalContext.trim() || undefined,
           includeImageSuggestions,
+          differentiate,
+          differentiationLevels,
         }),
       });
       if (!res.ok) {
@@ -789,6 +827,7 @@ export default function LessonSlideshowForm({ sidebar }: { sidebar: React.ReactN
         </div>
         <div className="lg:col-span-2">
           <Card className="space-y-6">
+            {prefilled && <PrefilledBadge />}
 
             <CurriculumYearFields
               curriculum={curriculum} onCurriculumChange={setCurriculum}
@@ -848,6 +887,13 @@ export default function LessonSlideshowForm({ sidebar }: { sidebar: React.ReactN
               </label>
             </div>
 
+            <DifferentiationField
+              value={differentiate}
+              onChange={setDifferentiate}
+              levels={differentiationLevels}
+              onLevelsChange={setDifferentiationLevels}
+            />
+
             <div className="flex gap-3">
               <ResetButton onClick={() => setConfirmingReset(true)} disabled={!slides} />
               <ConfirmModal
@@ -859,6 +905,8 @@ export default function LessonSlideshowForm({ sidebar }: { sidebar: React.ReactN
                   setCurriculum(""); setYearGroup(""); setMixed(false);
                   setSubject(""); setTopic(""); setSlideCount(8);
                   setAdditionalContext(""); setIncludeImageSuggestions(true);
+                  setDifferentiate("no"); setDifferentiationLevels([]);
+                  setDifferentiate("no"); setDifferentiationLevels([]);
                   setSlides(null); setError(null); setConfirmingReset(false);
                 }}
                 onCancel={() => setConfirmingReset(false)}
@@ -893,20 +941,29 @@ export default function LessonSlideshowForm({ sidebar }: { sidebar: React.ReactN
                   className="flex items-center gap-2 px-4 py-2 bg-[#1a1a1a] text-white rounded-xl text-sm font-medium hover:bg-gray-800 transition-colors">
                   {copied ? <><Check className="w-4 h-4" />Copied</> : <><Copy className="w-4 h-4" />Copy to clipboard</>}
                 </button>
-                <div className="relative">
-                  <button onClick={() => setShowDownloadMenu(v => !v)}
-                    className="flex items-center gap-2 px-4 py-2 bg-[#1a1a1a] text-white rounded-xl text-sm font-medium hover:bg-gray-800 transition-colors">
-                    Download <ChevronDown className="w-4 h-4" />
-                  </button>
-                  {showDownloadMenu && (
-                    <div className="absolute right-0 mt-1 w-44 bg-white border border-gray-200 rounded-md shadow-lg z-10 py-1">
-                      <button onClick={async () => { await exportSlidesToPdf(slides!, `lesson-${topic.slice(0, 30).replace(/\s+/g, "-") || "slideshow"}`); setShowDownloadMenu(false); }}
-                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Download PDF</button>
-                      <button onClick={async () => { await exportSlidesToPptx(slides!, `lesson-${topic.slice(0, 30).replace(/\s+/g, "-") || "slideshow"}`); setShowDownloadMenu(false); }}
-                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Download PPTX</button>
-                    </div>
-                  )}
-                </div>
+                <DropdownMenu
+                  ariaLabel="Download options"
+                  triggerClassName="flex items-center gap-2 px-4 py-2 bg-[#1a1a1a] text-white rounded-xl text-sm font-medium hover:bg-gray-800 transition-colors cursor-pointer"
+                  menuClassName="w-56"
+                  trigger={<>Download <ChevronDown className="w-4 h-4" /></>}
+                  items={[
+                    {
+                      label: "Download PDF",
+                      onSelect: () => void exportSlidesToPdf(slides!, slideshowFilename()),
+                    },
+                    {
+                      label: "Download PowerPoint (PPTX)",
+                      onSelect: () => void exportSlidesToPptx(slides!, slideshowFilename()),
+                    },
+                    {
+                      // Needs Google OAuth and the Slides API — same blocker as
+                      // Google Docs on the text tools.
+                      label: "Save to Google Slides",
+                      disabled: true,
+                      note: "coming soon",
+                    },
+                  ]}
+                />
               </div>
             )}
           </div>

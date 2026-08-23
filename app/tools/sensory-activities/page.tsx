@@ -2,9 +2,18 @@ import { Sparkles } from "lucide-react";
 import SensoryActivitiesForm from "@/app/components/forms/SensoryActivitiesForm";
 import ToolInfoPanel from "@/app/components/ToolInfoPanel";
 
-export default function SensoryActivitiesPage() {
+// searchParams are read here rather than with useSearchParams() in the form:
+// that hook forces a client-side bailout needing a Suspense boundary around the
+// whole form. Same approach as app/help/page.tsx.
+export default async function SensoryActivitiesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ run?: string; prefill?: string }>;
+}) {
+  const launch = await searchParams;
   return (
     <SensoryActivitiesForm
+      launch={launch}
       sidebar={
         <ToolInfoPanel
           icon={<Sparkles className="w-5 h-5 text-emerald-600" />}

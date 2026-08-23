@@ -2,10 +2,12 @@
 
 import { useState, useRef } from "react";
 import CurriculumYearFields, { useCurriculumYear } from "@/app/components/CurriculumYearFields";
-import { SubjectField, LearningObjectiveField, AbilityLevelField, QuestionTypesField, AdditionalContextField } from "@/app/components/fields";
+import { SubjectField, LearningObjectiveField, DifferentiationField, QuestionTypesField, AdditionalContextField } from "@/app/components/fields";
+import { restoreDifferentiation, type Differentiate } from "@/app/lib/differentiation";
 import { toTitleCase } from "@/app/lib/formOptions";
 import { Upload, X, Search, ImageIcon } from "lucide-react";
 import ResultPanel from "@/app/components/ResultPanel";
+import OutputOutline from "@/app/components/OutputOutline";
 import RefinePanel from "@/app/components/RefinePanel";
 import ConfirmModal from "@/app/components/ConfirmModal";
 import GenerateButton from "@/app/components/ui/GenerateButton";
@@ -13,6 +15,8 @@ import ResetButton from "@/app/components/ui/ResetButton";
 import Card from "@/app/components/ui/Card";
 import ToolHistoryPanel from "@/app/components/ToolHistoryPanel";
 import type { ToolRun } from "@/app/lib/toolRuns";
+import PrefilledBadge from "@/app/components/assistant/PrefilledBadge";
+import { useToolLaunch, type ToolLaunchParams } from "@/app/lib/useToolLaunch";
 
 const TOOL_SLUG = "homework-generator";
 
@@ -49,12 +53,19 @@ const selectClass =
 
 type ImageSource = "upload" | "search" | "";
 
-export default function HomeworkGeneratorForm({ sidebar }: { sidebar: React.ReactNode }) {
+export default function HomeworkGeneratorForm({
+  sidebar,
+  launch,
+}: {
+  sidebar: React.ReactNode;
+  launch?: ToolLaunchParams;
+}) {
   const { curriculum, setCurriculum, yearGroup, setYearGroup } = useCurriculumYear();
   const [mixed, setMixed] = useState(false);
   const [subject, setSubject] = useState("");
   const [learningObjective, setLearningObjective] = useState("");
-  const [abilityLevel, setAbilityLevel] = useState("EXS");
+  const [differentiate, setDifferentiate] = useState<Differentiate>("no");
+  const [differentiationLevels, setDifferentiationLevels] = useState<string[]>([]);
   const [questionTypes, setQuestionTypes] = useState<string[]>([]);
   const [questionCounts, setQuestionCounts] = useState<Record<string, number>>({});
   const [homeworkType, setHomeworkType] = useState("");
@@ -86,10 +97,11 @@ export default function HomeworkGeneratorForm({ sidebar }: { sidebar: React.Reac
     subject.trim() &&
     learningObjective.trim() &&
     homeworkType &&
-    length;
+    length &&
+    (differentiate === "no" || differentiationLevels.length > 0);
 
   const formState = {
-    curriculum, yearGroup, mixed, subject, learningObjective, abilityLevel,
+    curriculum, yearGroup, mixed, subject, learningObjective, differentiate, differentiationLevels,
     questionTypes, questionCounts, homeworkType, length, includeAnswers,
     additionalInstructions, lessonContent, imageBase64,
   };
@@ -103,7 +115,9 @@ export default function HomeworkGeneratorForm({ sidebar }: { sidebar: React.Reac
     setMixed(Boolean(i.mixed));
     setSubject((i.subject as string) ?? "");
     setLearningObjective((i.learningObjective as string) ?? "");
-    setAbilityLevel((i.abilityLevel as string) ?? "EXS");
+    const d = restoreDifferentiation(i);
+    setDifferentiate(d.differentiate);
+    setDifferentiationLevels(d.levels);
     setQuestionTypes((i.questionTypes as string[]) ?? []);
     setQuestionCounts((i.questionCounts as Record<string, number>) ?? {});
     setHomeworkType((i.homeworkType as string) ?? "");
@@ -115,6 +129,22 @@ export default function HomeworkGeneratorForm({ sidebar }: { sidebar: React.Reac
     setResult(run.output);
     setLastGenerated(JSON.stringify(i));
   };
+
+  // Only the fields a sentence can reliably supply. homeworkType, length and
+  // questionCounts are deliberately left to the teacher: they are pedagogical
+  // choices, and a guess here would be presented as a decision already made.
+  const { prefilled } = useToolLaunch({
+    params: launch,
+    onRestore: restore,
+    prefill: {
+      curriculum: (v) => setCurriculum(v as string),
+      yearGroup: (v) => setYearGroup(v as string),
+      subject: (v) => setSubject(v as string),
+      learningObjective: (v) => setLearningObjective(v as string),
+      differentiate: (v) => setDifferentiate(v as Differentiate),
+      differentiationLevels: (v) => setDifferentiationLevels(v as string[]),
+    },
+  });
 
   const handleImageFile = (file: File) => {
     setImageFile(file);
@@ -157,7 +187,8 @@ export default function HomeworkGeneratorForm({ sidebar }: { sidebar: React.Reac
           yearGroup: mixed ? "Mixed" : yearGroup,
           subject: toTitleCase(subject),
           learningObjective,
-          abilityLevel,
+          differentiate,
+          differentiationLevels,
           questionTypes: questionTypes.length > 0 ? questionTypes : undefined,
           questionCounts: questionTypes.length > 0 ? questionCounts : undefined,
           homeworkType,
@@ -191,7 +222,7 @@ export default function HomeworkGeneratorForm({ sidebar }: { sidebar: React.Reac
 
   const handleReset = () => {
     setCurriculum(""); setYearGroup(""); setMixed(false);
-    setSubject(""); setLearningObjective(""); setAbilityLevel("EXS");
+    setSubject(""); setLearningObjective(""); setDifferentiate("no"); setDifferentiationLevels([]);
     setQuestionTypes([]); setQuestionCounts({}); setHomeworkType(""); setLength("");
     setIncludeAnswers("no"); setAdditionalInstructions(""); setLessonContent("");
     setImageSource(""); clearImage();
@@ -208,6 +239,7 @@ export default function HomeworkGeneratorForm({ sidebar }: { sidebar: React.Reac
 
         <div className="lg:col-span-2">
           <Card className="space-y-6">
+            {prefilled && <PrefilledBadge />}
 
             <CurriculumYearFields
               curriculum={curriculum} onCurriculumChange={setCurriculum}
@@ -220,7 +252,12 @@ export default function HomeworkGeneratorForm({ sidebar }: { sidebar: React.Reac
 
             <LearningObjectiveField value={learningObjective} onChange={setLearningObjective} />
 
-            <AbilityLevelField value={abilityLevel} onChange={setAbilityLevel} />
+            <DifferentiationField
+              value={differentiate}
+              onChange={setDifferentiate}
+              levels={differentiationLevels}
+              onLevelsChange={setDifferentiationLevels}
+            />
 
             <QuestionTypesField
               value={questionTypes}
@@ -409,15 +446,27 @@ export default function HomeworkGeneratorForm({ sidebar }: { sidebar: React.Reac
         <div className="sticky top-0 z-20 h-8 -mx-10" style={{ backgroundColor: "#F1EFE3" }} />
       )}
 
-      <ResultPanel
-        result={result}
-        isGenerating={isGenerating}
-        isRefining={isRefining}
-        onChange={(md) => setResult(md)}
-        exportFilename={`homework-${subject || "export"}`}
-        historyMeta={{ toolSlug: TOOL_SLUG, title: subject || learningObjective || null, input: formState }}
-        onSaved={() => setHistoryKey((k) => k + 1)}
-      />
+      <div className={result !== null ? "flex gap-8" : ""}>
+        {result !== null && (
+          <div className="w-md shrink-0">
+            <div className="sticky top-8">
+              <OutputOutline markdown={result} />
+            </div>
+          </div>
+        )}
+        <div className="flex-1 min-w-0">
+          <ResultPanel
+            result={result}
+            isGenerating={isGenerating}
+            isRefining={isRefining}
+            onChange={(md) => setResult(md)}
+            maxWidth={false}
+            exportFilename={`homework-${subject || "export"}`}
+            historyMeta={{ toolSlug: TOOL_SLUG, title: subject || learningObjective || null, input: formState }}
+            onSaved={() => setHistoryKey((k) => k + 1)}
+          />
+        </div>
+      </div>
 
       {result && !isGenerating && (
         <RefinePanel

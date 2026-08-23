@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { Fragment, useEffect, useRef, useState } from "react";
-import { Undo2, Redo2, Download, ArrowLeft, Palette, Check, Play, Wand2 } from "lucide-react";
+import { Undo2, Redo2, Download, ArrowLeft, Palette, Check, Play, Wand2, ChevronDown } from "lucide-react";
+import DropdownMenu from "@/app/components/ui/DropdownMenu";
 import { SLIDESHOW_THEMES, THEME_CATEGORIES, getThemesByCategory, ART_STYLES, getThemeArt, type ArtStyleId } from "@/app/lib/slideshowThemes";
 
 interface Props {
@@ -10,7 +11,8 @@ interface Props {
   onTitleChange: (v: string) => void;
   onUndo: () => void;
   onRedo: () => void;
-  onExport: () => void;
+  /** Export the deck. PPTX rebuilds each shape natively; PDF rasterises slides. */
+  onExport: (format: "pptx" | "pdf") => void;
   onPresent: () => void;
   isExporting: boolean;
   saveStatus: "idle" | "saving" | "saved" | "error";
@@ -228,14 +230,29 @@ export default function EditorTopBar({
           <Play className="w-4 h-4" />
           Present
         </button>
-        <button
-          onClick={onExport}
+        <DropdownMenu
+          ariaLabel="Export options"
           disabled={isExporting}
-          className="flex items-center gap-2 bg-violet-600 hover:bg-violet-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
-        >
-          <Download className="w-4 h-4" />
-          {isExporting ? "Exporting..." : "Export PPTX"}
-        </button>
+          triggerClassName="flex items-center gap-2 bg-violet-600 hover:bg-violet-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
+          menuClassName="w-56"
+          trigger={
+            <>
+              <Download className="w-4 h-4" />
+              {isExporting ? "Exporting..." : "Export"}
+              <ChevronDown className="w-4 h-4" />
+            </>
+          }
+          items={[
+            { label: "Download PowerPoint (PPTX)", onSelect: () => onExport("pptx") },
+            { label: "Download PDF", onSelect: () => onExport("pdf") },
+            {
+              // Needs Google OAuth and the Slides API.
+              label: "Save to Google Slides",
+              disabled: true,
+              note: "coming soon",
+            },
+          ]}
+        />
       </div>
     </div>
   );

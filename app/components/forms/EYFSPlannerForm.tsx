@@ -6,21 +6,34 @@ import { Minus, Plus } from "lucide-react";
 import ResultPanel from "@/app/components/ResultPanel";
 import ConfirmModal from "@/app/components/ConfirmModal";
 import Card from "@/app/components/ui/Card";
-import EYFSNav from "@/app/components/EYFSNav";
+import OutputOutline from "@/app/components/OutputOutline";
 import GenerateButton from "@/app/components/ui/GenerateButton";
 import ResetButton from "@/app/components/ui/ResetButton";
 import ToolHistoryPanel from "@/app/components/ToolHistoryPanel";
 import type { ToolRun } from "@/app/lib/toolRuns";
+import PrefilledBadge from "@/app/components/assistant/PrefilledBadge";
+import { DifferentiationField } from "@/app/components/fields";
+import { restoreDifferentiation, type Differentiate } from "@/app/lib/differentiation";
+import { useToolLaunch, type ToolLaunchParams } from "@/app/lib/useToolLaunch";
 
 const TOOL_SLUG = "eyfs-planner";
 
-export default function EYFSPlannerForm({ sidebar }: { sidebar: React.ReactNode }) {
+export default function EYFSPlannerForm({
+  sidebar,
+  launch,
+}: {
+  sidebar: React.ReactNode;
+  /** `?run=` — reopen a saved run. */
+  launch?: ToolLaunchParams;
+}) {
   const [curriculum, setCurriculum] = useState("Early Years Foundation Stage (EYFS)");
   const [topic, setTopic] = useState("");
   const [numberOfWeeks, setNumberOfWeeks] = useState("2");
   const [includeBookList, setIncludeBookList] = useState(false);
   const [includeHomeLearning, setIncludeHomeLearning] = useState(false);
   const [includeWeeklyOverview, setIncludeWeeklyOverview] = useState(false);
+  const [differentiate, setDifferentiate] = useState<Differentiate>("no");
+  const [differentiationLevels, setDifferentiationLevels] = useState<string[]>([]);
 
   const [result, setResult] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -30,10 +43,11 @@ export default function EYFSPlannerForm({ sidebar }: { sidebar: React.ReactNode 
   const [historyKey, setHistoryKey] = useState(0);
 
   const weeksNum = parseInt(numberOfWeeks, 10);
-  const canGenerate = curriculum && topic.trim() && !isNaN(weeksNum) && weeksNum >= 1 && weeksNum <= 12;
+  const canGenerate = curriculum && topic.trim() && !isNaN(weeksNum) && weeksNum >= 1 && weeksNum <= 12 &&
+    (differentiate === "no" || differentiationLevels.length > 0);
 
   // Raw form state — saved as history input so a past run can refill the form.
-  const formState = { curriculum, topic, numberOfWeeks, includeBookList, includeHomeLearning, includeWeeklyOverview };
+  const formState = { curriculum, topic, numberOfWeeks, includeBookList, includeHomeLearning, includeWeeklyOverview, differentiate, differentiationLevels };
   const formSnapshot = JSON.stringify(formState);
   const unchangedSinceGeneration = result !== null && lastGenerated === formSnapshot;
 
@@ -45,9 +59,27 @@ export default function EYFSPlannerForm({ sidebar }: { sidebar: React.ReactNode 
     setIncludeBookList(Boolean(i.includeBookList));
     setIncludeHomeLearning(Boolean(i.includeHomeLearning));
     setIncludeWeeklyOverview(Boolean(i.includeWeeklyOverview));
+    const d = restoreDifferentiation(i);
+    setDifferentiate(d.differentiate);
+    setDifferentiationLevels(d.levels);
     setResult(run.output);
     setLastGenerated(JSON.stringify(i));
   };
+
+  // `?run=` reopens a saved run from Dashboard, Folders or Analytics.
+  const { prefilled } = useToolLaunch({
+    params: launch,
+    onRestore: restore,
+    prefill: {
+      topic: (v) => setTopic(v as string),
+      numberOfWeeks: (v) => setNumberOfWeeks(v as string),
+      includeBookList: (v) => setIncludeBookList(v as boolean),
+      includeHomeLearning: (v) => setIncludeHomeLearning(v as boolean),
+      includeWeeklyOverview: (v) => setIncludeWeeklyOverview(v as boolean),
+      differentiate: (v) => setDifferentiate(v as Differentiate),
+      differentiationLevels: (v) => setDifferentiationLevels(v as string[]),
+    },
+  });
 
   const handleGenerate = async () => {
     setError(null);
@@ -58,7 +90,7 @@ export default function EYFSPlannerForm({ sidebar }: { sidebar: React.ReactNode 
       const res = await fetch("/api/eyfs-planner", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ curriculum, topic, numberOfWeeks: weeksNum, includeBookList, includeHomeLearning, includeWeeklyOverview }),
+        body: JSON.stringify({ curriculum, topic, numberOfWeeks: weeksNum, includeBookList, includeHomeLearning, includeWeeklyOverview, differentiate, differentiationLevels }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -99,6 +131,7 @@ export default function EYFSPlannerForm({ sidebar }: { sidebar: React.ReactNode 
 
         <div className="lg:col-span-2">
           <Card className="space-y-6">
+            {prefilled && <PrefilledBadge />}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <div className="space-y-1.5">
@@ -178,6 +211,13 @@ export default function EYFSPlannerForm({ sidebar }: { sidebar: React.ReactNode 
               </div>
             </div>
 
+            <DifferentiationField
+              value={differentiate}
+              onChange={setDifferentiate}
+              levels={differentiationLevels}
+              onLevelsChange={setDifferentiationLevels}
+            />
+
             <div className="flex gap-3">
               <ResetButton onClick={() => setConfirmingReset(true)} disabled={!result} />
               <ConfirmModal
@@ -192,6 +232,8 @@ export default function EYFSPlannerForm({ sidebar }: { sidebar: React.ReactNode 
                   setIncludeBookList(false);
                   setIncludeHomeLearning(false);
                   setIncludeWeeklyOverview(false);
+                  setDifferentiate("no");
+                  setDifferentiationLevels([]);
                   setResult(null);
                   setError(null);
                   setConfirmingReset(false);
@@ -216,11 +258,10 @@ export default function EYFSPlannerForm({ sidebar }: { sidebar: React.ReactNode 
         {result !== null && (
           <div className="w-md shrink-0">
             <div className="sticky top-8">
-              <EYFSNav
-                includeBookList={includeBookList}
-                includeHomeLearning={includeHomeLearning}
-                includeWeeklyOverview={includeWeeklyOverview}
-              />
+              {/* The three include* toggles no longer need passing: the
+                  outline is derived from the output, so an optional section
+                  appears in it exactly when it appears in the document. */}
+              <OutputOutline markdown={result} />
             </div>
           </div>
         )}

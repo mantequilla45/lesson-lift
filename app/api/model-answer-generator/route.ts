@@ -102,8 +102,6 @@ Write a full, exam-worthy model answer pitched at the level of a high-achieving 
 - **Whole-class use**: [Specific suggestion for how to use this model answer in a lesson — e.g. live annotation on the board, comparison with a weaker answer, mark-scheme mapping]
 - **Common misconception to address**: [One specific misconception that the model answer exposes and how to tackle it with pupils]
 - **Peer/self-assessment task**: [A structured peer- or self-assessment activity using this model answer]
-- **Differentiation — support**: [How to use this resource with less confident pupils — e.g. gapped version, sentence starters derived from the model]
-- **Differentiation — extension**: [A challenge task for high-attaining pupils — e.g. write a counter-argument, find a weakness in the model answer's reasoning, respond to a harder variant of the question]
 
 Do not use any emojis. Do not add any text before the main title or after the last teaching opportunity.`;
 

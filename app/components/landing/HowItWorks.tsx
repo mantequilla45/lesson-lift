@@ -174,7 +174,7 @@ function ChatMock() {
         <div className="rounded-2xl rounded-tr-md px-4 py-2.5 text-sm" style={{ backgroundColor: "#FFFFFF", color: "#030303" }}>
           How to involve parents more in class?
         </div>
-        <Avatar gradient="linear-gradient(135deg,#a78bfa,#ec4899)" />
+        <Avatar />
       </div>
 
       {/* AI response */}
@@ -199,7 +199,7 @@ function ChatMock() {
         <div className="rounded-2xl rounded-tr-md px-4 py-2 text-sm" style={{ backgroundColor: "rgba(255,255,255,0.55)", color: "#9a8f85" }}>
           Thanks!
         </div>
-        <Avatar gradient="linear-gradient(135deg,#fcd34d,#f59e0b)" />
+        <Avatar />
       </div>
     </div>
   );
@@ -312,8 +312,16 @@ const card: React.CSSProperties = {
   boxShadow: "0 12px 32px -16px rgba(40,34,24,0.22)",
 };
 
-function Avatar({ gradient }: { gradient: string }) {
-  return <div className="w-9 h-9 rounded-full shrink-0" style={{ background: gradient }} />;
+// Both bubbles are the same teacher — it's one person's conversation with the assistant.
+function Avatar() {
+  return (
+    <img
+      src="/landing/avatars/avatar-teacher.png"
+      alt=""
+      aria-hidden="true"
+      className="w-9 h-9 rounded-full shrink-0 object-cover"
+    />
+  );
 }
 
 // A skeleton bar that grows in from the left when its slide mounts (hiw-grow).

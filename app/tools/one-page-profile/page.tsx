@@ -2,9 +2,18 @@ import { UserCircle } from "lucide-react";
 import OnePageProfileForm from "@/app/components/forms/OnePageProfileForm";
 import ToolInfoPanel from "@/app/components/ToolInfoPanel";
 
-export default function OnePageProfilePage() {
+// searchParams are read here rather than with useSearchParams() in the form:
+// that hook forces a client-side bailout needing a Suspense boundary around the
+// whole form. Same approach as app/help/page.tsx.
+export default async function OnePageProfilePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ run?: string; prefill?: string }>;
+}) {
+  const launch = await searchParams;
   return (
     <OnePageProfileForm
+      launch={launch}
       sidebar={
         <ToolInfoPanel
           icon={<UserCircle className="w-5 h-5 text-emerald-600" />}

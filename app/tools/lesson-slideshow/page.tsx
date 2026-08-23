@@ -2,7 +2,15 @@ import { Layers } from "lucide-react";
 import LessonSlideshowForm from "@/app/components/forms/LessonSlideshowForm";
 import Card from "@/app/components/ui/Card";
 
-export default function LessonSlideshowPage() {
+// searchParams are read here rather than with useSearchParams() in the form:
+// that hook forces a client-side bailout needing a Suspense boundary around the
+// whole form. Same approach as app/help/page.tsx.
+export default async function LessonSlideshowPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ run?: string; prefill?: string }>;
+}) {
+  const launch = await searchParams;
   const sidebar = (
     <Card className="space-y-4">
       <div className="flex items-center gap-3">
@@ -49,5 +57,5 @@ export default function LessonSlideshowPage() {
     </Card>
   );
 
-  return <LessonSlideshowForm sidebar={sidebar} />;
+  return <LessonSlideshowForm sidebar={sidebar} launch={launch} />;
 }

@@ -1,0 +1,19 @@
+<svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <clipPath id="clip-model-text"><rect width="48" height="48" rx="12"/></clipPath>
+  </defs>
+  <g clip-path="url(#clip-model-text)">
+    <rect width="48" height="48" rx="12" fill="#D97706"/>
+    <path d="M12 12 L48 48 L26 48 L12 34 Z" fill="#000" opacity="0.12"/>
+    <rect x="12" y="12" width="22" height="27" rx="3" fill="#FFFFFF"/>
+    <rect x="16" y="17" width="9" height="3" rx="1.5" fill="#FFDC21"/>
+    <rect x="16" y="23" width="14" height="2.5" rx="1.25" fill="#F0CFA0"/>
+    <rect x="16" y="28" width="14" height="2.5" rx="1.25" fill="#F0CFA0"/>
+    <rect x="16" y="33" width="8" height="2.5" rx="1.25" fill="#F0CFA0"/>
+    <g transform="rotate(40 34 27)">
+      <rect x="31.5" y="17" width="5" height="16" rx="1" fill="#FFFFFF"/>
+      <rect x="31.5" y="17" width="5" height="4" rx="1" fill="#EF233C"/>
+      <path d="M31.5 33 L34 37 L36.5 33 Z" fill="#1E3C54"/>
+    </g>
+  </g>
+</svg>

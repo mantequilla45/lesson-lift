@@ -18,6 +18,14 @@ export function toolForSlug(slug: string) {
   return TOOLS.find((t) => t.href === `/tools/${slug}`);
 }
 
+/** Position of a tool in the TOOLS catalogue — the exact order /tools renders,
+ *  which is the hand-curated array order rather than anything alphabetical.
+ *  Unknown slugs sort last instead of colliding at index 0. */
+export function catalogIndex(slug: string) {
+  const i = TOOLS.findIndex((t) => t.href === `/tools/${slug}`);
+  return i === -1 ? Number.MAX_SAFE_INTEGER : i;
+}
+
 export function typeLabel(slug: string) {
   return TYPE_LABEL[slug] ?? toolForSlug(slug)?.label ?? slug;
 }

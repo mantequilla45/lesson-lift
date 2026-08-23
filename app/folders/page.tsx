@@ -9,14 +9,16 @@ import {
 import SideNav from "@/app/components/layout/SideNav";
 import SupportLauncher from "@/app/components/SupportLauncher";
 import TopBar from "@/app/components/layout/TopBar";
+import ToolIcon from "@/app/components/ToolIcon";
 import { listRecentRuns, type ToolRun } from "@/app/lib/toolRuns";
-import { toolForSlug, typeLabel, formatDate, TAG_COLORS } from "@/app/lib/toolRunDisplay";
+import { toolForSlug, typeLabel, formatDate, catalogIndex } from "@/app/lib/toolRunDisplay";
 import AnnouncementBanner from "@/app/components/AnnouncementBanner";
 
 const PIN_STORAGE_KEY = "jooma:pinned-tools";
 const DATE_RANGES = ["Any time", "Last 7 days", "Last 30 days", "This year"] as const;
 const COUNT_BUCKETS = ["Any", "1–5", "6–10", "11+"] as const;
 const SORTS = [
+  { key: "catalog", label: "Tools order" },
   { key: "recent", label: "Recently updated" },
   { key: "name", label: "Name (A–Z)" },
   { key: "count", label: "Most resources" },
@@ -26,6 +28,8 @@ interface FolderData {
   slug: string;
   label: string;
   tag: string;
+  /** TOOLS registry icon key; "" when the slug isn't in the catalogue. */
+  icon: string;
   count: number;
   subjects: string[];
   years: string[];
@@ -62,7 +66,7 @@ export default function FoldersPage() {
   const [year, setYear] = useState<string | null>(null);
   const [dateRange, setDateRange] = useState<string>("Any time");
   const [countBucket, setCountBucket] = useState<string>("Any");
-  const [sort, setSort] = useState<string>("recent");
+  const [sort, setSort] = useState<string>("catalog");
   const [view, setView] = useState<"grid" | "list">("grid");
 
   useEffect(() => {
@@ -94,6 +98,7 @@ export default function FoldersPage() {
         slug: r.tool_slug,
         label: tool?.label ?? typeLabel(r.tool_slug),
         tag: tool?.tag ?? "",
+        icon: tool?.icon ?? "",
         count: 0,
         subjects: [],
         years: [],
@@ -141,7 +146,12 @@ export default function FoldersPage() {
     out.sort((a, b) => {
       if (sort === "name") return a.label.localeCompare(b.label);
       if (sort === "count") return b.count - a.count;
-      return b.latest - a.latest;
+      if (sort === "recent") return b.latest - a.latest;
+      // "catalog" — mirror the /tools grid so folders stay put between visits
+      // instead of reshuffling every time something is generated. Slugs missing
+      // from the catalogue land together at the end, ordered A–Z.
+      const d = catalogIndex(a.slug) - catalogIndex(b.slug);
+      return d !== 0 ? d : a.label.localeCompare(b.label);
     });
     return out;
   }, [folders, query, type, toolName, subject, year, dateRange, countBucket, sort]);
@@ -260,16 +270,24 @@ function FolderCard({
 }: {
   folder: FolderData; pinned: boolean; onTogglePin: (slug: string) => void; onOpen: (slug: string) => void;
 }) {
-  const colors = TAG_COLORS[folder.tag] ?? { bg: "bg-gray-100", icon: "text-gray-600" };
   return (
     <div
       onClick={() => onOpen(folder.slug)}
-      className="group relative rounded-2xl border border-line bg-[#FAF9F5] p-5 hover:border-gray-300 hover:shadow-sm transition-all cursor-pointer"
+      className="group relative rounded-2xl border border-line bg-[#FAF9F5] p-5 cursor-pointer transition-all duration-200 ease-out hover:bg-[#F1EFE3] hover:border-[#F1EFE3] hover:-translate-y-0.5 hover:shadow-[0_6px_16px_-6px_rgba(28,27,27,0.25)]"
     >
       <FolderMenu pinned={pinned} onTogglePin={() => onTogglePin(folder.slug)} onOpen={() => onOpen(folder.slug)} />
-      <span className={`w-11 h-11 rounded-xl ${colors.bg} flex items-center justify-center mb-4`}>
-        <Folder className={`w-5 h-5 ${colors.icon}`} />
-      </span>
+      {folder.icon ? (
+        <ToolIcon
+          name={folder.icon}
+          className="w-11 h-11 mb-4 transition-transform duration-200 ease-out group-hover:scale-110 group-hover:-rotate-3"
+        />
+      ) : (
+        // Slug isn't in the catalogue, so there's no branded icon. ToolIcon
+        // renders null for an unknown key, which would collapse the layout.
+        <span className="w-11 h-11 rounded-xl bg-gray-100 flex items-center justify-center mb-4 transition-transform duration-200 ease-out group-hover:scale-110 group-hover:-rotate-3">
+          <Folder className="w-5 h-5 text-gray-600" />
+        </span>
+      )}
       <h5 className="font-semibold text-dark truncate pr-6">{folder.label}</h5>
       <p className="text-sm text-muted mt-0.5">{folder.count} {folder.count === 1 ? "item" : "items"}</p>
     </div>
@@ -281,15 +299,21 @@ function FolderRow({
 }: {
   folder: FolderData; pinned: boolean; onTogglePin: (slug: string) => void; onOpen: (slug: string) => void;
 }) {
-  const colors = TAG_COLORS[folder.tag] ?? { bg: "bg-gray-100", icon: "text-gray-600" };
   return (
     <div
       onClick={() => onOpen(folder.slug)}
       className="group flex items-center gap-4 px-5 py-3 border-b border-line/60 last:border-0 hover:bg-[#F1EFE3] transition-colors cursor-pointer"
     >
-      <span className={`w-9 h-9 rounded-lg ${colors.bg} flex items-center justify-center shrink-0`}>
-        <Folder className={`w-4 h-4 ${colors.icon}`} />
-      </span>
+      {folder.icon ? (
+        <ToolIcon
+          name={folder.icon}
+          className="w-9 h-9 shrink-0 transition-transform duration-200 ease-out group-hover:scale-110 group-hover:-rotate-3"
+        />
+      ) : (
+        <span className="w-9 h-9 rounded-lg bg-gray-100 flex items-center justify-center shrink-0 transition-transform duration-200 ease-out group-hover:scale-110 group-hover:-rotate-3">
+          <Folder className="w-4 h-4 text-gray-600" />
+        </span>
+      )}
       <span className="font-medium text-dark flex-1 truncate">{folder.label}</span>
       <span className="text-sm text-muted w-28 shrink-0">{folder.count} items</span>
       <span className="text-sm text-muted w-44 shrink-0 whitespace-nowrap">{formatDate(new Date(folder.latest).toISOString())}</span>

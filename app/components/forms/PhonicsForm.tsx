@@ -5,11 +5,16 @@ import { CURRICULA } from "@/app/lib/formOptions";
 import { useLocalStorage } from "@/app/lib/useLocalStorage";
 import { Loader2, Sparkles, Minus, Plus } from "lucide-react";
 import ResultPanel from "@/app/components/ResultPanel";
+import OutputOutline from "@/app/components/OutputOutline";
 import RefinePanel from "@/app/components/RefinePanel";
 import ConfirmModal from "@/app/components/ConfirmModal";
 import Card from "@/app/components/ui/Card";
 import ToolHistoryPanel from "@/app/components/ToolHistoryPanel";
 import type { ToolRun } from "@/app/lib/toolRuns";
+import PrefilledBadge from "@/app/components/assistant/PrefilledBadge";
+import { DifferentiationField } from "@/app/components/fields";
+import { restoreDifferentiation, type Differentiate } from "@/app/lib/differentiation";
+import { useToolLaunch, type ToolLaunchParams } from "@/app/lib/useToolLaunch";
 
 const TOOL_SLUG = "phonics-support";
 
@@ -28,10 +33,19 @@ const selectClass =
 const inputClass =
   "w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-transparent bg-white";
 
-export default function PhonicsForm({ sidebar }: { sidebar: React.ReactNode }) {
+export default function PhonicsForm({
+  sidebar,
+  launch,
+}: {
+  sidebar: React.ReactNode;
+  /** `?run=` — reopen a saved run. */
+  launch?: ToolLaunchParams;
+}) {
   const [curriculum, setCurriculum] = useLocalStorage("ll:curriculum", "");
   const [age, setAge] = useState(5);
   const [grapheme, setGrapheme] = useState("");
+  const [differentiate, setDifferentiate] = useState<Differentiate>("no");
+  const [differentiationLevels, setDifferentiationLevels] = useState<string[]>([]);
 
   const [result, setResult] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -41,9 +55,9 @@ export default function PhonicsForm({ sidebar }: { sidebar: React.ReactNode }) {
   const [lastGenerated, setLastGenerated] = useState<string | null>(null);
   const [historyKey, setHistoryKey] = useState(0);
 
-  const canGenerate = curriculum && grapheme.trim();
+  const canGenerate = curriculum && grapheme.trim() && (differentiate === "no" || differentiationLevels.length > 0);
 
-  const formState = { curriculum, age, grapheme };
+  const formState = { curriculum, age, grapheme, differentiate, differentiationLevels };
   const formSnapshot = JSON.stringify(formState);
   const unchangedSinceGeneration = result !== null && lastGenerated === formSnapshot;
 
@@ -52,9 +66,25 @@ export default function PhonicsForm({ sidebar }: { sidebar: React.ReactNode }) {
     setCurriculum((i.curriculum as string) ?? "");
     setAge((i.age as number) ?? 5);
     setGrapheme((i.grapheme as string) ?? "");
+    const d = restoreDifferentiation(i);
+    setDifferentiate(d.differentiate);
+    setDifferentiationLevels(d.levels);
     setResult(run.output);
     setLastGenerated(JSON.stringify(i));
   };
+
+  // `?run=` reopens a saved run from Dashboard, Folders or Analytics.
+  const { prefilled } = useToolLaunch({
+    params: launch,
+    onRestore: restore,
+    prefill: {
+      curriculum: (v) => setCurriculum(v as string),
+      grapheme: (v) => setGrapheme(v as string),
+      age: (v) => setAge(v as number),
+      differentiate: (v) => setDifferentiate(v as Differentiate),
+      differentiationLevels: (v) => setDifferentiationLevels(v as string[]),
+    },
+  });
 
   const handleAgeChange = (delta: number) => {
     setAge((prev) => Math.min(18, Math.max(3, prev + delta)));
@@ -69,7 +99,7 @@ export default function PhonicsForm({ sidebar }: { sidebar: React.ReactNode }) {
       const res = await fetch("/api/phonics-support", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ curriculum, age, grapheme: grapheme.trim() }),
+        body: JSON.stringify({ curriculum, age, grapheme: grapheme.trim(), differentiate, differentiationLevels }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -127,6 +157,7 @@ export default function PhonicsForm({ sidebar }: { sidebar: React.ReactNode }) {
 
         <div className="lg:col-span-2">
           <Card className="space-y-6">
+            {prefilled && <PrefilledBadge />}
 
             {/* Curriculum + Age row */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -185,6 +216,13 @@ export default function PhonicsForm({ sidebar }: { sidebar: React.ReactNode }) {
               </p>
             </div>
 
+            <DifferentiationField
+              value={differentiate}
+              onChange={setDifferentiate}
+              levels={differentiationLevels}
+              onLevelsChange={setDifferentiationLevels}
+            />
+
             <div className="flex gap-3">
               <button
                 type="button"
@@ -203,6 +241,8 @@ export default function PhonicsForm({ sidebar }: { sidebar: React.ReactNode }) {
                   setCurriculum("");
                   setAge(5);
                   setGrapheme("");
+                  setDifferentiate("no");
+                  setDifferentiationLevels([]);
                   setResult(null);
                   setError(null);
                   setConfirmingReset(false);
@@ -232,15 +272,27 @@ export default function PhonicsForm({ sidebar }: { sidebar: React.ReactNode }) {
         <div className="sticky top-0 z-20 h-8 -mx-10" style={{ backgroundColor: "#F1EFE3" }} />
       )}
 
-      <ResultPanel
-        result={result}
-        isGenerating={isGenerating}
-        isRefining={isRefining}
-        onChange={(md) => setResult(md)}
-        exportFilename={`phonics-support-${grapheme || "export"}`}
-        historyMeta={{ toolSlug: TOOL_SLUG, title: grapheme || null, input: formState }}
-        onSaved={() => setHistoryKey((k) => k + 1)}
-      />
+      <div className={result !== null ? "flex gap-8" : ""}>
+        {result !== null && (
+          <div className="w-md shrink-0">
+            <div className="sticky top-8">
+              <OutputOutline markdown={result} />
+            </div>
+          </div>
+        )}
+        <div className="flex-1 min-w-0">
+          <ResultPanel
+            result={result}
+            isGenerating={isGenerating}
+            isRefining={isRefining}
+            onChange={(md) => setResult(md)}
+            maxWidth={false}
+            exportFilename={`phonics-support-${grapheme || "export"}`}
+            historyMeta={{ toolSlug: TOOL_SLUG, title: grapheme || null, input: formState }}
+            onSaved={() => setHistoryKey((k) => k + 1)}
+          />
+        </div>
+      </div>
 
       {result && !isGenerating && (
         <RefinePanel

@@ -4,8 +4,11 @@ import { useState } from "react";
 import {
   PupilPremiumChallengesField,
   EducationPhaseField,
+  DifferentiationField,
 } from "@/app/components/fields";
+import { restoreDifferentiation, type Differentiate } from "@/app/lib/differentiation";
 import ResultPanel from "@/app/components/ResultPanel";
+import OutputOutline from "@/app/components/OutputOutline";
 import RefinePanel from "@/app/components/RefinePanel";
 import ConfirmModal from "@/app/components/ConfirmModal";
 import GenerateButton from "@/app/components/ui/GenerateButton";
@@ -13,6 +16,8 @@ import ResetButton from "@/app/components/ui/ResetButton";
 import Card from "@/app/components/ui/Card";
 import ToolHistoryPanel from "@/app/components/ToolHistoryPanel";
 import type { ToolRun } from "@/app/lib/toolRuns";
+import PrefilledBadge from "@/app/components/assistant/PrefilledBadge";
+import { useToolLaunch, type ToolLaunchParams } from "@/app/lib/useToolLaunch";
 
 const TOOL_SLUG = "pupil-premium-planner";
 
@@ -25,9 +30,18 @@ const REFINE_CHIPS = [
   "Provide more concise responses",
 ];
 
-export default function PupilPremiumPlannerForm({ sidebar }: { sidebar: React.ReactNode }) {
+export default function PupilPremiumPlannerForm({
+  sidebar,
+  launch,
+}: {
+  sidebar: React.ReactNode;
+  /** `?run=` — reopen a saved run. */
+  launch?: ToolLaunchParams;
+}) {
   const [challenges, setChallenges] = useState("");
   const [educationPhase, setEducationPhase] = useState("Primary");
+  const [differentiate, setDifferentiate] = useState<Differentiate>("no");
+  const [differentiationLevels, setDifferentiationLevels] = useState<string[]>([]);
 
   const [result, setResult] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -38,18 +52,33 @@ export default function PupilPremiumPlannerForm({ sidebar }: { sidebar: React.Re
   const [historyKey, setHistoryKey] = useState(0);
 
   // Raw form state — saved as history input so a past run can refill the form.
-  const formState = { challenges, educationPhase };
+  const formState = { challenges, educationPhase, differentiate, differentiationLevels };
 
   const restore = (run: ToolRun) => {
     const i = run.input;
     setChallenges((i.challenges as string) ?? "");
     setEducationPhase((i.educationPhase as string) ?? "Primary");
+    const d = restoreDifferentiation(i);
+    setDifferentiate(d.differentiate);
+    setDifferentiationLevels(d.levels);
     setResult(run.output);
     setLastGenerated(JSON.stringify(i));
   };
 
-  const canGenerate = challenges.trim();
-  const formSnapshot = JSON.stringify({ challenges, educationPhase });
+  // `?run=` reopens a saved run from Dashboard, Folders or Analytics.
+  const { prefilled } = useToolLaunch({
+    params: launch,
+    onRestore: restore,
+    prefill: {
+      challenges: (v) => setChallenges(v as string),
+      educationPhase: (v) => setEducationPhase(v as string),
+      differentiate: (v) => setDifferentiate(v as Differentiate),
+      differentiationLevels: (v) => setDifferentiationLevels(v as string[]),
+    },
+  });
+
+  const canGenerate = challenges.trim() && (differentiate === "no" || differentiationLevels.length > 0);
+  const formSnapshot = JSON.stringify(formState);
   const unchangedSinceGeneration = result !== null && lastGenerated === formSnapshot;
 
   const handleGenerate = async () => {
@@ -61,7 +90,7 @@ export default function PupilPremiumPlannerForm({ sidebar }: { sidebar: React.Re
       const res = await fetch("/api/pupil-premium-planner", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ challenges, educationPhase }),
+        body: JSON.stringify({ challenges, educationPhase, differentiate, differentiationLevels }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -115,10 +144,18 @@ export default function PupilPremiumPlannerForm({ sidebar }: { sidebar: React.Re
 
         <div className="lg:col-span-2">
           <Card className="space-y-6">
+            {prefilled && <PrefilledBadge />}
 
             <PupilPremiumChallengesField value={challenges} onChange={setChallenges} />
 
             <EducationPhaseField value={educationPhase} onChange={setEducationPhase} />
+
+            <DifferentiationField
+              value={differentiate}
+              onChange={setDifferentiate}
+              levels={differentiationLevels}
+              onLevelsChange={setDifferentiationLevels}
+            />
 
             <div className="flex gap-3">
               <ResetButton onClick={() => setConfirmingReset(true)} disabled={!result} />
@@ -130,6 +167,8 @@ export default function PupilPremiumPlannerForm({ sidebar }: { sidebar: React.Re
                 onConfirm={() => {
                   setChallenges("");
                   setEducationPhase("Primary");
+                  setDifferentiate("no");
+                  setDifferentiationLevels([]);
                   setResult(null);
                   setError(null);
                   setConfirmingReset(false);
@@ -155,15 +194,27 @@ export default function PupilPremiumPlannerForm({ sidebar }: { sidebar: React.Re
         <div className="sticky top-0 z-20 h-8 -mx-10" style={{ backgroundColor: "#F1EFE3" }} />
       )}
 
-      <ResultPanel
-        result={result}
-        isGenerating={isGenerating}
-        isRefining={isRefining}
-        onChange={(md) => setResult(md)}
-        exportFilename="pupil-premium-strategy-plan"
-        historyMeta={{ toolSlug: TOOL_SLUG, title: challenges || null, input: formState }}
-        onSaved={() => setHistoryKey((k) => k + 1)}
-      />
+      <div className={result !== null ? "flex gap-8" : ""}>
+        {result !== null && (
+          <div className="w-md shrink-0">
+            <div className="sticky top-8">
+              <OutputOutline markdown={result} />
+            </div>
+          </div>
+        )}
+        <div className="flex-1 min-w-0">
+          <ResultPanel
+            result={result}
+            isGenerating={isGenerating}
+            isRefining={isRefining}
+            onChange={(md) => setResult(md)}
+            maxWidth={false}
+            exportFilename="pupil-premium-strategy-plan"
+            historyMeta={{ toolSlug: TOOL_SLUG, title: challenges || null, input: formState }}
+            onSaved={() => setHistoryKey((k) => k + 1)}
+          />
+        </div>
+      </div>
 
       {result && !isGenerating && (
         <RefinePanel

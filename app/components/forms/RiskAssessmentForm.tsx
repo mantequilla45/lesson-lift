@@ -11,11 +11,14 @@ import {
 import ConfirmModal from "@/app/components/ConfirmModal";
 import Card from "@/app/components/ui/Card";
 import ResultPanel from "@/app/components/ResultPanel";
+import OutputOutline from "@/app/components/OutputOutline";
 import RefinePanel from "@/app/components/RefinePanel";
 import GenerateButton from "@/app/components/ui/GenerateButton";
 import ResetButton from "@/app/components/ui/ResetButton";
 import ToolHistoryPanel from "@/app/components/ToolHistoryPanel";
 import type { ToolRun } from "@/app/lib/toolRuns";
+import PrefilledBadge from "@/app/components/assistant/PrefilledBadge";
+import { useToolLaunch, type ToolLaunchParams } from "@/app/lib/useToolLaunch";
 
 const TOOL_SLUG = "risk-assessment";
 
@@ -25,7 +28,14 @@ const REFINE_CHIPS = [
   "Make the risk assessment more detailed",
 ];
 
-export default function RiskAssessmentForm({ sidebar }: { sidebar: React.ReactNode }) {
+export default function RiskAssessmentForm({
+  sidebar,
+  launch,
+}: {
+  sidebar: React.ReactNode;
+  /** `?run=` — reopen a saved run. */
+  launch?: ToolLaunchParams;
+}) {
   const { curriculum, setCurriculum, yearGroup, setYearGroup } = useCurriculumYear();
   const [mixed, setMixed] = useState(false);
 
@@ -60,6 +70,20 @@ export default function RiskAssessmentForm({ sidebar }: { sidebar: React.ReactNo
     setResult(run.output);
     setLastGenerated(JSON.stringify(i));
   };
+
+  // `?run=` reopens a saved run from Dashboard, Folders or Analytics.
+  const { prefilled } = useToolLaunch({
+    params: launch,
+    onRestore: restore,
+    prefill: {
+      curriculum: (v) => setCurriculum(v as string),
+      yearGroup: (v) => setYearGroup(v as string),
+      activity: (v) => setActivity(v as string),
+      location: (v) => setLocation(v as string),
+      transport: (v) => setTransport(v as string),
+      resources: (v) => setResources(v as string),
+    },
+  });
 
   const streamResponse = async (body: object, onChunk: (c: string) => void) => {
     const res = await fetch("/api/risk-assessment", {
@@ -124,6 +148,7 @@ export default function RiskAssessmentForm({ sidebar }: { sidebar: React.ReactNo
 
         <div className="lg:col-span-2">
           <Card className="space-y-6">
+            {prefilled && <PrefilledBadge />}
 
             <CurriculumYearFields
               curriculum={curriculum}
@@ -176,15 +201,27 @@ export default function RiskAssessmentForm({ sidebar }: { sidebar: React.ReactNo
         <div className="sticky top-0 z-20 h-8 -mx-10" style={{ backgroundColor: "#F1EFE3" }} />
       )}
 
-      <ResultPanel
-        result={result}
-        isGenerating={isGenerating}
-        isRefining={isRefining}
-        onChange={(md) => setResult(md)}
-        exportFilename={`risk-assessment-${activity.slice(0, 30).replace(/\s+/g, "-") || "activity"}`}
-        historyMeta={{ toolSlug: TOOL_SLUG, title: activity || null, input: formState }}
-        onSaved={() => setHistoryKey((k) => k + 1)}
-      />
+      <div className={result !== null ? "flex gap-8" : ""}>
+        {result !== null && (
+          <div className="w-md shrink-0">
+            <div className="sticky top-8">
+              <OutputOutline markdown={result} />
+            </div>
+          </div>
+        )}
+        <div className="flex-1 min-w-0">
+          <ResultPanel
+            result={result}
+            isGenerating={isGenerating}
+            isRefining={isRefining}
+            onChange={(md) => setResult(md)}
+            maxWidth={false}
+            exportFilename={`risk-assessment-${activity.slice(0, 30).replace(/\s+/g, "-") || "activity"}`}
+            historyMeta={{ toolSlug: TOOL_SLUG, title: activity || null, input: formState }}
+            onSaved={() => setHistoryKey((k) => k + 1)}
+          />
+        </div>
+      </div>
 
       {result && !isGenerating && (
         <RefinePanel

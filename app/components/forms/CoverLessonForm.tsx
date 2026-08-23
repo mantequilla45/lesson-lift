@@ -8,9 +8,12 @@ import {
   LessonLengthField,
   CoverResourcesField,
   AdditionalContextField,
+  DifferentiationField,
 } from "@/app/components/fields";
+import { restoreDifferentiation, type Differentiate } from "@/app/lib/differentiation";
 import { toTitleCase } from "@/app/lib/formOptions";
 import ResultPanel from "@/app/components/ResultPanel";
+import OutputOutline from "@/app/components/OutputOutline";
 import RefinePanel from "@/app/components/RefinePanel";
 import ConfirmModal from "@/app/components/ConfirmModal";
 import GenerateButton from "@/app/components/ui/GenerateButton";
@@ -19,6 +22,8 @@ import Card from "@/app/components/ui/Card";
 import GenerateOutlineButton from "@/app/components/ui/GenerateOutlineButton";
 import ToolHistoryPanel from "@/app/components/ToolHistoryPanel";
 import type { ToolRun } from "@/app/lib/toolRuns";
+import PrefilledBadge from "@/app/components/assistant/PrefilledBadge";
+import { useToolLaunch, type ToolLaunchParams } from "@/app/lib/useToolLaunch";
 
 const TOOL_SLUG = "cover-lesson";
 
@@ -31,7 +36,14 @@ const REFINE_CHIPS = [
   "Make it suitable for SEND learners",
 ];
 
-export default function CoverLessonForm({ sidebar }: { sidebar: React.ReactNode }) {
+export default function CoverLessonForm({
+  sidebar,
+  launch,
+}: {
+  sidebar: React.ReactNode;
+  /** `?run=` — reopen a saved run. */
+  launch?: ToolLaunchParams;
+}) {
   const { curriculum, setCurriculum, yearGroup, setYearGroup } = useCurriculumYear();
   const [mixed, setMixed] = useState(false);
   const [subject, setSubject] = useState("");
@@ -39,6 +51,8 @@ export default function CoverLessonForm({ sidebar }: { sidebar: React.ReactNode 
   const [lessonLength, setLessonLength] = useState("");
   const [resources, setResources] = useState("");
   const [additionalContext, setAdditionalContext] = useState("");
+  const [differentiate, setDifferentiate] = useState<Differentiate>("no");
+  const [differentiationLevels, setDifferentiationLevels] = useState<string[]>([]);
 
   const [result, setResult] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -49,7 +63,7 @@ export default function CoverLessonForm({ sidebar }: { sidebar: React.ReactNode 
   const [historyKey, setHistoryKey] = useState(0);
 
   // Raw form state — saved as history input so a past run can refill the form.
-  const formState = { curriculum, yearGroup, mixed, subject, topic, lessonLength, resources, additionalContext };
+  const formState = { curriculum, yearGroup, mixed, subject, topic, lessonLength, resources, additionalContext, differentiate, differentiationLevels };
 
   const restore = (run: ToolRun) => {
     const i = run.input;
@@ -61,14 +75,34 @@ export default function CoverLessonForm({ sidebar }: { sidebar: React.ReactNode 
     setLessonLength((i.lessonLength as string) ?? "");
     setResources((i.resources as string) ?? "");
     setAdditionalContext((i.additionalContext as string) ?? "");
+    const d = restoreDifferentiation(i);
+    setDifferentiate(d.differentiate);
+    setDifferentiationLevels(d.levels);
     setResult(run.output);
     setLastGenerated(JSON.stringify(i));
   };
 
-  const canGenerate = curriculum && (mixed || yearGroup) && subject.trim() && topic.trim() && lessonLength && resources;
+  // `?run=` reopens a saved run from Dashboard, Folders or Analytics.
+  const { prefilled } = useToolLaunch({
+    params: launch,
+    onRestore: restore,
+    prefill: {
+      curriculum: (v) => setCurriculum(v as string),
+      yearGroup: (v) => setYearGroup(v as string),
+      subject: (v) => setSubject(v as string),
+      topic: (v) => setTopic(v as string),
+      lessonLength: (v) => setLessonLength(v as string),
+      resources: (v) => setResources(v as string),
+      differentiate: (v) => setDifferentiate(v as Differentiate),
+      differentiationLevels: (v) => setDifferentiationLevels(v as string[]),
+    },
+  });
+
+  const canGenerate = curriculum && (mixed || yearGroup) && subject.trim() && topic.trim() && lessonLength && resources &&
+    (differentiate === "no" || differentiationLevels.length > 0);
 
   const formSnapshot = JSON.stringify({
-    curriculum, yearGroup, mixed, subject, topic, lessonLength, resources, additionalContext,
+    curriculum, yearGroup, mixed, subject, topic, lessonLength, resources, additionalContext, differentiate, differentiationLevels,
   });
   const unchangedSinceGeneration = result !== null && lastGenerated === formSnapshot;
 
@@ -88,6 +122,8 @@ export default function CoverLessonForm({ sidebar }: { sidebar: React.ReactNode 
           topic,
           lessonLength,
           resources,
+          differentiate,
+          differentiationLevels,
           additionalContext: additionalContext.trim() || undefined,
         }),
       });
@@ -145,6 +181,8 @@ export default function CoverLessonForm({ sidebar }: { sidebar: React.ReactNode 
     setLessonLength("");
     setResources("");
     setAdditionalContext("");
+    setDifferentiate("no");
+    setDifferentiationLevels([]);
     setResult(null);
     setError(null);
     setConfirmingReset(false);
@@ -157,6 +195,7 @@ export default function CoverLessonForm({ sidebar }: { sidebar: React.ReactNode 
 
         <div className="lg:col-span-2">
           <Card className="space-y-6">
+            {prefilled && <PrefilledBadge />}
 
             <CurriculumYearFields
               curriculum={curriculum} onCurriculumChange={setCurriculum}
@@ -173,6 +212,13 @@ export default function CoverLessonForm({ sidebar }: { sidebar: React.ReactNode 
               <LessonLengthField value={lessonLength} onChange={setLessonLength} />
               <CoverResourcesField value={resources} onChange={setResources} />
             </div>
+
+            <DifferentiationField
+              value={differentiate}
+              onChange={setDifferentiate}
+              levels={differentiationLevels}
+              onLevelsChange={setDifferentiationLevels}
+            />
 
             <AdditionalContextField
               value={additionalContext}
@@ -223,15 +269,27 @@ export default function CoverLessonForm({ sidebar }: { sidebar: React.ReactNode 
         <div className="sticky top-0 z-20 h-8 -mx-10" style={{ backgroundColor: "#F1EFE3" }} />
       )}
 
-      <ResultPanel
-        result={result}
-        isGenerating={isGenerating}
-        isRefining={isRefining}
-        onChange={(md) => setResult(md)}
-        exportFilename={`cover-lesson-${subject || "export"}`}
-        historyMeta={{ toolSlug: TOOL_SLUG, title: topic || subject || null, input: formState }}
-        onSaved={() => setHistoryKey((k) => k + 1)}
-      />
+      <div className={result !== null ? "flex gap-8" : ""}>
+        {result !== null && (
+          <div className="w-md shrink-0">
+            <div className="sticky top-8">
+              <OutputOutline markdown={result} />
+            </div>
+          </div>
+        )}
+        <div className="flex-1 min-w-0">
+          <ResultPanel
+            result={result}
+            isGenerating={isGenerating}
+            isRefining={isRefining}
+            onChange={(md) => setResult(md)}
+            maxWidth={false}
+            exportFilename={`cover-lesson-${subject || "export"}`}
+            historyMeta={{ toolSlug: TOOL_SLUG, title: topic || subject || null, input: formState }}
+            onSaved={() => setHistoryKey((k) => k + 1)}
+          />
+        </div>
+      </div>
 
       {result && !isGenerating && (
         <RefinePanel

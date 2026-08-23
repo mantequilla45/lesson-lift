@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { buildSystem } from "@/app/lib/systemPrompt";
+import { differentiationPrompt, type Differentiate } from "@/app/lib/differentiation";
 import { streamChat } from "@/app/lib/usage";
 import { modelFor } from "@/app/lib/tool-model";
 
@@ -10,13 +11,15 @@ export interface EYFSPlannerRequest {
   includeBookList: boolean;
   includeHomeLearning: boolean;
   includeWeeklyOverview: boolean;
+  differentiate?: Differentiate;
+  differentiationLevels?: string[];
 }
 
 
 export async function POST(req: NextRequest) {
   const body: EYFSPlannerRequest = await req.json();
 
-  const { curriculum, topic, numberOfWeeks, includeBookList, includeHomeLearning, includeWeeklyOverview } = body;
+  const { curriculum, topic, numberOfWeeks, includeBookList, includeHomeLearning, includeWeeklyOverview, differentiate = "no", differentiationLevels = [] } = body;
 
   if (!curriculum || !topic?.trim() || !numberOfWeeks) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -30,6 +33,14 @@ export async function POST(req: NextRequest) {
   const additionalSection = additionalSections.length > 0
     ? `\n\nAfter all learning areas, also include the following additional sections: ${additionalSections.join(", ")}.`
     : "";
+
+  // Opt-in. The per-activity Differentiation bullet was previously hardcoded
+  // into every activity template; it now appears only when asked for.
+  const adaptation = differentiationPrompt(differentiate, differentiationLevels);
+  const diffBullet = adaptation
+    ? `\n  - **Differentiation:** [Specific adaptations for this activity]`
+    : "";
+  const adaptationSection = adaptation ? `\n\nDIFFERENTIATION — ${adaptation}` : "";
 
   const userPrompt = `Create a comprehensive Early Years Foundation Stage (EYFS) plan for the following:
 
@@ -69,8 +80,7 @@ For each learning area, use this exact structure:
 
 - **[Activity Name]:** [A specific, detailed description of the activity, how it relates to the topic, and how it promotes learning in this area. Include the practitioner's role in observing and extending learning.]
   - **Resources:** [Specific list of materials, books, or equipment needed]
-  - **Key Vocabulary:** [4–6 carefully chosen words that adults should model and children are expected to encounter]
-  - **Differentiation:** [Specific adaptations: one suggestion to extend more confident children, one to support less confident children or those with SEND]
+  - **Key Vocabulary:** [4–6 carefully chosen words that adults should model and children are expected to encounter]${diffBullet}
   - **Learning Goal:** "[Quote the precise ELG statement this activity addresses]" (ELG: [Full ELG Name])
 
 (Provide 2 distinct indoor continuous provision activities per learning area)
@@ -79,8 +89,7 @@ For each learning area, use this exact structure:
 
 - **[Activity Name]:** [Detailed description, topic link, and practitioner role]
   - **Resources:** [Specific list]
-  - **Key Vocabulary:** [4–6 words]
-  - **Differentiation:** [Two specific adaptations]
+  - **Key Vocabulary:** [4–6 words]${diffBullet}
   - **Learning Goal:** "[ELG statement]" (ELG: [Full ELG Name])
 
 (Provide 2 distinct outdoor continuous provision activities per learning area)
@@ -89,13 +98,12 @@ For each learning area, use this exact structure:
 
 - **[Activity Name]:** [A detailed description of the structured, adult-led activity including: what the adult does, what children are expected to do, how it develops the learning area, and how it connects to the topic. Include approximate duration.]
   - **Resources:** [Specific list]
-  - **Key Vocabulary:** [4–6 words]
-  - **Differentiation:** [Two specific adaptations — one for extension, one for support]
+  - **Key Vocabulary:** [4–6 words]${diffBullet}
   - **Learning Goal:** "[ELG statement]" (ELG: [Full ELG Name])
 
 (Provide 2 distinct adult-led activities per learning area)
 
-All activities must be clearly, specifically linked to the topic "${topic}" — not just labelled with it. All ELG references must be accurate and drawn from the EYFS Statutory Framework (2021).${additionalSection}
+All activities must be clearly, specifically linked to the topic "${topic}" — not just labelled with it. All ELG references must be accurate and drawn from the EYFS Statutory Framework (2021).${adaptationSection}${additionalSection}
 
 Do not use any emojis. Write in a professional, practitioner-friendly tone appropriate for EYFS settings.`;
 

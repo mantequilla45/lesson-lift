@@ -5,11 +5,14 @@ import CurriculumYearFields, { useCurriculumYear } from "@/app/components/Curric
 import { toTitleCase } from "@/app/lib/formOptions";
 import { Loader2, Sparkles, Minus, Plus } from "lucide-react";
 import ResultPanel from "@/app/components/ResultPanel";
+import OutputOutline from "@/app/components/OutputOutline";
 import RefinePanel from "@/app/components/RefinePanel";
 import ConfirmModal from "@/app/components/ConfirmModal";
 import Card from "@/app/components/ui/Card";
 import ToolHistoryPanel from "@/app/components/ToolHistoryPanel";
 import type { ToolRun } from "@/app/lib/toolRuns";
+import PrefilledBadge from "@/app/components/assistant/PrefilledBadge";
+import { useToolLaunch, type ToolLaunchParams } from "@/app/lib/useToolLaunch";
 
 const TOOL_SLUG = "model-answer-generator";
 
@@ -24,7 +27,14 @@ const REFINE_CHIPS = [
 const inputClass =
   "w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-transparent bg-white";
 
-export default function ModelAnswerForm({ sidebar }: { sidebar: React.ReactNode }) {
+export default function ModelAnswerForm({
+  sidebar,
+  launch,
+}: {
+  sidebar: React.ReactNode;
+  /** `?run=` — reopen a saved run. */
+  launch?: ToolLaunchParams;
+}) {
   const { curriculum, setCurriculum, yearGroup, setYearGroup } = useCurriculumYear();
   const [mixed, setMixed] = useState(false);
   const [subject, setSubject] = useState("");
@@ -60,6 +70,20 @@ export default function ModelAnswerForm({ sidebar }: { sidebar: React.ReactNode 
     setResult(run.output);
     setLastGenerated(JSON.stringify(i));
   };
+
+  // `?run=` reopens a saved run from Dashboard, Folders or Analytics.
+  const { prefilled } = useToolLaunch({
+    params: launch,
+    onRestore: restore,
+    prefill: {
+      curriculum: (v) => setCurriculum(v as string),
+      yearGroup: (v) => setYearGroup(v as string),
+      subject: (v) => setSubject(v as string),
+      question: (v) => setQuestion(v as string),
+      totalMarks: (v) => setTotalMarks(v as number),
+      guidelines: (v) => setGuidelines(v as string),
+    },
+  });
 
   const handleMarksChange = (delta: number) => {
     setTotalMarks((prev) => Math.min(50, Math.max(1, prev + delta)));
@@ -140,6 +164,7 @@ export default function ModelAnswerForm({ sidebar }: { sidebar: React.ReactNode 
 
         <div className="lg:col-span-2">
           <Card className="space-y-6">
+            {prefilled && <PrefilledBadge />}
 
             <CurriculumYearFields
               curriculum={curriculum} onCurriculumChange={setCurriculum}
@@ -276,15 +301,27 @@ export default function ModelAnswerForm({ sidebar }: { sidebar: React.ReactNode 
         <div className="sticky top-0 z-20 h-8 -mx-10" style={{ backgroundColor: "#F1EFE3" }} />
       )}
 
-      <ResultPanel
-        result={result}
-        isGenerating={isGenerating}
-        isRefining={isRefining}
-        onChange={(md) => setResult(md)}
-        exportFilename={`model-answer-${subject || "export"}`}
-        historyMeta={{ toolSlug: TOOL_SLUG, title: subject || question || null, input: formState }}
-        onSaved={() => setHistoryKey((k) => k + 1)}
-      />
+      <div className={result !== null ? "flex gap-8" : ""}>
+        {result !== null && (
+          <div className="w-md shrink-0">
+            <div className="sticky top-8">
+              <OutputOutline markdown={result} />
+            </div>
+          </div>
+        )}
+        <div className="flex-1 min-w-0">
+          <ResultPanel
+            result={result}
+            isGenerating={isGenerating}
+            isRefining={isRefining}
+            onChange={(md) => setResult(md)}
+            maxWidth={false}
+            exportFilename={`model-answer-${subject || "export"}`}
+            historyMeta={{ toolSlug: TOOL_SLUG, title: subject || question || null, input: formState }}
+            onSaved={() => setHistoryKey((k) => k + 1)}
+          />
+        </div>
+      </div>
 
       {result && !isGenerating && (
         <RefinePanel

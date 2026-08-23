@@ -8,9 +8,12 @@ import {
   AptitudinalDataField,
   AttainmentDataField,
   OtherDataField,
+  DifferentiationField,
 } from "@/app/components/fields";
+import { restoreDifferentiation, type Differentiate } from "@/app/lib/differentiation";
 import { toTitleCase } from "@/app/lib/formOptions";
 import ResultPanel from "@/app/components/ResultPanel";
+import OutputOutline from "@/app/components/OutputOutline";
 import RefinePanel from "@/app/components/RefinePanel";
 import ConfirmModal from "@/app/components/ConfirmModal";
 import GenerateButton from "@/app/components/ui/GenerateButton";
@@ -18,6 +21,8 @@ import ResetButton from "@/app/components/ui/ResetButton";
 import Card from "@/app/components/ui/Card";
 import ToolHistoryPanel from "@/app/components/ToolHistoryPanel";
 import type { ToolRun } from "@/app/lib/toolRuns";
+import PrefilledBadge from "@/app/components/assistant/PrefilledBadge";
+import { useToolLaunch, type ToolLaunchParams } from "@/app/lib/useToolLaunch";
 
 const TOOL_SLUG = "targeted-intervention";
 
@@ -30,7 +35,14 @@ const REFINE_CHIPS = [
   "Include strategies for parental engagement",
 ];
 
-export default function TargetedInterventionForm({ sidebar }: { sidebar: React.ReactNode }) {
+export default function TargetedInterventionForm({
+  sidebar,
+  launch,
+}: {
+  sidebar: React.ReactNode;
+  /** `?run=` — reopen a saved run. */
+  launch?: ToolLaunchParams;
+}) {
   const { curriculum, setCurriculum, yearGroup, setYearGroup } = useCurriculumYear();
   const [mixed, setMixed] = useState(false);
   const [subject, setSubject] = useState("");
@@ -38,6 +50,8 @@ export default function TargetedInterventionForm({ sidebar }: { sidebar: React.R
   const [aptitudinalData, setAptitudinalData] = useState("");
   const [attainmentData, setAttainmentData] = useState("");
   const [otherData, setOtherData] = useState("");
+  const [differentiate, setDifferentiate] = useState<Differentiate>("no");
+  const [differentiationLevels, setDifferentiationLevels] = useState<string[]>([]);
 
   const [result, setResult] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -47,11 +61,13 @@ export default function TargetedInterventionForm({ sidebar }: { sidebar: React.R
   const [lastGenerated, setLastGenerated] = useState<string | null>(null);
   const [historyKey, setHistoryKey] = useState(0);
 
-  const canGenerate = curriculum && (mixed || yearGroup) && subject.trim() && attitudinalData.trim();
+  const canGenerate = curriculum && (mixed || yearGroup) && subject.trim() && attitudinalData.trim() &&
+    (differentiate === "no" || differentiationLevels.length > 0);
 
   const formState = {
     curriculum, yearGroup, mixed, subject,
     attitudinalData, aptitudinalData, attainmentData, otherData,
+    differentiate, differentiationLevels,
   };
   const formSnapshot = JSON.stringify(formState);
   const unchangedSinceGeneration = result !== null && lastGenerated === formSnapshot;
@@ -66,9 +82,25 @@ export default function TargetedInterventionForm({ sidebar }: { sidebar: React.R
     setAptitudinalData((i.aptitudinalData as string) ?? "");
     setAttainmentData((i.attainmentData as string) ?? "");
     setOtherData((i.otherData as string) ?? "");
+    const d = restoreDifferentiation(i);
+    setDifferentiate(d.differentiate);
+    setDifferentiationLevels(d.levels);
     setResult(run.output);
     setLastGenerated(JSON.stringify(i));
   };
+
+  // `?run=` reopens a saved run from Dashboard, Folders or Analytics.
+  const { prefilled } = useToolLaunch({
+    params: launch,
+    onRestore: restore,
+    prefill: {
+      curriculum: (v) => setCurriculum(v as string),
+      yearGroup: (v) => setYearGroup(v as string),
+      subject: (v) => setSubject(v as string),
+      differentiate: (v) => setDifferentiate(v as Differentiate),
+      differentiationLevels: (v) => setDifferentiationLevels(v as string[]),
+    },
+  });
 
   const handleGenerate = async () => {
     setError(null);
@@ -87,6 +119,8 @@ export default function TargetedInterventionForm({ sidebar }: { sidebar: React.R
           aptitudinalData: aptitudinalData.trim() || undefined,
           attainmentData: attainmentData.trim() || undefined,
           otherData: otherData.trim() || undefined,
+          differentiate,
+          differentiationLevels,
         }),
       });
       if (!res.ok) {
@@ -143,6 +177,8 @@ export default function TargetedInterventionForm({ sidebar }: { sidebar: React.R
     setAptitudinalData("");
     setAttainmentData("");
     setOtherData("");
+    setDifferentiate("no");
+    setDifferentiationLevels([]);
     setResult(null);
     setError(null);
     setConfirmingReset(false);
@@ -158,6 +194,7 @@ export default function TargetedInterventionForm({ sidebar }: { sidebar: React.R
 
         <div className="lg:col-span-2">
           <Card className="space-y-6">
+            {prefilled && <PrefilledBadge />}
 
             <CurriculumYearFields
               curriculum={curriculum} onCurriculumChange={setCurriculum}
@@ -175,6 +212,13 @@ export default function TargetedInterventionForm({ sidebar }: { sidebar: React.R
             <AttainmentDataField value={attainmentData} onChange={setAttainmentData} />
 
             <OtherDataField value={otherData} onChange={setOtherData} />
+
+            <DifferentiationField
+              value={differentiate}
+              onChange={setDifferentiate}
+              levels={differentiationLevels}
+              onLevelsChange={setDifferentiationLevels}
+            />
 
             <div className="flex gap-3">
               <ResetButton onClick={() => setConfirmingReset(true)} disabled={!result} />
@@ -205,15 +249,27 @@ export default function TargetedInterventionForm({ sidebar }: { sidebar: React.R
         <div className="sticky top-0 z-20 h-8 -mx-10" style={{ backgroundColor: "#F1EFE3" }} />
       )}
 
-      <ResultPanel
-        result={result}
-        isGenerating={isGenerating}
-        isRefining={isRefining}
-        onChange={(md) => setResult(md)}
-        exportFilename={`intervention-${subject || "export"}`}
-        historyMeta={{ toolSlug: TOOL_SLUG, title: subject || null, input: formState }}
-        onSaved={() => setHistoryKey((k) => k + 1)}
-      />
+      <div className={result !== null ? "flex gap-8" : ""}>
+        {result !== null && (
+          <div className="w-md shrink-0">
+            <div className="sticky top-8">
+              <OutputOutline markdown={result} />
+            </div>
+          </div>
+        )}
+        <div className="flex-1 min-w-0">
+          <ResultPanel
+            result={result}
+            isGenerating={isGenerating}
+            isRefining={isRefining}
+            onChange={(md) => setResult(md)}
+            maxWidth={false}
+            exportFilename={`intervention-${subject || "export"}`}
+            historyMeta={{ toolSlug: TOOL_SLUG, title: subject || null, input: formState }}
+            onSaved={() => setHistoryKey((k) => k + 1)}
+          />
+        </div>
+      </div>
 
       {result && !isGenerating && (
         <RefinePanel

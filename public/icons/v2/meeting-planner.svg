@@ -1,0 +1,16 @@
+<svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <clipPath id="clip-meeting-planner"><rect width="48" height="48" rx="12"/></clipPath>
+  </defs>
+  <g clip-path="url(#clip-meeting-planner)">
+    <rect width="48" height="48" rx="12" fill="#EF4444"/>
+    <path d="M12 14 L46 48 L26 48 L12 34 Z" fill="#000" opacity="0.12"/>
+    <circle cx="24" cy="24" r="11" fill="#FFFFFF" fill-opacity="0.25"/>
+    <circle cx="16" cy="17" r="4" fill="#FFFFFF"/>
+    <path d="M11 26c0-3.2 2.2-5 5-5s5 1.8 5 5z" fill="#FFFFFF"/>
+    <circle cx="32" cy="17" r="4" fill="#FFDC21"/>
+    <path d="M27 26c0-3.2 2.2-5 5-5s5 1.8 5 5z" fill="#FFDC21"/>
+    <circle cx="24" cy="32" r="4" fill="#FFFFFF"/>
+    <path d="M19 41c0-3.2 2.2-5 5-5s5 1.8 5 5z" fill="#FFFFFF"/>
+  </g>
+</svg>

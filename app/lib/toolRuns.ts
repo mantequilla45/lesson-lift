@@ -64,6 +64,25 @@ export async function listRecentRuns(limit = 100): Promise<ToolRun[]> {
   return (data ?? []) as ToolRun[];
 }
 
+/**
+ * One run by id — what `/tools/<slug>?run=<id>` resolves.
+ *
+ * Returns null when the row is missing or belongs to someone else (RLS makes
+ * those indistinguishable, and both mean the same thing here: open the tool
+ * empty rather than error). `maybeSingle` rather than `single`, which treats
+ * "no row" as an error.
+ */
+export async function getToolRun(id: string): Promise<ToolRun | null> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("tool_runs")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+  if (error) throw error;
+  return (data as ToolRun | null) ?? null;
+}
+
 export async function deleteToolRun(id: string): Promise<void> {
   const supabase = createClient();
   const { error } = await supabase.from("tool_runs").delete().eq("id", id);

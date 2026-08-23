@@ -1,18 +1,21 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import CurriculumYearFields, { useCurriculumYear } from "@/app/components/CurriculumYearFields";
 import { SubjectField, TopicField, LessonCountField, AnswerTypeField } from "@/app/components/fields";
 import { toTitleCase } from "@/app/lib/formOptions";
-import { Loader2, Trash2, Download, ChevronDown, PlusCircle } from "lucide-react";
+import { Loader2, Trash2, Download, ChevronDown, PlusCircle, FileText, FileDown } from "lucide-react";
 import ConfirmModal from "@/app/components/ConfirmModal";
 import RefinePanel from "@/app/components/RefinePanel";
 import GenerateButton from "@/app/components/ui/GenerateButton";
 import ResetButton from "@/app/components/ui/ResetButton";
-import { exportToDocx } from "@/app/lib/exportUtils";
+import { exportToDocx, exportToPdf, PAGE_BREAK } from "@/app/lib/exportUtils";
+import DropdownMenu, { type DropdownItem } from "@/app/components/ui/DropdownMenu";
 import Card from "@/app/components/ui/Card";
 import ToolHistoryPanel from "@/app/components/ToolHistoryPanel";
 import { saveToolRun, type ToolRun } from "@/app/lib/toolRuns";
+import PrefilledBadge from "@/app/components/assistant/PrefilledBadge";
+import { useToolLaunch, type ToolLaunchParams } from "@/app/lib/useToolLaunch";
 
 const TOOL_SLUG = "quiz-generator";
 
@@ -125,6 +128,11 @@ function downloadWaygroundCsv(questions: QuizQuestion[], subject: string) {
 
 function downloadMicrosoftFormsDocx(questions: QuizQuestion[], subject: string, topic: string) {
   // Microsoft Forms DOCX: structured Q&A formatted for easy manual entry into MS Forms
+  //
+  // Deliberately keeps answers inline, unlike quizToMarkdown which moves them
+  // to their own page. Nobody hands this to a class — it is read side by side
+  // with the Forms UI while typing each question in, so separating a question
+  // from its answer would mean flipping back and forth. Not an oversight.
   const lines: string[] = [
     `# ${topic || subject} Quiz`,
     "",
@@ -194,24 +202,45 @@ function addQuestion(form, questionText, options, correctIndex) {
   );
 }
 
+/**
+ * The student-facing export: questions only, with the answer key on its own
+ * page after them.
+ *
+ * Answers used to sit directly under each question (a ✓ on the correct option
+ * plus a "Correct answer:" line), which made the export impossible to hand out.
+ * Nothing here may reveal an answer before the PAGE_BREAK.
+ */
 function quizToMarkdown(questions: QuizQuestion[], subject: string, topic: string): string {
   const lines: string[] = [`# Quiz: ${topic || subject}`, ""];
+  if (questions.length === 0) return lines.join("\n");
+
   questions.forEach((q, i) => {
     lines.push(`## Question ${i + 1}`);
     lines.push("");
     lines.push(q.question);
     lines.push("");
     q.options.forEach((opt, j) => {
-      const label = String.fromCharCode(65 + j);
-      const correct = j === q.correctIndex ? " ✓" : "";
-      lines.push(`- ${label}) ${opt}${correct}`);
+      lines.push(`- ${String.fromCharCode(65 + j)}) ${opt}`);
     });
     lines.push("");
-    lines.push(`**Correct answer:** ${String.fromCharCode(65 + q.correctIndex)}) ${q.options[q.correctIndex]}`);
-    lines.push("");
-    lines.push("---");
-    lines.push("");
+    // No rule after the last one: it would render as a stray line at the foot
+    // of the page, immediately above the break.
+    if (i < questions.length - 1) {
+      lines.push("---");
+      lines.push("");
+    }
   });
+
+  lines.push(PAGE_BREAK);
+  lines.push("");
+  lines.push("## Answer Key");
+  lines.push("");
+  questions.forEach((q, i) => {
+    lines.push(
+      `${i + 1}. ${String.fromCharCode(65 + q.correctIndex)}) ${q.options[q.correctIndex]}`,
+    );
+  });
+
   return lines.join("\n");
 }
 
@@ -305,70 +334,91 @@ function QuizCard({
 // ---- Download dropdown ----
 
 function DownloadDropdown({ questions, subject, topic }: { questions: QuizQuestion[]; subject: string; topic: string }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+  const [exporting, setExporting] = useState(false);
 
-  const handle = (fn: () => void) => {
-    fn();
-    setOpen(false);
+  const filename = `quiz-${subject || "export"}`;
+  const markdown = () => quizToMarkdown(questions, subject, topic);
+
+  // PDF is async and can take a moment on a long quiz, so the trigger reports
+  // progress rather than appearing to do nothing.
+  const withProgress = (fn: () => Promise<void>) => async () => {
+    setExporting(true);
+    try {
+      await fn();
+    } finally {
+      setExporting(false);
+    }
   };
 
-  const items: { label: string; action: () => void }[] = [
-    { label: "Download Generic (CSV)", action: () => downloadGenericCsv(questions, subject) },
-    { label: "Download Blooket (CSV)", action: () => downloadBlooketCsv(questions, subject) },
-    { label: "Download Gimkit (CSV)", action: () => downloadGimkitCsv(questions, subject) },
-    { label: "Download Kahoot (CSV)", action: () => downloadKahootCsv(questions, subject) },
-    { label: "Download Wayground (CSV)", action: () => downloadWaygroundCsv(questions, subject) },
+  const items: DropdownItem[] = [
     {
-      label: "Download Word Doc (DOCX)",
-      action: () => exportToDocx(quizToMarkdown(questions, subject, topic), `quiz-${subject || "export"}`),
+      label: "Download PDF",
+      icon: <FileDown className="w-3.5 h-3.5" />,
+      onSelect: withProgress(() => exportToPdf(markdown(), filename)),
     },
     {
+      label: "Download Word Doc (DOCX)",
+      icon: <FileText className="w-3.5 h-3.5" />,
+      onSelect: withProgress(() => exportToDocx(markdown(), filename)),
+    },
+    {
+      label: "Save to Google Docs",
+      icon: <Download className="w-3.5 h-3.5" />,
+      disabled: true,
+      note: "coming soon",
+    },
+    // The quiz-platform formats are the point of this tool, so they stay
+    // together below the document formats rather than being reordered.
+    {
+      label: "Download Generic (CSV)",
+      icon: <Download className="w-3.5 h-3.5" />,
+      onSelect: () => downloadGenericCsv(questions, subject),
+      separated: true,
+    },
+    { label: "Download Blooket (CSV)", icon: <Download className="w-3.5 h-3.5" />, onSelect: () => downloadBlooketCsv(questions, subject) },
+    { label: "Download Gimkit (CSV)", icon: <Download className="w-3.5 h-3.5" />, onSelect: () => downloadGimkitCsv(questions, subject) },
+    { label: "Download Kahoot (CSV)", icon: <Download className="w-3.5 h-3.5" />, onSelect: () => downloadKahootCsv(questions, subject) },
+    { label: "Download Wayground (CSV)", icon: <Download className="w-3.5 h-3.5" />, onSelect: () => downloadWaygroundCsv(questions, subject) },
+    {
       label: "Download Microsoft Forms (DOCX)",
-      action: () => downloadMicrosoftFormsDocx(questions, subject, topic),
+      icon: <FileText className="w-3.5 h-3.5" />,
+      onSelect: () => downloadMicrosoftFormsDocx(questions, subject, topic),
+      separated: true,
     },
     {
       label: "Export to Google Forms",
-      action: () => downloadGoogleAppsScript(questions, subject, topic),
+      icon: <Download className="w-3.5 h-3.5" />,
+      onSelect: () => downloadGoogleAppsScript(questions, subject, topic),
     },
   ];
 
   return (
-    <div className="relative" ref={ref}>
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white text-sm font-medium px-4 py-2 rounded-md transition-colors"
-      >
-        <Download className="w-4 h-4" />
-        Download
-        <ChevronDown className="w-4 h-4" />
-      </button>
-      {open && (
+    <DropdownMenu
+      ariaLabel="Download options"
+      disabled={exporting}
+      triggerClassName="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white text-sm font-medium px-4 py-2 rounded-md transition-colors disabled:opacity-60 cursor-pointer"
+      menuClassName="w-72"
+      trigger={
         <>
-          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 mt-2 w-64 bg-white border border-gray-200 rounded-lg shadow-lg z-20 py-1">
-            {items.map((item) => (
-              <button
-                key={item.label}
-                type="button"
-                onClick={() => handle(item.action)}
-                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors text-left"
-              >
-                <Download className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                {item.label}
-              </button>
-            ))}
-          </div>
+          {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+          {exporting ? "Building…" : "Download"}
+          <ChevronDown className="w-4 h-4" />
         </>
-      )}
-    </div>
+      }
+      items={items}
+    />
   );
 }
 
 // ---- Main component ----
 
-export default function QuizGeneratorForm({ sidebar }: { sidebar: React.ReactNode }) {
+export default function QuizGeneratorForm({
+  sidebar,
+  launch,
+}: {
+  sidebar: React.ReactNode;
+  launch?: ToolLaunchParams;
+}) {
   const { curriculum, setCurriculum, yearGroup, setYearGroup } = useCurriculumYear();
   const [mixed, setMixed] = useState(false);
   const [subject, setSubject] = useState("");
@@ -422,6 +472,18 @@ export default function QuizGeneratorForm({ sidebar }: { sidebar: React.ReactNod
     }
     setLastGenerated(JSON.stringify({ curriculum: i.curriculum, yearGroup: i.yearGroup, mixed: i.mixed, subject: i.subject, topic: i.topic, numQuestions: i.numQuestions, answerType: i.answerType }));
   };
+
+  const { prefilled } = useToolLaunch({
+    params: launch,
+    onRestore: restore,
+    prefill: {
+      curriculum: (v) => setCurriculum(v as string),
+      yearGroup: (v) => setYearGroup(v as string),
+      subject: (v) => setSubject(v as string),
+      topic: (v) => setTopic(v as string),
+      numQuestions: (v) => setNumQuestions(v as number),
+    },
+  });
 
   const updateQuestion = (i: number, q: QuizQuestion) => {
     setQuestions((prev) => prev.map((old, idx) => (idx === i ? q : old)));
@@ -529,6 +591,7 @@ export default function QuizGeneratorForm({ sidebar }: { sidebar: React.ReactNod
 
         <div className="lg:col-span-2">
           <Card className="space-y-6">
+            {prefilled && <PrefilledBadge />}
 
             <CurriculumYearFields
               curriculum={curriculum} onCurriculumChange={setCurriculum}

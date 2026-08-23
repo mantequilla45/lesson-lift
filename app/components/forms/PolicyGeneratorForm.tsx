@@ -6,12 +6,15 @@ import { TopicField, AdditionalContextField, CurriculumField, OutputTypeField } 
 import ConfirmModal from "@/app/components/ConfirmModal";
 import Card from "@/app/components/ui/Card";
 import ResultPanel from "@/app/components/ResultPanel";
+import OutputOutline from "@/app/components/OutputOutline";
 import RefinePanel from "@/app/components/RefinePanel";
 import GenerateButton from "@/app/components/ui/GenerateButton";
 import ResetButton from "@/app/components/ui/ResetButton";
 import { useLocalStorage } from "@/app/lib/useLocalStorage";
 import ToolHistoryPanel from "@/app/components/ToolHistoryPanel";
 import type { ToolRun } from "@/app/lib/toolRuns";
+import PrefilledBadge from "@/app/components/assistant/PrefilledBadge";
+import { useToolLaunch, type ToolLaunchParams } from "@/app/lib/useToolLaunch";
 
 const TOOL_SLUG = "policy-generator";
 
@@ -144,7 +147,14 @@ function PolicyCategoriesPanel({ onSelect }: { onSelect: (name: string) => void 
   );
 }
 
-export default function PolicyGeneratorForm({ sidebar }: { sidebar: React.ReactNode }) {
+export default function PolicyGeneratorForm({
+  sidebar,
+  launch,
+}: {
+  sidebar: React.ReactNode;
+  /** `?run=` — reopen a saved run. */
+  launch?: ToolLaunchParams;
+}) {
   const [curriculum, setCurriculum] = useLocalStorage("ll:curriculum", "");
   const [policy, setPolicy] = useState("");
   const [additionalRequirements, setAdditionalRequirements] = useState("");
@@ -172,6 +182,17 @@ export default function PolicyGeneratorForm({ sidebar }: { sidebar: React.ReactN
     setResult(run.output);
     setLastGenerated(JSON.stringify(i));
   };
+
+  // `?run=` reopens a saved run from Dashboard, Folders or Analytics.
+  const { prefilled } = useToolLaunch({
+    params: launch,
+    onRestore: restore,
+    prefill: {
+      curriculum: (v) => setCurriculum(v as string),
+      policy: (v) => setPolicy(v as string),
+      outputType: (v) => setOutputType(v as "full" | "structure"),
+    },
+  });
 
   const streamResponse = async (url: string, body: object, onChunk: (chunk: string) => void) => {
     const res = await fetch(url, {
@@ -239,6 +260,7 @@ export default function PolicyGeneratorForm({ sidebar }: { sidebar: React.ReactN
 
         <div className="lg:col-span-2">
           <Card className="space-y-6">
+            {prefilled && <PrefilledBadge />}
 
             <CurriculumField value={curriculum} onChange={setCurriculum} />
 
@@ -305,15 +327,27 @@ export default function PolicyGeneratorForm({ sidebar }: { sidebar: React.ReactN
         <div className="sticky top-0 z-20 h-8 -mx-10" style={{ backgroundColor: "#F1EFE3" }} />
       )}
 
-      <ResultPanel
-        result={result}
-        isGenerating={isGenerating}
-        isRefining={isRefining}
-        onChange={(md) => setResult(md)}
-        exportFilename={`policy-${policy.slice(0, 30).replace(/\s+/g, "-") || "document"}`}
-        historyMeta={{ toolSlug: TOOL_SLUG, title: policy || null, input: formState }}
-        onSaved={() => setHistoryKey((k) => k + 1)}
-      />
+      <div className={result !== null ? "flex gap-8" : ""}>
+        {result !== null && (
+          <div className="w-md shrink-0">
+            <div className="sticky top-8">
+              <OutputOutline markdown={result} />
+            </div>
+          </div>
+        )}
+        <div className="flex-1 min-w-0">
+          <ResultPanel
+            result={result}
+            isGenerating={isGenerating}
+            isRefining={isRefining}
+            onChange={(md) => setResult(md)}
+            maxWidth={false}
+            exportFilename={`policy-${policy.slice(0, 30).replace(/\s+/g, "-") || "document"}`}
+            historyMeta={{ toolSlug: TOOL_SLUG, title: policy || null, input: formState }}
+            onSaved={() => setHistoryKey((k) => k + 1)}
+          />
+        </div>
+      </div>
 
       {result && !isGenerating && (
         <RefinePanel
