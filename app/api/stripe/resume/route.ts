@@ -55,8 +55,13 @@ export async function POST() {
   }
 
   try {
+    // Clear BOTH representations of a scheduled cancellation. Under flexible
+    // billing Stripe records the stop as a `cancel_at` timestamp and leaves
+    // `cancel_at_period_end` false, so clearing only the boolean would leave
+    // the subscription still scheduled to end while the UI claimed otherwise.
     const sub = await stripe.subscriptions.update(subscriptionId, {
       cancel_at_period_end: false,
+      cancel_at: null,
     });
 
     // Write through immediately rather than waiting for the
@@ -71,7 +76,12 @@ export async function POST() {
     const { error } = await supabaseAdmin
       .from("profiles")
       .update({
-        cancel_at_period_end: sub.cancel_at_period_end ?? false,
+        // Mirror what Stripe now reports rather than assuming the update took:
+        // if either representation somehow survived, the page should keep
+        // showing the subscription as ending.
+        cancel_at_period_end:
+          Boolean(sub.cancel_at_period_end) ||
+          (typeof sub.cancel_at === "number" && sub.cancel_at * 1000 > Date.now()),
         subscription_status: sub.status,
         updated_at: new Date().toISOString(),
       })
