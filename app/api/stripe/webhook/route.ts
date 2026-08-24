@@ -61,6 +61,13 @@ async function syncSubscription(sub: Stripe.Subscription) {
       stripe_customer_id: customerId,
       stripe_subscription_id: sub.id,
       subscription_status: sub.status,
+      // Cancelling via the portal is scheduled, not immediate: the status stays
+      // "active" and only this flag marks the subscription as ending. Without it
+      // the billing page cannot tell "renewing" from "ending" — see the
+      // migration that adds the column. Deliberately NOT part of the `plan`
+      // decision above: a subscription set to cancel is still paid for, and the
+      // teacher keeps Pro until the period actually ends.
+      cancel_at_period_end: sub.cancel_at_period_end ?? false,
       current_period_end: periodEnd(sub),
       updated_at: new Date().toISOString(),
     })
@@ -213,6 +220,40 @@ async function chargeIdForPaymentIntent(paymentIntentId: string): Promise<string
   }
 }
 
+/**
+ * The charge behind an invoice, via its InvoicePayment records.
+ *
+ * This is where the payment reference lives now that `invoice.charge` and
+ * `invoice.payment_intent` have both been removed from the Invoice object. An
+ * invoice can have several payments (a retried card, part-payments), so prefer
+ * the one Stripe marks `is_default`, then any that actually succeeded.
+ *
+ * Only `payment_intent` payments resolve to a charge — `payment_record` covers
+ * out-of-band money (a bank transfer recorded by hand) which has no Stripe
+ * charge to point at, and correctly yields null.
+ *
+ * Best-effort, like chargeIdForPaymentIntent: a missing charge id costs refund
+ * tracking, never the customer's access, so this never throws.
+ */
+async function chargeIdForInvoice(invoiceId: string | null | undefined): Promise<string | null> {
+  if (!invoiceId) return null;
+  try {
+    const payments = await stripe.invoicePayments.list({ invoice: invoiceId, limit: 10 });
+    const paid = payments.data.filter((p) => p.status === "paid");
+    const best = paid.find((p) => p.is_default) ?? paid[0];
+
+    const payment = best?.payment;
+    if (payment?.type !== "payment_intent") return null;
+
+    const pi = payment.payment_intent;
+    const piId = typeof pi === "string" ? pi : (pi?.id ?? null);
+    return piId ? await chargeIdForPaymentIntent(piId) : null;
+  } catch (err) {
+    console.error("[stripe/webhook] could not resolve charge for invoice", invoiceId, err);
+    return null;
+  }
+}
+
 /** Resolve the local profile id for a Stripe customer. */
 async function userIdForCustomer(customer: string | null): Promise<string | null> {
   if (!customer) return null;
@@ -257,22 +298,30 @@ async function syncInvoice(inv: Stripe.Invoice, status: string) {
     return;
   }
 
-  // Stripe removed `invoice.charge` in favour of a PaymentIntent reference, so
-  // the old read silently produced null on every invoice — which in turn meant
-  // syncRefund() could never find the row to mark refunded. Prefer whichever
-  // field this API version actually sends, then fall back to the PaymentIntent.
-  const invAny = inv as unknown as {
-    charge?: string | { id: string };
-    payment_intent?: string | { id: string };
-  };
-  let chargeId =
-    typeof invAny.charge === "string" ? invAny.charge : (invAny.charge?.id ?? null);
+  // Resolving the charge behind an invoice has moved TWICE as the API evolved:
+  // `invoice.charge` → `invoice.payment_intent` → the InvoicePayment sub-object.
+  // Both of the older fields are now removed outright (they are absent from the
+  // payload, not null), so reading only those yielded null on every invoice and
+  // left syncRefund() unable to find the row to mark refunded.
+  //
+  // Try newest first, then the legacy fields, so this keeps working whichever
+  // API version an event was created under.
+  let chargeId = await chargeIdForInvoice(inv.id);
+
   if (!chargeId) {
-    const pi =
-      typeof invAny.payment_intent === "string"
-        ? invAny.payment_intent
-        : (invAny.payment_intent?.id ?? null);
-    if (pi) chargeId = await chargeIdForPaymentIntent(pi);
+    const invAny = inv as unknown as {
+      charge?: string | { id: string };
+      payment_intent?: string | { id: string };
+    };
+    chargeId =
+      typeof invAny.charge === "string" ? invAny.charge : (invAny.charge?.id ?? null);
+    if (!chargeId) {
+      const pi =
+        typeof invAny.payment_intent === "string"
+          ? invAny.payment_intent
+          : (invAny.payment_intent?.id ?? null);
+      if (pi) chargeId = await chargeIdForPaymentIntent(pi);
+    }
   }
 
   const { error } = await supabaseAdmin.from("invoices").upsert(

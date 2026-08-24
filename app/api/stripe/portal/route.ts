@@ -60,7 +60,9 @@ export async function POST(req: NextRequest) {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("stripe_customer_id, stripe_subscription_id, subscription_status")
+    .select(
+      "stripe_customer_id, stripe_subscription_id, subscription_status, cancel_at_period_end",
+    )
     .eq("id", user.id)
     .maybeSingle();
 
@@ -87,7 +89,11 @@ export async function POST(req: NextRequest) {
         { status: 400 },
       );
     }
-    if (profile.subscription_status === "canceled") {
+    // Both "already ending" and "already ended" must be refused. Checking only
+    // the status missed the common case: the portal cancels at period end, so a
+    // cancelling subscription still reports status = "active" and Stripe would
+    // reject the second cancel attempt with an opaque error.
+    if (profile.subscription_status === "canceled" || profile.cancel_at_period_end) {
       return NextResponse.json(
         { error: "This subscription is already cancelled." },
         { status: 400 },

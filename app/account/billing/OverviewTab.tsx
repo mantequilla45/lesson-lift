@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/app/lib/auth/server";
 import { asPlanId, PLANS, PLAN_CREDITS } from "@/app/lib/plans";
 import ManageButton from "./ManageButton";
+import ResumeButton from "./ResumeButton";
 import AllowanceMeter from "./AllowanceMeter";
 
 // Overview: current plan, where they stand against this month's allowance, and
@@ -26,7 +27,9 @@ export default async function OverviewTab({
     await Promise.all([
       supabase
         .from("profiles")
-        .select("plan, subscription_status, current_period_end, stripe_customer_id, stripe_subscription_id")
+        .select(
+          "plan, subscription_status, cancel_at_period_end, current_period_end, stripe_customer_id, stripe_subscription_id",
+        )
         .eq("id", user?.id ?? "")
         .maybeSingle(),
       supabase.rpc("my_generation_count_this_month"),
@@ -60,7 +63,18 @@ export default async function OverviewTab({
         year: "numeric",
       })
     : null;
-  const cancelling = profile?.subscription_status === "canceled";
+  // Two distinct states, and the difference is the whole point of this block.
+  //
+  // ENDING: cancelled through the portal, which schedules rather than cancels —
+  // Stripe keeps status = "active" and only sets cancel_at_period_end, so the
+  // teacher keeps Pro until the period runs out. Testing the status alone (as
+  // this once did) never matched, so the page claimed the plan would "renew"
+  // and kept offering a Cancel button Stripe would reject.
+  //
+  // ENDED: the period elapsed and Stripe closed the subscription for good.
+  // Nothing left to renew — resubscribing means a new checkout.
+  const ended = profile?.subscription_status === "canceled";
+  const ending = Boolean(profile?.cancel_at_period_end) && !ended;
 
   return (
     <div className="max-w-xl">
@@ -120,7 +134,7 @@ export default async function OverviewTab({
 
         {renews && (
           <p className="text-sm mb-5" style={{ color: "#6b6055" }}>
-            {cancelling
+            {ending || ended
               ? `Access ends on ${renews}.`
               : `Renews on ${renews}.`}
           </p>
@@ -137,16 +151,19 @@ export default async function OverviewTab({
               label="Update card"
               variant="outline"
             />
-            {/* Hidden once cancelled: the "Access ends on …" line above already
-                says what's happening, and a Cancel button next to it would
-                invite a second attempt that Stripe would reject. */}
-            {hasSubscription && !cancelling && (
+            {/* Cancel and Renew are the same slot in two states, never both:
+                offering Cancel on an already-cancelling subscription invites a
+                second attempt that Stripe rejects, which is what this used to
+                do. Once it has fully ended there is nothing to renew either —
+                the "resubscribe" note below covers that case. */}
+            {hasSubscription && !ending && !ended && (
               <ManageButton
                 flow="subscription_cancel"
                 label="Cancel subscription"
                 variant="danger"
               />
             )}
+            {hasSubscription && ending && <ResumeButton />}
           </div>
         ) : (
           <Link
@@ -158,7 +175,19 @@ export default async function OverviewTab({
           </Link>
         )}
 
-        {cancelling && (
+        {/* Two different messages, because the two states have different exits.
+            While ENDING the subscription is still live and the Renew button
+            above undoes it in place — telling them to visit /pricing would send
+            them to buy a second subscription they don't need. Once ENDED, that
+            really is the only route back. */}
+        {ending && (
+          <p className="text-sm mt-4" style={{ color: "#8a8078" }}>
+            Your plan is set to end. Renew to keep it — you won&apos;t be charged
+            until {renews ?? "the next billing date"}.
+          </p>
+        )}
+
+        {ended && (
           <p className="text-sm mt-4" style={{ color: "#8a8078" }}>
             You can resubscribe any time from the pricing page.
           </p>
