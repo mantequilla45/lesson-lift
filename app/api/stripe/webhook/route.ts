@@ -26,6 +26,27 @@ function periodEnd(sub: Stripe.Subscription): string | null {
   return unix ? new Date(unix * 1000).toISOString() : null;
 }
 
+/**
+ * Is this subscription scheduled to stop at the end of the paid period?
+ *
+ * Two representations, and BOTH must be checked. The long-standing
+ * `cancel_at_period_end` boolean is not set under Stripe's flexible billing
+ * mode, which instead records the scheduled stop as a concrete `cancel_at`
+ * timestamp — a subscription cancelled through the portal can therefore report
+ * `cancel_at_period_end: false` while genuinely ending. Reading only the
+ * boolean left the billing page announcing "Renews on …" to someone who had
+ * just cancelled.
+ *
+ * `canceled_at` is deliberately NOT used: it records when the cancellation was
+ * requested, and is set even on a subscription that has already fully ended.
+ */
+function endsAtPeriodEnd(sub: Stripe.Subscription): boolean {
+  if (sub.cancel_at_period_end) return true;
+  // A cancel_at in the past belongs to a subscription that has already ended;
+  // that is the "canceled" status's business, not this flag's.
+  return typeof sub.cancel_at === "number" && sub.cancel_at * 1000 > Date.now();
+}
+
 /** Apply a subscription's current state to the owning profile. */
 async function syncSubscription(sub: Stripe.Subscription) {
   const customerId = typeof sub.customer === "string" ? sub.customer : sub.customer.id;
@@ -67,7 +88,7 @@ async function syncSubscription(sub: Stripe.Subscription) {
       // migration that adds the column. Deliberately NOT part of the `plan`
       // decision above: a subscription set to cancel is still paid for, and the
       // teacher keeps Pro until the period actually ends.
-      cancel_at_period_end: sub.cancel_at_period_end ?? false,
+      cancel_at_period_end: endsAtPeriodEnd(sub),
       current_period_end: periodEnd(sub),
       updated_at: new Date().toISOString(),
     })
