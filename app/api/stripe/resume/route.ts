@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import type Stripe from "stripe";
 import { createClient } from "@/app/lib/auth/server";
 import { stripe } from "@/app/lib/stripe";
 import { supabaseAdmin } from "@/app/lib/supabase-admin";
@@ -55,14 +56,17 @@ export async function POST() {
   }
 
   try {
-    // Clear BOTH representations of a scheduled cancellation. Under flexible
-    // billing Stripe records the stop as a `cancel_at` timestamp and leaves
-    // `cancel_at_period_end` false, so clearing only the boolean would leave
-    // the subscription still scheduled to end while the UI claimed otherwise.
-    const sub = await stripe.subscriptions.update(subscriptionId, {
-      cancel_at_period_end: false,
-      cancel_at: null,
-    });
+    // Clear whichever representation this subscription actually uses, and ONLY
+    // that one. Under flexible billing mode the schedule lives in `cancel_at`
+    // and the boolean stays false; under classic it is the boolean. Sending
+    // both together is rejected, so branch on what Stripe currently reports.
+    const current = await stripe.subscriptions.retrieve(subscriptionId);
+
+    const params: Stripe.SubscriptionUpdateParams = current.cancel_at
+      ? { cancel_at: null }
+      : { cancel_at_period_end: false };
+
+    const sub = await stripe.subscriptions.update(subscriptionId, params);
 
     // Write through immediately rather than waiting for the
     // customer.subscription.updated webhook. The webhook is still the source of
@@ -96,9 +100,17 @@ export async function POST() {
 
     return NextResponse.json({ ok: true });
   } catch (err) {
+    // Log the whole error server-side, but also surface Stripe's own message.
+    // A bare "Could not renew your subscription." gives neither the teacher nor
+    // us anything to act on, and this failed silently once already.
+    const message =
+      err && typeof err === "object" && "message" in err
+        ? String((err as { message: unknown }).message)
+        : null;
+
     console.error("[stripe/resume]", err);
     return NextResponse.json(
-      { error: "Could not renew your subscription." },
+      { error: message ?? "Could not renew your subscription." },
       { status: 500 },
     );
   }
