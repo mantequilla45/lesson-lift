@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Eye, EyeOff, Info, Loader2, UserPlus, X } from "lucide-react";
+import { Check, Eye, EyeOff, Info, Loader2, UserPlus, X } from "lucide-react";
 import DialCodeSelect, { DEFAULT_DIAL_CODE } from "@/app/components/DialCodeSelect";
+import { checkPassword } from "@/app/lib/password";
 
 // Mirrors the real 3-step signup journey (signup -> create-password ->
 // complete-profile) collapsed into one modal, same fields in the same order.
@@ -70,14 +71,10 @@ export default function AddTeacherModal({ onClose }: { onClose: () => void }) {
   const [notice, setNotice] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const rules = {
-    length: password.length >= 8,
-    upper: /[A-Z]/.test(password),
-    number: /\d/.test(password),
-    special: /[^A-Za-z0-9]/.test(password),
-  };
-  const meetsRules = Object.values(rules).every(Boolean);
+  const rules = checkPassword(password);
+  const meetsRules = rules.every((r) => r.met);
   const matches = password.length > 0 && password === confirm;
+  const showMismatch = confirm.length > 0 && password !== confirm;
   const canSubmit =
     email.trim() !== "" && meetsRules && matches && firstName.trim() !== "" && surname.trim() !== "" && !loading;
 
@@ -220,10 +217,22 @@ export default function AddTeacherModal({ onClose }: { onClose: () => void }) {
                 visible={showPassword}
                 onToggle={() => setShowPassword((v) => !v)}
               />
-              <p className="mt-1.5 flex items-center gap-1.5 text-xs" style={{ color: "#8a8078" }}>
-                <Info className="w-3.5 h-3.5 shrink-0" />
-                At least 8 characters, 1 uppercase letter, 1 number, and 1 special character.
-              </p>
+              <ul className="mt-1.5 space-y-1" aria-live="polite">
+                {rules.map((rule) => (
+                  <li
+                    key={rule.key}
+                    className="flex items-center gap-1.5 text-xs"
+                    style={{ color: rule.met ? "#3F6B37" : "#8a8078" }}
+                  >
+                    {rule.met ? (
+                      <Check className="w-3.5 h-3.5 shrink-0" />
+                    ) : (
+                      <Info className="w-3.5 h-3.5 shrink-0" />
+                    )}
+                    {rule.label}
+                  </li>
+                ))}
+              </ul>
             </div>
 
             <div>
@@ -237,6 +246,12 @@ export default function AddTeacherModal({ onClose }: { onClose: () => void }) {
                 visible={showConfirm}
                 onToggle={() => setShowConfirm((v) => !v)}
               />
+              {showMismatch && (
+                <p className="mt-1.5 flex items-center gap-1.5 text-xs text-red-500" role="alert">
+                  <X className="w-3.5 h-3.5 shrink-0" />
+                  Passwords don&rsquo;t match
+                </p>
+              )}
             </div>
           </div>
 
