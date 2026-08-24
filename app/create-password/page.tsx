@@ -3,8 +3,9 @@
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Eye, EyeOff, Info } from "lucide-react";
+import { Check, Eye, EyeOff, X } from "lucide-react";
 import { createClient } from "@/app/lib/auth/client";
+import { checkPassword } from "@/app/lib/password";
 
 export default function CreatePasswordPage() {
   const router = useRouter();
@@ -12,21 +13,26 @@ export default function CreatePasswordPage() {
   const [confirm, setConfirm] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  // Rules only turn red once the field has been left (or submit attempted).
+  // Without this the form greets you with four red crosses before you have
+  // typed a character, which reads as failure rather than guidance.
+  const [passwordTouched, setPasswordTouched] = useState(false);
+  const [confirmTouched, setConfirmTouched] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const rules = {
-    length: password.length >= 8,
-    upper: /[A-Z]/.test(password),
-    number: /\d/.test(password),
-    special: /[^A-Za-z0-9]/.test(password),
-  };
-  const meetsRules = Object.values(rules).every(Boolean);
+  const rules = checkPassword(password);
+  const meetsRules = rules.every((r) => r.met);
   const matches = password.length > 0 && password === confirm;
+  const showMismatch = confirmTouched && confirm.length > 0 && password !== confirm;
   const canSubmit = meetsRules && matches && !loading;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    // Someone who hits submit without ever leaving a field has touched
+    // nothing, so the reasons it is disabled would stay hidden.
+    setPasswordTouched(true);
+    setConfirmTouched(true);
     if (!canSubmit) return;
     setError(null);
     setLoading(true);
@@ -36,7 +42,10 @@ export default function CreatePasswordPage() {
     } = await supabase.auth.getUser();
 
     if (user) {
-      // Already signed in (e.g. via Google) — just attach a password.
+      // Already signed in — this is the admin password-reset path, which lands
+      // here through /auth/callback?next=/create-password with a live session.
+      // (Google sign-ups no longer reach this page at all; the callback sends
+      // them straight to /complete-profile.)
       const { error } = await supabase.auth.updateUser({ password });
       if (error) {
         setError("Could not set your password. Please try again.");
@@ -128,11 +137,38 @@ export default function CreatePasswordPage() {
                   onChange={setPassword}
                   visible={showPassword}
                   onToggleVisible={() => setShowPassword((v) => !v)}
+                  onBlur={() => setPasswordTouched(true)}
+                  invalid={passwordTouched && !meetsRules}
                 />
-                <p className="mt-2 flex items-center gap-1.5 text-xs text-muted font-light">
-                  <Info className="w-3.5 h-3.5 shrink-0" />
-                  At least 8 characters, 1 uppercase letter, 1 number, and 1 special character.
-                </p>
+                <ul className="mt-2 space-y-1" aria-live="polite">
+                  {rules.map((rule) => {
+                    const failing = passwordTouched && !rule.met;
+                    return (
+                      <li
+                        key={rule.key}
+                        className={`flex items-center gap-1.5 text-xs font-light ${
+                          rule.met
+                            ? "text-emerald-600"
+                            : failing
+                            ? "text-red-500"
+                            : "text-muted"
+                        }`}
+                      >
+                        {rule.met ? (
+                          <Check className="w-3.5 h-3.5 shrink-0" />
+                        ) : failing ? (
+                          <X className="w-3.5 h-3.5 shrink-0" />
+                        ) : (
+                          // Keeps the rows from shifting sideways as icons swap in.
+                          <span className="w-3.5 h-3.5 shrink-0 flex items-center justify-center">
+                            <span className="w-1 h-1 rounded-full bg-current" />
+                          </span>
+                        )}
+                        {rule.label}
+                      </li>
+                    );
+                  })}
+                </ul>
               </div>
 
               <div className="mt-6">
@@ -148,7 +184,15 @@ export default function CreatePasswordPage() {
                   onChange={setConfirm}
                   visible={showConfirm}
                   onToggleVisible={() => setShowConfirm((v) => !v)}
+                  onBlur={() => setConfirmTouched(true)}
+                  invalid={showMismatch}
                 />
+                {showMismatch && (
+                  <p className="mt-2 flex items-center gap-1.5 text-xs text-red-500" role="alert">
+                    <X className="w-3.5 h-3.5 shrink-0" />
+                    Passwords don&rsquo;t match
+                  </p>
+                )}
               </div>
 
               {error && (
@@ -178,12 +222,16 @@ function PasswordField({
   onChange,
   visible,
   onToggleVisible,
+  onBlur,
+  invalid = false,
 }: {
   id: string;
   value: string;
   onChange: (next: string) => void;
   visible: boolean;
   onToggleVisible: () => void;
+  onBlur?: () => void;
+  invalid?: boolean;
 }) {
   // When hidden, render `*` × length as a text field and diff changes back into the real value.
   // Default `type="password"` masks with the browser's bullet glyph (•), which can render small
@@ -210,10 +258,14 @@ function PasswordField({
         type="text"
         value={displayValue}
         onChange={handleChange}
+        onBlur={onBlur}
         placeholder="Enter your password"
         autoComplete="new-password"
         spellCheck={false}
-        className="w-full pl-4 pr-12 py-3 border border-line rounded-xl bg-white text-sm leading-tight tracking-tight font-medium placeholder-[#A5A5A5] placeholder:font-light focus:outline-none focus:border-dark transition-colors"
+        aria-invalid={invalid || undefined}
+        className={`w-full pl-4 pr-12 py-3 border rounded-xl bg-white text-sm leading-tight tracking-tight font-medium placeholder-[#A5A5A5] placeholder:font-light focus:outline-none transition-colors ${
+          invalid ? "border-red-400 focus:border-red-400" : "border-line focus:border-dark"
+        }`}
       />
       <button
         type="button"

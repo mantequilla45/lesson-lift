@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/app/lib/auth/server";
 import { supabaseAdmin } from "@/app/lib/supabase-admin";
+import { PASSWORD_REQUIREMENTS_MESSAGE, isValidPassword } from "@/app/lib/password";
 
 // Creates a teacher account from the admin panel without touching the calling
 // admin's own session. The self-serve signup flow uses
@@ -41,11 +42,8 @@ export async function POST(req: NextRequest) {
       { status: 400 },
     );
   }
-  if (password.length < 8 || !/[A-Z]/.test(password) || !/\d/.test(password) || !/[^A-Za-z0-9]/.test(password)) {
-    return NextResponse.json(
-      { error: "Password must be at least 8 characters with 1 uppercase letter, 1 number and 1 special character." },
-      { status: 400 },
-    );
+  if (!isValidPassword(password)) {
+    return NextResponse.json({ error: PASSWORD_REQUIREMENTS_MESSAGE }, { status: 400 });
   }
 
   const { data: created, error: createError } = await supabaseAdmin.auth.admin.createUser({

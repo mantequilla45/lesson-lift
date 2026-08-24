@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/app/lib/auth/server";
 
 // OAuth (Google) and email-link callbacks land here. Supabase returns a `code`
@@ -19,20 +20,26 @@ export async function GET(request: Request) {
       return NextResponse.redirect(`${origin}/login?error=suspended`);
     }
     if (!error) {
-      // A first-time Google user has no profile row yet. Route them through
-      // the same onboarding as email sign-ups: set a password (so they can
-      // also log in with email later), then complete their profile. Returning
-      // users already have a profile, so send them straight on.
+      // A first-time user has no profile row yet, and where they go next
+      // depends on how they got here — see the redirect below.
       //
-      // Resolve the user id robustly: depending on the SDK/flow the freshly
+      // Resolve the user robustly: depending on the SDK/flow the freshly
       // exchanged user can sit on `data.user` OR `data.session.user`. Fall back
       // to getUser() so we never skip onboarding just because `data.user` was
       // null — that bug sent brand-new Google users straight to the home page.
-      let userId: string | undefined = data.user?.id ?? data.session?.user?.id;
-      if (!userId) {
+      let authUser: User | null = data.user ?? data.session?.user ?? null;
+      if (!authUser) {
         const { data: u } = await supabase.auth.getUser();
-        userId = u.user?.id;
+        authUser = u.user ?? null;
       }
+      const userId: string | undefined = authUser?.id;
+      // `provider` is the method used for THIS sign-in; `providers` is every
+      // method linked to the account. Check both — an account that also has an
+      // email identity must still skip the password step when it arrived here
+      // through Google.
+      const isGoogle =
+        authUser?.app_metadata?.provider === "google" ||
+        authUser?.app_metadata?.providers?.includes("google") === true;
       if (userId) {
         const { data: profile } = await supabase
           .from("profiles")
@@ -40,7 +47,15 @@ export async function GET(request: Request) {
           .eq("id", userId)
           .maybeSingle();
         if (!profile) {
-          return NextResponse.redirect(`${origin}/create-password`);
+          // A Google user has already proved who they are. Making them invent a
+          // Jooma password adds a credential they will never use — Google is
+          // their sign-in method, and the login form points them back to it if
+          // they try the password field. Email sign-ups still go via
+          // /create-password: that page is where their account is created at
+          // all, so it can't be skipped.
+          return NextResponse.redirect(
+            `${origin}${isGoogle ? "/complete-profile" : "/create-password"}`,
+          );
         }
         // Belt and braces alongside the user_banned check above: if a session
         // was somehow issued to a suspended account (a ban applied mid-flow, or

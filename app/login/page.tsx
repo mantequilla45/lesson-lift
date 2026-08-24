@@ -81,7 +81,16 @@ export default function LoginPage() {
       // password" — which is what every failure used to say — sends someone
       // whose credentials are perfectly correct into retrying them forever,
       // and then to support to ask why their password stopped working.
-      setError(error.code === "user_banned" ? SUSPENDED_MESSAGE : "Incorrect email or password.");
+      // Google accounts have no password at all, and Supabase deliberately
+      // returns the same generic invalid_credentials either way (telling them
+      // apart would leak which addresses have accounts). So the hint is in the
+      // copy: it's shown for every failure, reveals nothing, and is the only
+      // thing that rescues a Google user poking at the password field.
+      setError(
+        error.code === "user_banned"
+          ? SUSPENDED_MESSAGE
+          : "Incorrect email or password. If you signed up with Google, use “Continue with Google” above.",
+      );
       setLoading(false);
       return;
     }
