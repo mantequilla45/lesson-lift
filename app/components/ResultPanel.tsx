@@ -8,6 +8,26 @@ import DropdownMenu, { type DropdownItem } from "@/app/components/ui/DropdownMen
 import { exportToDocx, exportToPdf, buildPdfHtml } from "@/app/lib/exportUtils";
 import { saveToolRun } from "@/app/lib/toolRuns";
 
+/**
+ * Scroll the window so the result panel sits just below the sticky chrome.
+ *
+ * window.scrollTo rather than scrollIntoView({ block: "start" }): the panel's
+ * own header is `sticky top-0 lg:top-8` and every form renders a matching
+ * `h-0 lg:h-8` spacer, so block:"start" aligned the panel top UNDER that bar and
+ * hid the first lines. Only scrollTo lets the offset be expressed. Same idiom as
+ * OutputOutline's heading links.
+ *
+ * TopBar is a plain non-sticky header, so it needs no budget here.
+ */
+function scrollPanelIntoView(el: HTMLElement | null) {
+  if (!el) return;
+  const offset = window.innerWidth >= 1024 ? 32 : 8;
+  window.scrollTo({
+    top: Math.max(0, el.getBoundingClientRect().top + window.scrollY - offset),
+    behavior: "smooth",
+  });
+}
+
 interface ResultPanelProps {
   result: string | null;
   isGenerating: boolean;
@@ -50,24 +70,40 @@ export default function ResultPanel({
 
   // Scroll the results into view once they settle.
   //
-  // Keyed on whether there IS a result rather than on the busy flags. Opening a
-  // saved run from Folders/Dashboard never toggles isGenerating — the run is
-  // fetched async and arrives straight into `result` — so a busy-flag dependency
-  // meant this effect ran once at mount, found result === null, and never fired
-  // again. The teacher landed at the top of the form with the generation sitting
-  // off screen below.
+  // Keyed on the result's IDENTITY, not on a hasResult boolean and not on the
+  // busy flags. Two separate failures made those wrong:
   //
-  // hasResult is a boolean, not `result` itself, so a streaming generation does
-  // not re-scroll on every chunk — that is the scroll listener's job.
-  const hasResult = result !== null && result !== "";
+  //   - Busy flags: opening a saved run from Folders/Dashboard/Analytics never
+  //     toggles isGenerating. The run is fetched async and arrives straight into
+  //     `result`, so a busy-flag dependency ran once at mount, found
+  //     result === null, and never fired again.
+  //   - A hasResult boolean: picking a second run from the history panel swaps
+  //     one non-empty string for another. hasResult stays true, the dep array
+  //     never changes, and only the FIRST pick ever scrolled.
+  //
+  // The isBusy guard is what keeps a streaming generation from re-scrolling on
+  // every chunk: while busy this returns before writing lastScrolledRef, so the
+  // busy -> idle edge scrolls exactly once. Pinning to the bottom mid-stream is
+  // the scroll listener's job, below.
+  const lastScrolledRef = useRef<string | null>(null);
   useEffect(() => {
-    if (!hasResult || isGenerating || isRefining) return;
+    if (isBusy) return;
+    if (result === null || result === "") return;
+    if (lastScrolledRef.current === result) return;
+    lastScrolledRef.current = result;
     // Let Tiptap finish mounting before measuring.
-    const t = setTimeout(() => {
-      panelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 100);
+    const t = setTimeout(() => scrollPanelIntoView(panelRef.current), 100);
     return () => clearTimeout(t);
-  }, [hasResult, isGenerating, isRefining]);
+  }, [result, isBusy]);
+
+  // The teacher's own typing round-trips through Tiptap's onUpdate -> onChange
+  // -> `result` (see RichTextEditor), which the identity check above would read
+  // as a new result and scroll on every keystroke. Marking the outgoing markdown
+  // as already-scrolled is what makes keying on identity safe.
+  const handleEditorChange = (md: string) => {
+    lastScrolledRef.current = md;
+    onChange(md);
+  };
 
   // Listen for scroll — disable auto-scroll if user scrolls up, re-enable if they reach the bottom
   useEffect(() => {
@@ -266,7 +302,7 @@ export default function ResultPanel({
             <div ref={bottomRef} />
           </div>
         ) : (
-          <RichTextEditor value={result} onChange={onChange} />
+          <RichTextEditor value={result} onChange={handleEditorChange} />
         )}
       </div>
 

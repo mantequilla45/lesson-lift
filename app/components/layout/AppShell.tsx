@@ -155,12 +155,22 @@ export default function AppShell({
           permanently below the fold. */}
       {/* min-h-screen on the scroll variant so a short page's content well still
           fills the viewport — /tools relied on this to keep its footer area
-          from riding up under the fold. */}
+          from riding up under the fold.
+
+          Do NOT add overflow-y-auto back to the scroll variant. Nothing above
+          constrains this element's height (body is min-h-full, the wrapper is
+          min-h-screen), so <main> grows to fit its content and the WINDOW keeps
+          the real scrollbar. An overflow-y-auto here still makes <main> a formal
+          scroll container — one with zero scroll range — and scrollIntoView()
+          walks up to the nearest such ancestor, nudges a scrollTop that is
+          already 0, and stops. That silently swallowed the scroll to a restored
+          generation, OutputOutline's heading links, and the pin-to-bottom during
+          streaming. */}
       <main
         className={
           fixed
             ? "grow flex flex-col min-w-0 h-dvh overflow-hidden"
-            : "grow flex flex-col min-w-0 min-h-screen overflow-y-auto"
+            : "grow flex flex-col min-w-0 min-h-screen"
         }
       >
         <TopBar title={title} onMenuClick={() => setNavOpen(true)} menuButtonRef={menuButtonRef} />
