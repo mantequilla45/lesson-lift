@@ -64,12 +64,16 @@ export default function ChatSidebar({
   };
 
   return (
+    /* Below `lg` this sits above the conversation rather than beside it — the
+       292px fixed width plus the 256px nav rail left the chat pane at negative
+       width on a phone. max-h caps it so the list cannot eat the whole screen;
+       the inner list already scrolls. */
     <aside
-      className="w-[292px] shrink-0 rounded-2xl p-6 flex flex-col gap-5 overflow-hidden"
+      className="w-full lg:w-[292px] shrink-0 rounded-2xl p-4 lg:p-6 flex flex-col gap-4 lg:gap-5 overflow-hidden max-h-64 lg:max-h-none"
       style={{ backgroundColor: "#FAF9F5" }}
     >
-      <div className="flex items-center justify-between">
-        <h2 className="text-[22px] font-medium text-dark" style={{ letterSpacing: "-0.45px" }}>
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-lg lg:text-[22px] font-medium text-dark min-w-0" style={{ letterSpacing: "-0.45px" }}>
           {/* No count until there is one to show. "(0)" during a load is a
               statement that the teacher has no chats, and it is usually wrong. */}
           Chats {!loading && <span className="text-muted">({chats.length})</span>}
@@ -95,7 +99,7 @@ export default function ChatSidebar({
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search for a chat"
           aria-label="Search chats"
-          className="w-full bg-transparent text-sm text-dark placeholder:text-muted focus:outline-none"
+          className="w-full bg-transparent text-base sm:text-sm text-dark placeholder:text-muted focus:outline-none"
         />
       </div>
 

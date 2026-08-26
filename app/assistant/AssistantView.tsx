@@ -224,7 +224,7 @@ export default function AssistantView({ chatId }: { chatId?: string }) {
             <ChatMessages turns={turns} streaming={streaming} />
           )}
 
-          <div className="px-10 pb-8 pt-2">
+          <div className="px-4 sm:px-6 lg:px-10 pb-8 pt-2">
             {error && <p className="mb-2 text-sm text-red-600">{error}</p>}
             <AssistantComposer
               onSend={send}
@@ -250,7 +250,7 @@ export default function AssistantView({ chatId }: { chatId?: string }) {
  */
 function EmptyState() {
   return (
-    <div className="flex flex-1 flex-col items-center justify-center px-10 text-center">
+    <div className="flex flex-1 flex-col items-center justify-center px-4 sm:px-6 lg:px-10 text-center">
       <h2
         className="text-[32px] font-semibold text-dark"
         style={{ letterSpacing: "0.38px" }}

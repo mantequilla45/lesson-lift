@@ -99,14 +99,27 @@ export default function RichTextEditor({ value, onChange }: RichTextEditorProps)
     },
   });
 
+  // Pull `value` into the editor whenever it changes from the OUTSIDE —
+  // restoring a saved run, resetting the form, streaming a fresh generation.
+  //
+  // This depends on `value`, not just `editor`. With `[editor]` alone the
+  // content synced once on mount and never again, so switching between saved
+  // runs updated the history buttons but left the previous output on screen.
+  //
+  // The getMarkdown() comparison is what makes depending on `value` safe: the
+  // user's own typing round-trips through onUpdate -> onChange -> value, and
+  // for those the editor already holds this exact markdown, so we skip the
+  // setContent that would otherwise reset the cursor to the top on every
+  // keystroke. `emitUpdate: false` stops the sync from echoing back out as a
+  // change the parent would have to re-absorb.
   useEffect(() => {
     if (!editor) return;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const current = (editor.storage as any).markdown.getMarkdown();
     if (current !== value) {
-      editor.commands.setContent(value);
+      editor.commands.setContent(value, { emitUpdate: false });
     }
-  }, [editor]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [editor, value]);
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -119,7 +132,7 @@ export default function RichTextEditor({ value, onChange }: RichTextEditorProps)
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  if (!editor) return <div className="py-20 px-24 min-h-96" />;
+  if (!editor) return <div className="py-8 px-4 sm:py-12 sm:px-8 lg:py-20 lg:px-24 min-h-96" />;
 
   const handleSetLink = () => {
     if (!linkUrl.trim()) {
@@ -352,7 +365,7 @@ export default function RichTextEditor({ value, onChange }: RichTextEditorProps)
       )}
 
       {/* Editor area */}
-      <div className="py-20 px-24 bg-white">
+      <div className="py-8 px-4 sm:py-12 sm:px-8 lg:py-20 lg:px-24 bg-white">
         <EditorContent editor={editor} />
       </div>
 

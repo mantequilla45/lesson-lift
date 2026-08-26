@@ -40,7 +40,8 @@ export default function DropdownMenu({
   trigger,
   items,
   triggerClassName = "",
-  menuClassName = "w-64",
+  // Capped to the viewport so a menu can never be wider than the screen.
+  menuClassName = "w-[min(16rem,calc(100vw-2rem))]",
   align = "right",
   disabled = false,
   ariaLabel,

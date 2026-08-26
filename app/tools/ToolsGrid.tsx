@@ -4,14 +4,11 @@ import Link from "next/link";
 import { useState } from "react";
 import { CiSearch } from "react-icons/ci";
 import { Pin } from "lucide-react";
-import SideNav from "@/app/components/layout/SideNav";
-import SupportLauncher from "@/app/components/SupportLauncher";
-import TopBar from "@/app/components/layout/TopBar";
+import AppShell from "@/app/components/layout/AppShell";
 import Card from "@/app/components/ui/Card";
 import ToolIcon from "@/app/components/ToolIcon";
 import { TOOLS } from "@/app/lib/tools";
 import { usePinnedTools, togglePin } from "@/app/lib/usePinnedTools";
-import AnnouncementBanner from "@/app/components/AnnouncementBanner";
 
 export default function ToolsGrid({ disabledSlugs }: { disabledSlugs: string[] }) {
   const [query, setQuery] = useState("");
@@ -39,19 +36,10 @@ export default function ToolsGrid({ disabledSlugs }: { disabledSlugs: string[] }
   );
 
   return (
-    <div className="min-h-screen flex" style={{ backgroundColor: "#F1EFE3" }}>
-      <SideNav />
-      <SupportLauncher />
-      <main className="grow flex flex-col overflow-y-auto">
-        <TopBar title="Tools" />
-        {/* Team announcements. Renders nothing when there are none. */}
-        <AnnouncementBanner />
-
-        <div className="px-10 pb-16 space-y-4">
-
+    <AppShell title="Tools">
           {/* Hero search */}
           <Card>
-            <h3 className="text-2xl font-medium mb-5">What would you like to do?</h3>
+            <h3 className="text-xl sm:text-2xl font-medium mb-5">What would you like to do?</h3>
             <div className="relative">
               <CiSearch className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted" />
               <input
@@ -59,12 +47,12 @@ export default function ToolsGrid({ disabledSlugs }: { disabledSlugs: string[] }
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search for a tool"
-                className="w-full pl-12 pr-3 py-3 border border-[#F1EFE3] font-light rounded-2xl bg-white text-sm placeholder-[#A5A5A5] focus:outline-none focus:border-line transition-all"
+                className="w-full pl-12 pr-3 py-3 border border-[#F1EFE3] font-light rounded-2xl bg-white text-base sm:text-sm placeholder-[#A5A5A5] focus:outline-none focus:border-line transition-all"
               />
             </div>
           </Card>
 
-          <Card className="p-10">
+          <Card>
             {/* Pinned */}
             {filteredPinned.length > 0 && (
               <section className="mb-5">
@@ -72,7 +60,10 @@ export default function ToolsGrid({ disabledSlugs }: { disabledSlugs: string[] }
                   <h4 className="text-sm text-muted shrink-0">Pinned</h4>
                   <div className="h-px bg-muted/30 w-full" />
                 </div>
-                <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(350px, 1fr))" }}>
+                {/* min(350px, 100%) so the track can never demand more width
+                    than its container — a bare 350px minimum forced horizontal
+                    overflow on any phone. */}
+                <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(min(350px, 100%), 1fr))" }}>
                   {filteredPinned.map((tool) => (
                     <ToolCard key={tool.href} tool={tool} isPinned onTogglePin={togglePin} />
                   ))}
@@ -87,7 +78,10 @@ export default function ToolsGrid({ disabledSlugs }: { disabledSlugs: string[] }
                   <h4 className="text-sm text-muted shrink-0">All tools</h4>
                   <div className="h-px bg-muted/30 w-full" />
                 </div>
-                <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(350px, 1fr))" }}>
+                {/* min(350px, 100%) so the track can never demand more width
+                    than its container — a bare 350px minimum forced horizontal
+                    overflow on any phone. */}
+                <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(min(350px, 100%), 1fr))" }}>
                   {filteredRest.map((tool) => (
                     <ToolCard key={tool.href} tool={tool} isPinned={false} onTogglePin={togglePin} />
                   ))}
@@ -97,11 +91,9 @@ export default function ToolsGrid({ disabledSlugs }: { disabledSlugs: string[] }
           </Card>
 
           {filteredPinned.length === 0 && filteredRest.length === 0 && (
-            <p className="text-sm text-muted text-center py-16">No tools match your search.</p>
+            <p className="text-sm text-muted text-center py-12 sm:py-16">No tools match your search.</p>
           )}
-        </div>
-      </main>
-    </div>
+    </AppShell>
   );
 }
 

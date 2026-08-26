@@ -45,13 +45,29 @@ export default function ResultPanel({
     isGeneratingRef.current = isGenerating || isRefining;
     if (isGenerating) {
       userScrolledUp.current = false;
-    } else if (result !== null && !isRefining) {
-      // Smooth scroll to top of result panel once Tiptap has initialised
-      setTimeout(() => {
-        panelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-      }, 100);
     }
-  }, [isGenerating, isRefining]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isGenerating, isRefining]);
+
+  // Scroll the results into view once they settle.
+  //
+  // Keyed on whether there IS a result rather than on the busy flags. Opening a
+  // saved run from Folders/Dashboard never toggles isGenerating — the run is
+  // fetched async and arrives straight into `result` — so a busy-flag dependency
+  // meant this effect ran once at mount, found result === null, and never fired
+  // again. The teacher landed at the top of the form with the generation sitting
+  // off screen below.
+  //
+  // hasResult is a boolean, not `result` itself, so a streaming generation does
+  // not re-scroll on every chunk — that is the scroll listener's job.
+  const hasResult = result !== null && result !== "";
+  useEffect(() => {
+    if (!hasResult || isGenerating || isRefining) return;
+    // Let Tiptap finish mounting before measuring.
+    const t = setTimeout(() => {
+      panelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 100);
+    return () => clearTimeout(t);
+  }, [hasResult, isGenerating, isRefining]);
 
   // Listen for scroll — disable auto-scroll if user scrolls up, re-enable if they reach the bottom
   useEffect(() => {
@@ -183,7 +199,7 @@ export default function ResultPanel({
             equal z-index it painted over the open menu — hiding "Download PDF"
             and making it look as though the tool had no PDF export at all.
             This must stay above that toolbar's z-10. */}
-        <div className="sticky top-8 z-30 flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-white rounded-t-3xl">
+        <div className="sticky top-0 lg:top-8 z-30 flex flex-wrap items-center justify-between gap-2 px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200 bg-white rounded-t-3xl">
           <div className="flex items-center gap-3">
             <h2 className="font-semibold text-gray-900 text-sm">My results</h2>
             {isGenerating && (
@@ -206,7 +222,7 @@ export default function ResultPanel({
                 ariaLabel="Export options"
                 disabled={isExporting !== null}
                 triggerClassName="flex items-center gap-1.5 text-sm text-gray-600 border border-gray-300 rounded-md px-3 py-1.5 hover:bg-gray-50 transition-colors disabled:opacity-40 cursor-pointer"
-                menuClassName="w-60"
+                menuClassName="w-[min(15rem,calc(100vw-2rem))]"
                 trigger={
                   <>
                     {isExporting ? (
@@ -214,7 +230,12 @@ export default function ResultPanel({
                     ) : (
                       <Download className="w-3.5 h-3.5" />
                     )}
-                    {isExporting === "pdf" ? "Building PDF…" : isExporting === "docx" ? "Building…" : "Export"}
+                    {/* The label is the first thing to go when the toolbar is
+                        tight; the icon still says "export". aria-label on the
+                        trigger keeps this readable to a screen reader. */}
+                    <span className="hidden sm:inline">
+                      {isExporting === "pdf" ? "Building PDF…" : isExporting === "docx" ? "Building…" : "Export"}
+                    </span>
                     <ChevronDown className="w-3.5 h-3.5" />
                   </>
                 }
@@ -225,10 +246,11 @@ export default function ResultPanel({
               type="button"
               onClick={handleCopy}
               disabled={isBusy}
+              aria-label={copied ? "Copied to clipboard" : "Copy to clipboard"}
               className="flex items-center gap-1.5 text-sm text-gray-600 border border-gray-300 rounded-md px-3 py-1.5 hover:bg-gray-50 transition-colors disabled:opacity-40 cursor-pointer"
             >
               {copied ? <Check className="w-3.5 h-3.5 text-green-600" /> : <Copy className="w-3.5 h-3.5" />}
-              {copied ? "Copied!" : "Copy to clipboard"}
+              <span className="hidden sm:inline">{copied ? "Copied!" : "Copy to clipboard"}</span>
             </button>
           </div>
         </div>
@@ -238,7 +260,7 @@ export default function ResultPanel({
         )}
 
         {isBusy ? (
-          <div className="py-20 px-24 min-h-48">
+          <div className="py-8 px-4 sm:py-12 sm:px-8 lg:py-20 lg:px-24 min-h-48">
             <MarkdownResult text={result} />
             <span className="inline-block w-px h-[1em] bg-gray-500 animate-pulse ml-px align-text-bottom" />
             <div ref={bottomRef} />

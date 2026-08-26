@@ -9,8 +9,7 @@
 
 import { useEffect, useState } from "react";
 import { X } from "lucide-react";
-import SideNav from "@/app/components/layout/SideNav";
-import TopBar from "@/app/components/layout/TopBar";
+import AppShell from "@/app/components/layout/AppShell";
 import { createClient } from "@/app/lib/auth/client";
 
 interface MyAnnouncement {
@@ -77,12 +76,12 @@ export default function AnnouncementsView() {
   };
 
   return (
-    <div className="min-h-screen flex" style={{ backgroundColor: "#F1EFE3" }}>
-      <SideNav />
-      <main className="grow flex flex-col overflow-y-auto">
-        <TopBar title="Announcements" />
-
-        <div className="px-10 pb-16">
+    <AppShell
+      title="Announcements"
+      banner={false}
+      launcher={false}
+      contentClassName="px-4 sm:px-6 lg:px-10 pb-16"
+    >
           {loading ? (
             <div className="space-y-3 animate-pulse">
               {Array.from({ length: 2 }).map((_, i) => (
@@ -95,7 +94,7 @@ export default function AnnouncementsView() {
             </div>
           ) : rows.length === 0 ? (
             <div
-              className="rounded-3xl border py-16 text-center"
+              className="rounded-3xl border py-12 sm:py-16 text-center"
               style={{ backgroundColor: "#FAF9F5", borderColor: "#DAD8D0" }}
             >
               <p className="text-base font-medium" style={{ color: "#1a1a1a" }}>
@@ -142,8 +141,6 @@ export default function AnnouncementsView() {
               })}
             </div>
           )}
-        </div>
-      </main>
-    </div>
+    </AppShell>
   );
 }

@@ -3,8 +3,7 @@
 import { useCallback, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, Plus } from "lucide-react";
-import SideNav from "@/app/components/layout/SideNav";
-import TopBar from "@/app/components/layout/TopBar";
+import AppShell from "@/app/components/layout/AppShell";
 import { createClient } from "@/app/lib/auth/client";
 import Conversation from "./Conversation";
 
@@ -79,29 +78,36 @@ export default function HelpView({
   };
 
   return (
-    <div className="min-h-screen flex" style={{ backgroundColor: "#F1EFE3" }}>
-      <SideNav />
-      <main className="grow flex flex-col min-h-screen min-w-0">
-        <TopBar title="Help" />
-        {/* No <AnnouncementBanner /> here, unlike the other app pages: the panel
-            below is sized with a viewport calc, so a banner would push its
-            bottom edge off screen rather than compressing it. Teachers still see
-            announcements everywhere else and at /announcements. */}
-
-        <div className="px-10 pb-10 grow min-h-0">
+    /* No banner here, unlike the other app pages: the panel below is sized
+       against the viewport, so a banner would push its bottom edge off screen
+       rather than compressing it. Teachers still see announcements everywhere
+       else and at /announcements. */
+    <AppShell
+      title="Help"
+      variant="fixed"
+      banner={false}
+      launcher={false}
+      contentClassName="px-4 sm:px-6 lg:px-10 pb-4 sm:pb-10 grow min-h-0"
+    >
+          {/* Two columns at `lg`, one below it. dvh rather than vh because
+              100vh on mobile includes the collapsing URL bar, which pushed the
+              panel's bottom edge below the fold. */}
           <div
-            className="rounded-3xl border overflow-hidden grid min-h-0"
-            style={{
-              backgroundColor: "#FAF9F5",
-              borderColor: "#DAD8D0",
-              gridTemplateColumns: "minmax(240px, 320px) minmax(0, 1fr)",
-              height: "calc(100vh - 190px)",
-              minHeight: 440,
-            }}
+            className="rounded-3xl border overflow-hidden grid
+              grid-cols-1 lg:grid-cols-[minmax(240px,320px)_minmax(0,1fr)]
+              h-[calc(100dvh-9rem)] lg:h-[calc(100dvh-190px)] min-h-0 lg:min-h-110"
+            style={{ backgroundColor: "#FAF9F5", borderColor: "#DAD8D0" }}
           >
-            {/* ── Conversation list ─────────────────────────────────── */}
+            {/* ── Conversation list ─────────────────────────────────────
+                Below `lg` the list and the conversation are alternate views of
+                the same column rather than two columns, so exactly one shows.
+                Driven entirely off existing state — no new state, and the URL
+                (?thread=) still drives everything, so the back button is
+                unaffected. */}
             <div
-              className="border-r flex flex-col min-h-0"
+              className={`lg:border-r flex-col min-h-0 ${
+                composing || thread ? "hidden lg:flex" : "flex"
+              }`}
               style={{ borderColor: "#DAD8D0" }}
             >
               <div
@@ -182,7 +188,11 @@ export default function HelpView({
             </div>
 
             {/* ── Conversation / composer ───────────────────────────── */}
-            <div className="flex flex-col min-h-0 min-w-0">
+            <div
+              className={`flex-col min-h-0 min-w-0 ${
+                composing || thread ? "flex" : "hidden lg:flex"
+              }`}
+            >
               {composing || !thread ? (
                 <NewConversation
                   onCancel={threads.length > 0 ? () => setComposing(false) : undefined}
@@ -194,9 +204,19 @@ export default function HelpView({
               ) : (
                 <>
                   <div
-                    className="px-6 py-4 border-b shrink-0"
+                    className="px-4 sm:px-6 py-3 sm:py-4 border-b shrink-0"
                     style={{ borderColor: "#DAD8D0" }}
                   >
+                    {/* The only way back to the list on a phone, where the two
+                        panes are alternate views rather than columns. */}
+                    <button
+                      type="button"
+                      onClick={() => openThread(null)}
+                      className="lg:hidden flex items-center gap-1.5 text-sm text-muted hover:text-gray-700 transition-colors mb-2 cursor-pointer"
+                    >
+                      <ArrowLeft className="w-3.5 h-3.5" />
+                      All conversations
+                    </button>
                     <h3 className="font-semibold truncate">{thread.subject}</h3>
                     <p className="text-xs text-muted font-mono">
                       {thread.reference} · {STATUS_LABEL[thread.status] ?? thread.status}
@@ -211,9 +231,7 @@ export default function HelpView({
               )}
             </div>
           </div>
-        </div>
-      </main>
-    </div>
+    </AppShell>
   );
 }
 

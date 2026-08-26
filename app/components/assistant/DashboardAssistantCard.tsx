@@ -53,7 +53,7 @@ export default function DashboardAssistantCard() {
   const locked = allowed === false;
 
   return (
-    <Card className="p-10">
+    <Card>
       <div className="flex items-center gap-2 mb-4">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/icons/ai-assistant.svg" alt="" width={20} height={20} style={{ filter: "brightness(0)" }} />

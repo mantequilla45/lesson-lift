@@ -3,7 +3,7 @@ import { BookOpen } from "lucide-react";
 export default function Loading() {
   return (
     <div className="space-y-8">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-8">
 
         {/* Sidebar */}
         <div className="lg:col-span-1">
@@ -19,7 +19,7 @@ export default function Loading() {
                 This tool can be used to create reading comprehension activities. Select your curriculum, year group, text source and reading focuses, then hit generate.
               </p>
             </div>
-            <div className="pt-5 pb-6 px-8">
+            <div className="pt-5 pb-6 px-5 sm:px-8">
               <div className="h-px bg-gray-200 mb-5" />
               <h2 className="text-md font-semibold text-gray-900 mb-5">How to use it</h2>
               <ol className="space-y-0">
@@ -48,7 +48,7 @@ export default function Loading() {
 
         {/* Form */}
         <div className="lg:col-span-2">
-          <div className="bg-[#FAF9F5] rounded-3xl p-8 space-y-6">
+          <div className="bg-[#FAF9F5] rounded-3xl p-5 sm:p-6 lg:p-8 space-y-6">
 
             {/* Curriculum + Year Group */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">

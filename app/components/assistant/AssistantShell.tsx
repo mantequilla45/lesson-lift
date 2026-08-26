@@ -19,10 +19,7 @@ import {
   useState,
 } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import SideNav from "@/app/components/layout/SideNav";
-import SupportLauncher from "@/app/components/SupportLauncher";
-import TopBar from "@/app/components/layout/TopBar";
-import AnnouncementBanner from "@/app/components/AnnouncementBanner";
+import AppShell from "@/app/components/layout/AppShell";
 import UpgradeGate from "@/app/components/UpgradeGate";
 import ConfirmModal from "@/app/components/ConfirmModal";
 import ChatSidebar from "@/app/components/assistant/ChatSidebar";
@@ -143,19 +140,19 @@ export default function AssistantShell({ children }: { children: React.ReactNode
   );
 
   return (
-    <div className="min-h-screen flex" style={{ backgroundColor: "#F1EFE3" }}>
-      {/* Catches the 402 from a spend ceiling or the plan gate and opens the
-          upgrade/top-up modal. Not inherited from a layout — /assistant is a
-          sibling of /tools, not inside it. */}
-      <UpgradeGate />
-      <SideNav />
-      <SupportLauncher />
-
-      <main className="grow flex flex-col overflow-hidden h-screen">
-        <TopBar title="AI assistant" />
-        <AnnouncementBanner />
-
-        <div className="flex flex-1 gap-3 overflow-hidden px-10 pb-5">
+    <>
+      {/* UpgradeGate catches the 402 from a spend ceiling or the plan gate and
+          opens the upgrade/top-up modal. Not inherited from a layout —
+          /assistant is a sibling of /tools, not inside it. */}
+      <AppShell
+        title="AI assistant"
+        variant="fixed"
+        slot={<UpgradeGate />}
+        /* Stacks below `lg`: two fixed sidebars (the 256px rail plus this
+           292px chat list) left the conversation at negative width on a
+           phone. */
+        contentClassName="flex flex-1 flex-col lg:flex-row gap-3 overflow-hidden px-4 sm:px-6 lg:px-10 pb-5 min-h-0"
+      >
           <ChatSidebar
             chats={chats ?? []}
             loading={chats === null}
@@ -172,8 +169,7 @@ export default function AssistantShell({ children }: { children: React.ReactNode
           <AssistantChatsContext.Provider value={value}>
             {children}
           </AssistantChatsContext.Provider>
-        </div>
-      </main>
+      </AppShell>
 
       <ConfirmModal
         open={deleting !== null}
@@ -183,6 +179,6 @@ export default function AssistantShell({ children }: { children: React.ReactNode
         onConfirm={() => deleting && handleDelete(deleting)}
         onCancel={() => setDeleting(null)}
       />
-    </div>
+    </>
   );
 }

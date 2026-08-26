@@ -81,11 +81,17 @@ export default async function LandingPage({
     <div className="min-h-screen" style={{ backgroundColor: "#F1EFE3" }}>
 
       {/* Nav — aligned to the panel edges below */}
-      <nav className="px-9 sm:px-10 py-5 flex items-center justify-between">
+      <nav className="px-4 sm:px-10 py-5 flex flex-wrap items-center justify-between gap-y-3">
         <img src="/logo/logo.svg" alt="Jooma" style={{ height: 26, width: "auto" }} />
 
-        {/* Centred links — hidden on small screens */}
-        <div className="hidden md:flex items-center gap-7 text-sm font-medium" style={{ color: "#4a423a" }}>
+        {/* These used to be `hidden md:flex`, which left Features / How It Works
+            / Pricing / Schools simply unreachable on a phone — there was no
+            hamburger to replace them. Four short links wrap onto their own row
+            below `md` instead, which needs no new UI. */}
+        <div
+          className="order-3 w-full md:order-none md:w-auto flex flex-wrap justify-center items-center gap-4 md:gap-7 text-xs md:text-sm font-medium"
+          style={{ color: "#4a423a" }}
+        >
           <a href="#tools" className="transition-colors hover:text-black">Features</a>
           <a href="#how-it-works" className="transition-colors hover:text-black">How It Works</a>
           <Link href="/pricing" className="transition-colors hover:text-black">Pricing</Link>
@@ -99,7 +105,7 @@ export default async function LandingPage({
           screen with a small inset from the page background */}
       <div className="px-3 sm:px-4">
         <div
-          className="rounded-[28px] border px-6 pt-14 pb-12"
+          className="rounded-[28px] border px-4 sm:px-6 pt-10 sm:pt-14 pb-10 sm:pb-12"
           style={{ backgroundColor: "#FFFFFF", borderColor: "#E9E6DC" }}
         >
           {/* Hero */}
@@ -116,7 +122,7 @@ export default async function LandingPage({
                 an admin editing HTML. Falls back to normal wrapping on older
                 browsers. */}
             <h1
-              className="text-5xl md:text-6xl font-bold tracking-tight mb-6 leading-[1.04] text-balance max-w-3xl mx-auto"
+              className="text-3xl sm:text-4xl md:text-6xl font-bold tracking-tight mb-6 leading-[1.04] text-balance max-w-3xl mx-auto"
               style={{ color: "#030303" }}
             >
               {copy["home.hero.h1"]}

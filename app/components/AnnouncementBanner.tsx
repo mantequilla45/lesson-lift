@@ -84,7 +84,7 @@ export default function AnnouncementBanner() {
   };
 
   return (
-    <div className="px-10 pt-4">
+    <div className="px-4 sm:px-6 lg:px-10 pt-4">
       <div
         className="rounded-2xl border px-4 py-3 flex items-start gap-3"
         style={{ backgroundColor: tone.bg, borderColor: tone.border }}
