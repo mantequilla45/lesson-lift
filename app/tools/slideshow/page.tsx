@@ -133,18 +133,18 @@ export default function SlideshowListPage() {
   }, [pendingDelete, deleting]);
 
   return (
-    <div className="space-y-8">
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
+    <div className="space-y-6 sm:space-y-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3 min-w-0">
           <div
             className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
             style={{ backgroundColor: "#FFCC33" }}
           >
             <Monitor className="w-5 h-5" style={{ color: "#1a1a1a" }} />
           </div>
-          <h1 className="text-2xl font-semibold text-gray-900">Slideshows</h1>
+          <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 truncate">Slideshows</h1>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           <button
             onClick={() => setGenerateOpen(true)}
             className="flex items-center gap-2 text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors"

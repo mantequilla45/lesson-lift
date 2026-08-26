@@ -208,10 +208,10 @@ function GeneratePanel() {
       <div className="rounded-xl border p-4" style={{ backgroundColor: "#FFFFFF", borderColor: "#EDEAE0" }}>
         <SectionHead title="Recently added (16)" caption="" />
         <div className="mt-3">
-          <div className="grid grid-cols-5 gap-2 px-1 py-2 text-[11px] font-semibold border-b" style={{ color: "#9a8f85", borderColor: "#EDEAE0" }}>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 px-1 py-2 text-[11px] font-semibold border-b" style={{ color: "#9a8f85", borderColor: "#EDEAE0" }}>
             <span>Name</span><span>Type</span><span>Subject</span><span>Year</span><span>Date</span>
           </div>
-          <div className="grid grid-cols-5 gap-2 px-1 py-2.5 text-[11px] items-center" style={{ color: "#6b6055" }}>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 px-1 py-2.5 text-[11px] items-center" style={{ color: "#6b6055" }}>
             <span className="font-medium" style={{ color: "#1a1a1a" }}>Using exclamation marks</span>
             <span>Worksheet</span><span>English</span><span>Year 2</span><span>Oct 23, 2025</span>
           </div>

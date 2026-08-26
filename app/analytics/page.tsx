@@ -3,14 +3,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, FileText, Trash2, Loader2, Sparkles, Clock, Wrench, CalendarDays } from "lucide-react";
-import SideNav from "@/app/components/layout/SideNav";
-import SupportLauncher from "@/app/components/SupportLauncher";
-import TopBar from "@/app/components/layout/TopBar";
+import AppShell from "@/app/components/layout/AppShell";
 import Card from "@/app/components/ui/Card";
 import { minutesSavedFor } from "@/app/lib/tools";
 import { listRecentRuns, deleteToolRun, type ToolRun } from "@/app/lib/toolRuns";
 import { toolForSlug, typeLabel, formatDate, TAG_COLORS } from "@/app/lib/toolRunDisplay";
-import AnnouncementBanner from "@/app/components/AnnouncementBanner";
 
 function formatHours(minutes: number) {
   if (minutes < 60) return `${minutes} min`;
@@ -68,17 +65,9 @@ export default function AnalyticsPage() {
   };
 
   return (
-    <div className="min-h-screen flex" style={{ backgroundColor: "#F1EFE3" }}>
-      <SideNav />
-      <SupportLauncher />
-      <main className="grow flex flex-col overflow-y-auto">
-        <TopBar title="Analytics" />
-        {/* Team announcements. Renders nothing when there are none. */}
-        <AnnouncementBanner />
-
-        <div className="px-10 pb-16 space-y-4">
+    <AppShell title="Analytics">
           {/* Summary */}
-          <Card className="p-10">
+          <Card>
             <button
               onClick={() => router.push("/dashboard")}
               className="flex items-center gap-1.5 text-sm text-muted hover:text-dark transition-colors cursor-pointer mb-5"
@@ -87,7 +76,7 @@ export default function AnalyticsPage() {
               Back to dashboard
             </button>
 
-            <h3 className="text-2xl font-medium mb-6">Your activity</h3>
+            <h3 className="text-xl sm:text-2xl font-medium mb-6">Your activity</h3>
 
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <Summary icon={<Sparkles className="w-4 h-4 text-white" />} iconBg="bg-violet-500" bg="bg-violet-100"
@@ -102,30 +91,36 @@ export default function AnalyticsPage() {
           </Card>
 
           {/* Per-tool breakdown */}
-          <Card className="p-10">
-            <h3 className="text-xl font-medium mb-6">Usage by tool</h3>
+          <Card>
+            <h3 className="text-lg sm:text-xl font-medium mb-6">Usage by tool</h3>
             {loading ? (
               <p className="text-sm text-muted py-10 text-center">Loading…</p>
             ) : breakdown.length === 0 ? (
               <p className="text-sm text-muted py-10 text-center">No activity yet.</p>
             ) : (
               <div className="space-y-3">
+                {/* 284px of fixed columns left the bar with nothing on a phone.
+                    The label takes its own line below `sm`; sm:contents then
+                    dissolves the mobile grouping wrapper so the desktop row is
+                    preserved exactly as it was. */}
                 {breakdown.map((b) => (
-                  <div key={b.slug} className="flex items-center gap-4">
-                    <div className="w-48 shrink-0 text-sm font-medium text-dark truncate">
+                  <div key={b.slug} className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-4">
+                    <div className="w-full sm:w-48 shrink-0 text-sm font-medium text-dark truncate">
                       {toolForSlug(b.slug)?.label ?? typeLabel(b.slug)}
                     </div>
-                    <div className="flex-1 h-6 rounded-full bg-[#F1EFE3] overflow-hidden">
-                      <div
-                        className="h-full rounded-full bg-stone-700"
-                        style={{ width: `${Math.max(6, (b.count / maxCount) * 100)}%` }}
-                      />
-                    </div>
-                    <div className="w-12 shrink-0 text-sm font-semibold text-dark text-right tabular-nums">
-                      {b.count}
-                    </div>
-                    <div className="w-20 shrink-0 text-xs text-muted text-right">
-                      {formatHours(b.minutes)}
+                    <div className="flex items-center gap-3 sm:contents">
+                      <div className="flex-1 h-6 rounded-full bg-[#F1EFE3] overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-stone-700"
+                          style={{ width: `${Math.max(6, (b.count / maxCount) * 100)}%` }}
+                        />
+                      </div>
+                      <div className="w-12 shrink-0 text-sm font-semibold text-dark text-right tabular-nums">
+                        {b.count}
+                      </div>
+                      <div className="w-20 shrink-0 text-xs text-muted text-right">
+                        {formatHours(b.minutes)}
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -134,8 +129,8 @@ export default function AnalyticsPage() {
           </Card>
 
           {/* Full activity list */}
-          <Card className="p-10">
-            <h3 className="text-xl font-medium mb-6">
+          <Card>
+            <h3 className="text-lg sm:text-xl font-medium mb-6">
               All activity <span className="text-muted">({runs.length})</span>
             </h3>
             {loading ? (
@@ -145,7 +140,10 @@ export default function AnalyticsPage() {
                 Nothing yet — generate something with a tool and it&apos;ll appear here.
               </p>
             ) : (
-              <table className="w-full text-sm">
+              /* Six columns scroll inside their own box rather than widening
+                 the page. Same pattern as account/billing/UsageTable. */
+              <div className="overflow-x-auto -mx-1 px-1">
+              <table className="w-full text-sm min-w-180">
                 <thead>
                   <tr className="text-left text-muted border-b border-line">
                     <th className="font-normal pb-3 pr-4">Name</th>
@@ -202,11 +200,10 @@ export default function AnalyticsPage() {
                   })}
                 </tbody>
               </table>
+              </div>
             )}
           </Card>
-        </div>
-      </main>
-    </div>
+    </AppShell>
   );
 }
 
@@ -216,11 +213,11 @@ function Summary({
   icon: React.ReactNode; iconBg: string; bg: string; value: string; label: string;
 }) {
   return (
-    <div className={`relative rounded-2xl p-6 ${bg} min-h-32 flex flex-col justify-end`}>
+    <div className={`relative rounded-2xl p-5 sm:p-6 ${bg} min-h-28 sm:min-h-32 flex flex-col justify-end`}>
       <span className={`absolute top-5 right-5 w-9 h-9 rounded-xl ${iconBg} flex items-center justify-center`}>
         {icon}
       </span>
-      <p className="text-2xl font-semibold text-dark">{value}</p>
+      <p className="text-xl sm:text-2xl font-semibold text-dark">{value}</p>
       <p className="text-xs text-muted mt-0.5">{label}</p>
     </div>
   );

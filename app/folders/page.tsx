@@ -6,13 +6,10 @@ import {
   Folder, MoreVertical, ChevronDown, ArrowUpDown, LayoutGrid, List as ListIcon,
   Search, Pin, Check,
 } from "lucide-react";
-import SideNav from "@/app/components/layout/SideNav";
-import SupportLauncher from "@/app/components/SupportLauncher";
-import TopBar from "@/app/components/layout/TopBar";
+import AppShell from "@/app/components/layout/AppShell";
 import ToolIcon from "@/app/components/ToolIcon";
 import { listRecentRuns, type ToolRun } from "@/app/lib/toolRuns";
 import { toolForSlug, typeLabel, formatDate, catalogIndex } from "@/app/lib/toolRunDisplay";
-import AnnouncementBanner from "@/app/components/AnnouncementBanner";
 
 const PIN_STORAGE_KEY = "jooma:pinned-tools";
 const DATE_RANGES = ["Any time", "Last 7 days", "Last 30 days", "This year"] as const;
@@ -160,29 +157,21 @@ export default function FoldersPage() {
   const rest = filtered.filter((f) => !pinnedHrefs.includes(`/tools/${f.slug}`));
 
   return (
-    <div className="min-h-screen flex" style={{ backgroundColor: "#F1EFE3" }}>
-      <SideNav />
-      <SupportLauncher />
-      <main className="grow flex flex-col overflow-y-auto">
-        <TopBar title="Folders" />
-        {/* Team announcements. Renders nothing when there are none. */}
-        <AnnouncementBanner />
-
-        <div className="px-10 pb-16 space-y-4">
+    <AppShell title="Folders">
           {/* Search + action */}
-          <div className="flex items-center gap-3">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
             <div className="relative flex-1">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search for a tool"
-                className="w-full pl-11 pr-4 py-3 border border-line rounded-2xl bg-[#FAF9F5] text-sm font-light placeholder-[#A5A5A5] focus:outline-none focus:border-dark transition-colors"
+                className="w-full pl-11 pr-4 py-3 border border-line rounded-2xl bg-[#FAF9F5] text-base sm:text-sm font-light placeholder-[#A5A5A5] focus:outline-none focus:border-dark transition-colors"
               />
             </div>
             <button
               onClick={() => router.push("/tools")}
-              className="flex items-center gap-2 px-5 py-3 rounded-2xl bg-[#030303] text-white text-sm font-medium hover:bg-black transition-colors cursor-pointer shrink-0"
+              className="flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-[#030303] text-white text-sm font-medium hover:bg-black transition-colors cursor-pointer shrink-0"
             >
               Browse tools
             </button>
@@ -201,7 +190,9 @@ export default function FoldersPage() {
 
             <SortMenu value={sort} onChange={setSort} />
 
-            <div className="ml-auto flex items-center gap-1 border border-line rounded-xl p-1 bg-[#FAF9F5]">
+            {/* sm:ml-auto — with eight controls wrapping on a phone, ml-auto
+                left this stranded alone on a right-pushed line. */}
+            <div className="w-full sm:w-auto sm:ml-auto flex items-center justify-center sm:justify-start gap-1 border border-line rounded-xl p-1 bg-[#FAF9F5]">
               <button onClick={() => setView("grid")} aria-label="Grid view"
                 className={`w-8 h-8 flex items-center justify-center rounded-lg transition-colors cursor-pointer ${view === "grid" ? "bg-[#1a1a1a] text-white" : "text-muted hover:bg-gray-100"}`}>
                 <LayoutGrid className="w-4 h-4" />
@@ -229,9 +220,7 @@ export default function FoldersPage() {
               <Section title="All folders" folders={rest} view={view} pinnedHrefs={pinnedHrefs} onTogglePin={togglePin} onOpen={(s) => router.push(`/folders/${s}`)} />
             </>
           )}
-        </div>
-      </main>
-    </div>
+    </AppShell>
   );
 }
 
@@ -249,7 +238,7 @@ function Section({
         <div className="h-px bg-muted/30 w-full" />
       </div>
       {view === "grid" ? (
-        <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))" }}>
+        <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(min(240px, 100%), 1fr))" }}>
           {folders.map((f) => (
             <FolderCard key={f.slug} folder={f} pinned={pinnedHrefs.includes(`/tools/${f.slug}`)} onTogglePin={onTogglePin} onOpen={onOpen} />
           ))}
@@ -315,8 +304,10 @@ function FolderRow({
         </span>
       )}
       <span className="font-medium text-dark flex-1 truncate">{folder.label}</span>
-      <span className="text-sm text-muted w-28 shrink-0">{folder.count} items</span>
-      <span className="text-sm text-muted w-44 shrink-0 whitespace-nowrap">{formatDate(new Date(folder.latest).toISOString())}</span>
+      {/* 288px of fixed columns in a 343px row. Below `sm` a row is icon +
+          name + menu, which is the right amount of information for a phone. */}
+      <span className="hidden sm:inline text-sm text-muted w-28 shrink-0">{folder.count} items</span>
+      <span className="hidden sm:inline text-sm text-muted w-44 shrink-0 whitespace-nowrap">{formatDate(new Date(folder.latest).toISOString())}</span>
       <FolderMenu pinned={pinned} onTogglePin={() => onTogglePin(folder.slug)} onOpen={() => onOpen(folder.slug)} inline />
     </div>
   );
@@ -385,7 +376,7 @@ function FilterDropdown({
         <ChevronDown className="w-3.5 h-3.5" />
       </button>
       {open && (
-        <div className="absolute left-0 top-full mt-1 w-56 max-h-72 overflow-y-auto bg-white border border-gray-200 rounded-xl shadow-lg z-20 py-1">
+        <div className="absolute left-0 top-full mt-1 w-[min(14rem,calc(100vw-2rem))] max-h-72 overflow-y-auto bg-white border border-gray-200 rounded-xl shadow-lg z-20 py-1">
           <button onClick={() => { onChange(null); setOpen(false); }}
             className="w-full flex items-center justify-between px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer">
             {allLabel}
@@ -421,7 +412,7 @@ function SortMenu({ value, onChange }: { value: string; onChange: (v: string) =>
         <ArrowUpDown className="w-4 h-4" />
       </button>
       {open && (
-        <div className="absolute right-0 top-full mt-1 w-48 bg-white border border-gray-200 rounded-xl shadow-lg z-20 py-1">
+        <div className="absolute right-0 top-full mt-1 w-[min(12rem,calc(100vw-2rem))] bg-white border border-gray-200 rounded-xl shadow-lg z-20 py-1">
           {SORTS.map((s) => (
             <button key={s.key} onClick={() => { onChange(s.key); setOpen(false); }}
               className="w-full flex items-center justify-between px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer">

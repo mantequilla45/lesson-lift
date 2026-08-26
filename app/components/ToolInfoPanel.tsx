@@ -33,17 +33,17 @@ export default function ToolInfoPanel({
 
   return (
     <Card className="overflow-hidden p-0">
-      <div className={`p-6 rounded-2xl ${heroBg}`}>
+      <div className={`p-5 sm:p-6 rounded-2xl ${heroBg}`}>
         <div className="flex items-center gap-3 mb-4">
           {tool
             ? <ToolIcon name={tool.icon} className="w-11 h-11 shrink-0" />
             : <div className="w-11 h-11 bg-white rounded-xl flex items-center justify-center shrink-0">{icon}</div>
           }
-          <h1 className="text-2xl font-semibold">{title}</h1>
+          <h1 className="text-xl sm:text-2xl font-semibold min-w-0">{title}</h1>
         </div>
         <p className="text-sm font-light">{description}</p>
       </div>
-      <div className="pt-5 pb-6 px-8">
+      <div className="pt-5 pb-6 px-5 sm:px-8">
         <div className="h-px bg-gray-200 mb-5" />
         <h2 className="text-md font-semibold text-gray-900 mb-5">How to use it</h2>
         <ol className="space-y-0">

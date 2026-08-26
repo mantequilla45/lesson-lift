@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import {
   Bricolage_Grotesque,
   Geist_Mono,
@@ -53,6 +53,18 @@ const archivoBlack = Archivo_Black({
 export const metadata: Metadata = {
   title: "Jooma",
   description: "AI-powered tools built for teachers",
+};
+
+/* Without this, mobile browsers render at a ~980px virtual viewport and zoom
+ * out — so every sm:/md:/lg: class in the app resolved to its DESKTOP branch on
+ * a phone, and the whole product rendered as a shrunken desktop page rather
+ * than a mobile one. This is what makes the breakpoints real.
+ *
+ * No maximumScale/userScalable: pinch-zoom is an accessibility requirement,
+ * not a layout bug to suppress. */
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
 };
 
 export default function RootLayout({

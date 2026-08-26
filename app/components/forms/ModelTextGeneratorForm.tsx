@@ -136,7 +136,7 @@ export default function ModelTextGeneratorForm({
 
   return (
     <div className="space-y-8">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-8">
         <div className="lg:col-span-1">
           {sidebar}
           <ToolHistoryPanel toolSlug={TOOL_SLUG} reloadSignal={historyKey} onRestore={restore} />
@@ -196,13 +196,13 @@ export default function ModelTextGeneratorForm({
       )}
 
       {result !== null && (
-        <div className="sticky top-0 z-20 h-8 -mx-10" style={{ backgroundColor: "#F1EFE3" }} />
+        <div className="sticky top-0 z-20 h-0 lg:h-8 -mx-4 sm:-mx-6 lg:-mx-10" style={{ backgroundColor: "#F1EFE3" }} />
       )}
 
-      <div className={result !== null ? "flex gap-8" : ""}>
+      <div className={result !== null ? "flex flex-col lg:flex-row gap-4 lg:gap-8" : ""}>
         {result !== null && (
-          <div className="w-md shrink-0">
-            <div className="sticky top-8">
+          <div className="w-full lg:w-md shrink-0">
+            <div className="lg:sticky lg:top-8">
               <OutputOutline markdown={result} />
             </div>
           </div>

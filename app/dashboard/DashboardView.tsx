@@ -5,15 +5,12 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { MoreVertical } from "lucide-react";
 import ToolIcon from "@/app/components/ToolIcon";
-import SideNav from "@/app/components/layout/SideNav";
-import SupportLauncher from "@/app/components/SupportLauncher";
-import TopBar from "@/app/components/layout/TopBar";
+import AppShell from "@/app/components/layout/AppShell";
 import Card from "@/app/components/ui/Card";
 import { minutesSavedFor } from "@/app/lib/tools";
 import { listRecentRuns, type ToolRun } from "@/app/lib/toolRuns";
 import { toolForSlug, typeLabel, formatDate } from "@/app/lib/toolRunDisplay";
 import type { CopyMap } from "@/app/lib/copy";
-import AnnouncementBanner from "@/app/components/AnnouncementBanner";
 import UpgradeGate from "@/app/components/UpgradeGate";
 import DashboardAssistantCard from "@/app/components/assistant/DashboardAssistantCard";
 
@@ -51,23 +48,14 @@ export default function DashboardView({
   const recent = runs.slice(0, 8);
 
   return (
-    <div className="min-h-screen flex" style={{ backgroundColor: "#F1EFE3" }}>
-      {/* Catches a 402 from the assistant card's plan gate or spend ceiling and
-          opens the upgrade modal. The dashboard is a sibling of /tools, so it
-          does not inherit the one mounted in that layout. */}
-      <UpgradeGate />
-      <SideNav />
-      <SupportLauncher />
-      <main className="grow flex flex-col overflow-y-auto">
-        <TopBar title="Dashboard" />
-        {/* Team announcements. Renders nothing when there are none. */}
-        <AnnouncementBanner />
-
-        <div className="px-10 pb-16 space-y-4">
-          {/* Activity overview */}
-          <Card className="p-10">
-            <div className="flex items-start justify-between mb-1">
-              <h3 className="text-2xl font-medium">Here&apos;s your activity overview</h3>
+    /* UpgradeGate catches a 402 from the assistant card's plan gate or spend
+       ceiling and opens the upgrade modal. The dashboard is a sibling of
+       /tools, so it does not inherit the one mounted in that layout. */
+    <AppShell title="Dashboard" slot={<UpgradeGate />}>
+      {/* Activity overview */}
+      <Card>
+            <div className="flex items-start justify-between gap-3 mb-1">
+              <h3 className="text-xl sm:text-2xl font-medium min-w-0">Here&apos;s your activity overview</h3>
               <button
                 onClick={() => router.push("/analytics")}
                 className="text-sm font-medium text-muted hover:text-dark transition-colors cursor-pointer"
@@ -104,9 +92,9 @@ export default function DashboardView({
           <DashboardAssistantCard />
 
           {/* Recently added */}
-          <Card className="p-10">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-medium">
+          <Card>
+            <div className="flex items-center justify-between gap-3 mb-6">
+              <h3 className="text-lg sm:text-xl font-medium min-w-0">
                 Recently added{" "}
                 <span className="text-muted">({runs.length})</span>
               </h3>
@@ -131,7 +119,12 @@ export default function DashboardView({
                 <p className="text-sm text-muted">{copy["dash.empty.body"]}</p>
               </div>
             ) : (
-              <table className="w-full text-sm">
+              /* Six columns will not fit a phone, so the table scrolls inside
+                 its own box rather than widening the page. Works because
+                 AppShell's <main> carries min-w-0. Same pattern as
+                 app/account/billing/UsageTable.tsx. */
+              <div className="overflow-x-auto -mx-1 px-1">
+              <table className="w-full text-sm min-w-180">
                 <thead>
                   <tr className="text-left text-muted border-b border-line">
                     <th className="font-normal pb-3 pr-4">Name</th>
@@ -182,11 +175,10 @@ export default function DashboardView({
                   })}
                 </tbody>
               </table>
+              </div>
             )}
           </Card>
-        </div>
-      </main>
-    </div>
+    </AppShell>
   );
 }
 
@@ -196,7 +188,7 @@ function StatCard({
   bg: string; icon: React.ReactNode; value: string; sub: string;
 }) {
   return (
-    <div className={`relative rounded-2xl p-6 ${bg} min-h-32 flex flex-col justify-end`}>
+    <div className={`relative rounded-2xl p-5 sm:p-6 ${bg} min-h-28 sm:min-h-32 flex flex-col justify-end`}>
       <span className="absolute top-5 right-5">
         {icon}
       </span>

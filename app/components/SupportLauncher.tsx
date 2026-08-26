@@ -87,7 +87,9 @@ export default function SupportLauncher() {
           className="fixed bottom-24 right-6 z-9998 flex flex-col rounded-3xl border shadow-xl overflow-hidden"
           style={{
             width: "min(380px, calc(100vw - 3rem))",
-            height: "min(560px, calc(100vh - 8rem))",
+            // dvh, not vh: 100vh on mobile is the LARGE viewport, so with the
+            // URL bar showing the panel's bottom edge sat below the fold.
+            height: "min(560px, calc(100dvh - 8rem))",
             backgroundColor: "#FAF9F5",
             borderColor: "#DAD8D0",
           }}

@@ -74,17 +74,31 @@ export function useToolLaunch(opts: {
 
   // ?run= wins when both are present: a saved run is a real artefact, a prefill
   // is only a suggestion about one that does not exist yet.
+  //
+  // The guard is claimed only AFTER onRestore actually runs, never up front.
+  // Claiming it before awaiting made this fail every time under Strict Mode's
+  // double mount: the first pass marked the run applied and started the fetch,
+  // cleanup set cancelled = true, and the second pass then saw the run as
+  // already-applied and returned early. The one in-flight fetch resolved into a
+  // cancelled closure and dropped the result, so the tool opened blank — the
+  // saved output only appeared after clicking it again in Recents.
   useEffect(() => {
     if (!runId || appliedRun.current === runId) return;
-    appliedRun.current = runId;
     let cancelled = false;
     void (async () => {
       try {
         const run = await getToolRun(runId);
+        if (cancelled) return;
         // A missing run — or someone else's, which RLS makes indistinguishable —
         // opens the tool empty. Better than an error page for a link that may
         // simply be old.
-        if (!cancelled && run) ref.current.onRestore(run);
+        if (!run) return;
+        // Re-checked after the await: a second effect pass may have restored
+        // this same run while the fetch was in flight, and re-applying would
+        // overwrite edits the teacher had already started making.
+        if (appliedRun.current === runId) return;
+        appliedRun.current = runId;
+        ref.current.onRestore(run);
       } catch {
         /* Same outcome as not found. */
       }

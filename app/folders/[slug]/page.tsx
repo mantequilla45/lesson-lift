@@ -3,14 +3,11 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, Folder, FileText, Trash2, Loader2 } from "lucide-react";
-import SideNav from "@/app/components/layout/SideNav";
-import SupportLauncher from "@/app/components/SupportLauncher";
-import TopBar from "@/app/components/layout/TopBar";
+import AppShell from "@/app/components/layout/AppShell";
 import Card from "@/app/components/ui/Card";
 import ToolIcon from "@/app/components/ToolIcon";
 import { listToolRuns, deleteToolRun, type ToolRun } from "@/app/lib/toolRuns";
 import { toolForSlug, typeLabel, formatDate } from "@/app/lib/toolRunDisplay";
-import AnnouncementBanner from "@/app/components/AnnouncementBanner";
 
 export default function FolderDetailPage() {
   const params = useParams<{ slug: string }>();
@@ -40,16 +37,8 @@ export default function FolderDetailPage() {
   };
 
   return (
-    <div className="min-h-screen flex" style={{ backgroundColor: "#F1EFE3" }}>
-      <SideNav />
-      <SupportLauncher />
-      <main className="grow flex flex-col overflow-y-auto">
-        <TopBar title="Folders" />
-        {/* Team announcements. Renders nothing when there are none. */}
-        <AnnouncementBanner />
-
-        <div className="px-10 pb-16 space-y-4">
-          <Card className="p-10">
+    <AppShell title="Folders">
+          <Card>
             <button
               onClick={() => router.push("/folders")}
               className="flex items-center gap-1.5 text-sm text-muted hover:text-dark transition-colors cursor-pointer mb-5"
@@ -58,22 +47,24 @@ export default function FolderDetailPage() {
               All folders
             </button>
 
-            <div className="flex items-center gap-4 mb-8">
-              {tool ? (
-                <ToolIcon name={tool.icon} className="w-12 h-12 shrink-0" />
-              ) : (
-                <span className="w-12 h-12 rounded-2xl bg-gray-100 flex items-center justify-center shrink-0">
-                  <Folder className="w-6 h-6 text-gray-600" />
-                </span>
-              )}
-              <div>
-                <h3 className="text-2xl font-medium">{tool?.label ?? typeLabel(slug)}</h3>
-                <p className="text-sm text-muted">{runs.length} {runs.length === 1 ? "item" : "items"}</p>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-8">
+              <div className="flex items-center gap-4 min-w-0">
+                {tool ? (
+                  <ToolIcon name={tool.icon} className="w-12 h-12 shrink-0" />
+                ) : (
+                  <span className="w-12 h-12 rounded-2xl bg-gray-100 flex items-center justify-center shrink-0">
+                    <Folder className="w-6 h-6 text-gray-600" />
+                  </span>
+                )}
+                <div className="min-w-0">
+                  <h3 className="text-xl sm:text-2xl font-medium truncate">{tool?.label ?? typeLabel(slug)}</h3>
+                  <p className="text-sm text-muted">{runs.length} {runs.length === 1 ? "item" : "items"}</p>
+                </div>
               </div>
               {tool && (
                 <button
                   onClick={() => router.push(tool.href)}
-                  className="ml-auto px-5 py-2.5 rounded-xl bg-[#030303] text-white text-sm font-medium hover:bg-black transition-colors cursor-pointer"
+                  className="sm:ml-auto shrink-0 px-5 py-2.5 rounded-xl bg-[#030303] text-white text-sm font-medium hover:bg-black transition-colors cursor-pointer"
                 >
                   Open tool
                 </button>
@@ -85,7 +76,10 @@ export default function FolderDetailPage() {
             ) : runs.length === 0 ? (
               <p className="text-sm text-muted py-10 text-center">This folder is empty.</p>
             ) : (
-              <table className="w-full text-sm">
+              /* Five columns scroll inside their own box rather than widening
+                 the page. Same pattern as account/billing/UsageTable. */
+              <div className="overflow-x-auto -mx-1 px-1">
+              <table className="w-full text-sm min-w-150">
                 <thead>
                   <tr className="text-left text-muted border-b border-line">
                     <th className="font-normal pb-3 pr-4">Name</th>
@@ -141,10 +135,9 @@ export default function FolderDetailPage() {
                   })}
                 </tbody>
               </table>
+              </div>
             )}
           </Card>
-        </div>
-      </main>
-    </div>
+    </AppShell>
   );
 }

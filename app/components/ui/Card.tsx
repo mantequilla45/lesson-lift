@@ -9,7 +9,7 @@ interface CardProps {
 export default function Card({ children, className, style }: CardProps) {
   return (
     <div
-      className={cn("bg-[#FAF9F5] rounded-3xl p-8", className)}
+      className={cn("bg-[#FAF9F5] rounded-3xl p-5 sm:p-6 lg:p-8", className)}
       style={style}
     >
       {children}

@@ -14,7 +14,7 @@ import { Check } from "lucide-react";
  */
 export default function AssistantLocked() {
   return (
-    <div className="flex flex-1 flex-col items-center justify-center px-10 text-center">
+    <div className="flex flex-1 flex-col items-center justify-center px-4 sm:px-6 lg:px-10 text-center">
       <h2 className="text-[32px] font-semibold text-dark" style={{ letterSpacing: "0.38px" }}>
         Your teaching assistant
       </h2>

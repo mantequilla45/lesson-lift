@@ -21,6 +21,12 @@
   --container-9xl: 96rem;
 }
 
+/* The app's horizontal page rhythm is written as plain utilities at each call
+   site — `px-4 sm:px-6 lg:px-10` (and `-mx-4 sm:-mx-6 lg:-mx-10` for elements
+   that bleed to the gutter edge). 16px phone, 24px tablet, 40px desktop, the
+   last matching the original px-10. Deliberately NOT a custom @utility: a
+   named abstraction here bought nothing and hid which padding was in play. */
+
 body {
   background: #F1EFE3;
   color: #030303;
