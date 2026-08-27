@@ -1,80 +1,41 @@
-import { Suspense } from "react";
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
-import Tabs from "./Tabs";
-// asTab/TABS come from a plain module, not from Tabs.tsx: a "use client" file's
-// non-component exports arrive here as client-reference stubs rather than real
-// values, so calling TABS.some() on one throws at runtime.
-import { asTab } from "./tabs-shared";
-import { TabSkeleton } from "./Skeletons";
-import OverviewTab from "./OverviewTab";
-import UsageTab from "./UsageTab";
-import HistoryTab from "./HistoryTab";
+import { redirect } from "next/navigation";
 
-// Usage & Billing — where a teacher stands this month, what they've paid, and
-// how to change either.
+// Usage & Billing moved into /profile as its "Subscription" section.
 //
-// The URL stays /account/billing rather than moving to something that reads
-// like the heading, because it is hardcoded as a Stripe redirect target in four
-// places (checkout, top-up, portal, and the admin-initiated portal link) plus
-// very likely in the Stripe dashboard's own portal configuration, which we
-// can't see from here. /account/usage was merged in and redirects; it had one
-// in-app referrer, so it was the cheap side to move.
+// This URL stays alive as a redirect rather than being deleted, because it is
+// not just an in-app link. It is hardcoded as a Stripe return target in four
+// places — app/api/stripe/{checkout,topup,portal}/route.ts and the admin
+// billing-portal route — and very likely in the Stripe dashboard's own customer
+// portal configuration, which we can't see or change from here. A teacher coming
+// back from a checkout would land on a 404.
 //
-// This shell fetches NOTHING. Each tab body is its own async server component
-// behind a Suspense boundary, so the heading, tab strip and banners paint
-// immediately and only the tab you asked for does any work. The previous
-// version awaited a four-way Promise.all before rendering a single pixel.
-export const dynamic = "force-dynamic";
-
-export default async function UsageBillingPage({
+// ALL search params are forwarded, not just recognised ones. ?checkout=success
+// and ?topup=success are what OverviewTab renders its confirmation banner from,
+// so dropping them would silently turn a successful payment into a blank page.
+//
+// The tab components themselves stay in this folder — they are still about
+// billing, and /profile imports them from here.
+//
+// A server-component redirect() rather than a next.config.ts entry: config
+// redirects are resolved before render and break the client-side transition for
+// in-app links, which is the thing docs/instant-navigation-guide.md is about.
+// redirect() also defaults to `replace` outside Server Actions, so the dead URL
+// doesn't linger in the back-button history.
+export default async function BillingRedirect({
   searchParams,
 }: {
-  // A Promise in this version of Next — see
-  // node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/page.md
-  searchParams: Promise<{ tab?: string; checkout?: string; topup?: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const { tab: rawTab, checkout, topup } = await searchParams;
-  const tab = asTab(rawTab);
+  const params = await searchParams;
+  const forwarded = new URLSearchParams();
+  forwarded.set("section", "subscription");
 
-  return (
-    <div className="min-h-screen py-12 px-4" style={{ backgroundColor: "#F1EFE3" }}>
-      <div className="max-w-5xl mx-auto w-full">
-        <Link
-          href="/"
-          className="inline-flex items-center gap-2 text-sm font-semibold mb-6 transition-colors hover:opacity-70"
-          style={{ color: "#1a1a1a" }}
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back
-        </Link>
+  for (const [key, value] of Object.entries(params)) {
+    // `section` is ours to set; anything else the caller sent rides along.
+    if (key === "section" || value === undefined) continue;
+    if (Array.isArray(value)) value.forEach((v) => forwarded.append(key, v));
+    else forwarded.set(key, value);
+  }
 
-        <h1 className="text-2xl font-bold tracking-tight mb-1" style={{ color: "#1a1a1a" }}>
-          Usage &amp; Billing
-        </h1>
-        <p className="text-sm mb-6" style={{ color: "#8a8078" }}>
-          Your plan, your credits, and everything you&apos;ve paid for.
-        </p>
-
-        <Tabs active={tab} />
-
-        {/*
-          key={tab} is the single most important line on this page.
-
-          All three tabs render into the SAME position in the tree, so once one
-          has resolved React will happily reuse that boundary for the next one —
-          leaving the PREVIOUS tab's content on screen until the new data
-          arrives. Changing the key forces a brand-new boundary, so the skeleton
-          shows immediately on every tab change.
-
-          See docs/instant-navigation-guide.md §11.
-        */}
-        <Suspense key={tab} fallback={<TabSkeleton tab={tab} />}>
-          {tab === "overview" && <OverviewTab checkout={checkout} topup={topup} />}
-          {tab === "usage" && <UsageTab />}
-          {tab === "history" && <HistoryTab />}
-        </Suspense>
-      </div>
-    </div>
-  );
+  redirect(`/profile?${forwarded.toString()}`);
 }

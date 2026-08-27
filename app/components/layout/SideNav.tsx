@@ -10,6 +10,7 @@ import { createClient } from "@/app/lib/auth/client";
 import { usePinnedTools } from "@/app/lib/usePinnedTools";
 import { useMediaQuery } from "@/app/lib/useMediaQuery";
 import ToolSearch from "@/app/components/layout/ToolSearch";
+import { formatBadge } from "@/app/lib/notifications";
 
 /*
  * Nav icons are inline SVG rather than <img>, because they are two-tone: the
@@ -64,7 +65,7 @@ const AssistantIcon = ({ className }: NavIconProps) => (
   </svg>
 );
 
-const AnnouncementsIcon = ({ className }: NavIconProps) => (
+const NotificationsIcon = ({ className }: NavIconProps) => (
   <svg viewBox="0 0 20 20" fill="none" className={className} aria-hidden="true">
     <path d="M4.6 7.4h2.2l7-3.9a.9.9 0 0 1 1.35.79v11.42a.9.9 0 0 1-1.35.79l-7-3.9H4.6A2.1 2.1 0 0 1 2.5 10.5v-1A2.1 2.1 0 0 1 4.6 7.4z" fill="currentColor"/>
     <path d="M6.4 12.6h2.5l.7 4.05a.9.9 0 0 1-.89 1.05H7.5a.9.9 0 0 1-.87-.67z" fill="currentColor" fillOpacity="0.45"/>
@@ -380,20 +381,24 @@ export default function SideNav({ mobileOpen = false, onMobileClose }: SideNavPr
         )
       )}
 
-      {/* Announcements — sits with Help at the foot of the rail rather than in
+      {/* Notifications — sits with Help at the foot of the rail rather than in
           NAV above, which stays the four places a teacher goes to work. Uses a
-          lucide icon to match its neighbour; the NAV items are img/svg. */}
+          lucide icon to match its neighbour; the NAV items are img/svg.
+
+          The route and the label say "notifications"; the RPC below still says
+          announcements, because only the teacher-facing noun was renamed. See
+          app/lib/notifications.ts. */}
       <Link
-        href="/announcements"
-        title={railCollapsed ? "Announcements" : undefined}
+        href="/notifications"
+        title={railCollapsed ? "Notifications" : undefined}
         className={`group/nav mt-4 flex items-center gap-3 px-4 py-3 text-sm font-semibold rounded-2xl transition-colors ${
-          pathname.startsWith("/announcements")
+          pathname.startsWith("/notifications")
             ? "bg-[#1a1a1a] text-white"
             : "text-gray-700 hover:bg-gray-100"
         }`}
       >
         <span className="relative shrink-0">
-          <AnnouncementsIcon className="w-4.5 h-4.5 transition-transform duration-200 ease-out group-hover/nav:scale-110" />
+          <NotificationsIcon className="w-4.5 h-4.5 transition-transform duration-200 ease-out group-hover/nav:scale-110" />
           {announceUnread > 0 && (
             <span
               className="absolute -top-1 -right-1 w-2 h-2 rounded-full"
@@ -405,14 +410,14 @@ export default function SideNav({ mobileOpen = false, onMobileClose }: SideNavPr
           className="overflow-hidden whitespace-nowrap transition-all duration-300"
           style={{ maxWidth: railCollapsed ? "0px" : "160px", opacity: railCollapsed ? 0 : 1 }}
         >
-          Announcements
+          Notifications
         </span>
         {!railCollapsed && announceUnread > 0 && (
           <span
             className="ml-auto text-[10px] font-bold rounded-full px-1.5 py-0.5 text-white shrink-0"
             style={{ backgroundColor: "#B3261E" }}
           >
-            {announceUnread}
+            {formatBadge(announceUnread)}
           </span>
         )}
       </Link>
@@ -448,7 +453,7 @@ export default function SideNav({ mobileOpen = false, onMobileClose }: SideNavPr
             className="ml-auto text-[10px] font-bold rounded-full px-1.5 py-0.5 text-white shrink-0"
             style={{ backgroundColor: "#B3261E" }}
           >
-            {supportUnread}
+            {formatBadge(supportUnread)}
           </span>
         )}
       </Link>

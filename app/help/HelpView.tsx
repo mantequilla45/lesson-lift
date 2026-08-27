@@ -6,6 +6,9 @@ import { ArrowLeft, Plus } from "lucide-react";
 import AppShell from "@/app/components/layout/AppShell";
 import { createClient } from "@/app/lib/auth/client";
 import Conversation from "./Conversation";
+// Shared with /profile's "Submit ticket" section — see the header comment there
+// for why it is one component and not two.
+import NewConversation from "./NewConversation";
 
 export interface MyThread {
   id: string;
@@ -80,8 +83,8 @@ export default function HelpView({
   return (
     /* No banner here, unlike the other app pages: the panel below is sized
        against the viewport, so a banner would push its bottom edge off screen
-       rather than compressing it. Teachers still see announcements everywhere
-       else and at /announcements. */
+       rather than compressing it. Teachers still see notifications everywhere
+       else, at /notifications, and in the bell. */
     <AppShell
       title="Help"
       variant="fixed"
@@ -194,13 +197,17 @@ export default function HelpView({
               }`}
             >
               {composing || !thread ? (
-                <NewConversation
-                  onCancel={threads.length > 0 ? () => setComposing(false) : undefined}
-                  onCreated={async (id) => {
-                    await reload();
-                    openThread(id);
-                  }}
-                />
+                /* The scroll well belongs to this pane, not to the composer —
+                   /profile renders the same form inside a static card. */
+                <div className="grow overflow-y-auto px-6 py-6 min-h-0">
+                  <NewConversation
+                    onCancel={threads.length > 0 ? () => setComposing(false) : undefined}
+                    onCreated={async (id) => {
+                      await reload();
+                      openThread(id);
+                    }}
+                  />
+                </div>
               ) : (
                 <>
                   <div
@@ -232,94 +239,5 @@ export default function HelpView({
             </div>
           </div>
     </AppShell>
-  );
-}
-
-function NewConversation({
-  onCancel,
-  onCreated,
-}: {
-  onCancel?: () => void;
-  onCreated: (id: string) => void;
-}) {
-  const [subject, setSubject] = useState("");
-  const [body, setBody] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const submit = async () => {
-    if (!subject.trim() || !body.trim() || busy) return;
-    setBusy(true);
-    setError(null);
-    const supabase = createClient();
-    const { data, error: e } = await supabase.rpc("my_create_thread", {
-      p_subject: subject.trim(),
-      p_body: body.trim(),
-    });
-    setBusy(false);
-    if (e) {
-      setError(e.message);
-      return;
-    }
-    onCreated(data as string);
-  };
-
-  return (
-    <div className="grow overflow-y-auto px-6 py-6 min-h-0">
-      <div className="max-w-xl">
-        {onCancel && (
-          <button
-            type="button"
-            onClick={onCancel}
-            className="flex items-center gap-1.5 text-sm text-muted hover:text-dark transition-colors mb-4 cursor-pointer"
-          >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            Back
-          </button>
-        )}
-        <h3 className="text-xl font-medium mb-1">How can we help?</h3>
-        <p className="text-sm text-muted font-light mb-5">
-          Tell us what happened and we&apos;ll get back to you, usually within a
-          working day.
-        </p>
-
-        {error && (
-          <p className="text-sm mb-3" style={{ color: "#B3261E" }}>
-            {error}
-          </p>
-        )}
-
-        <label className="block text-sm font-medium mb-1.5">Subject</label>
-        <input
-          value={subject}
-          onChange={(e) => setSubject(e.target.value)}
-          maxLength={200}
-          placeholder="Ran out of resources mid-lesson"
-          className="w-full px-3.5 py-2.5 border rounded-2xl bg-white text-sm mb-4 focus:outline-none focus:border-gray-400 transition-colors"
-          style={{ borderColor: "#DAD8D0" }}
-        />
-
-        <label className="block text-sm font-medium mb-1.5">Message</label>
-        <textarea
-          value={body}
-          onChange={(e) => setBody(e.target.value)}
-          rows={7}
-          maxLength={5000}
-          placeholder="What were you trying to do, and what happened instead?"
-          className="w-full px-3.5 py-2.5 border rounded-2xl bg-white text-sm resize-none mb-4 focus:outline-none focus:border-gray-400 transition-colors"
-          style={{ borderColor: "#DAD8D0" }}
-        />
-
-        <button
-          type="button"
-          onClick={() => void submit()}
-          disabled={busy || !subject.trim() || !body.trim()}
-          className="px-5 py-2.5 rounded-2xl text-sm font-semibold text-white transition-opacity disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-          style={{ backgroundColor: "#1a1a1a" }}
-        >
-          {busy ? "Sending…" : "Send message"}
-        </button>
-      </div>
-    </div>
   );
 }

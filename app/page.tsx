@@ -66,14 +66,21 @@ export default async function LandingPage({
   const copy = await getCopy();
 
   let firstName: string | null = null;
+  let fullName: string | null = null;
+  let avatarUrl: string | null = null;
   let isAdmin = false;
   if (user) {
     const { data: profile } = await supabase
       .from("profiles")
-      .select("first_name, is_admin")
+      .select("first_name, surname, avatar_url, is_admin")
       .eq("id", user.id)
       .maybeSingle();
     firstName = profile?.first_name ?? null;
+    // The avatar's initials want both names; the button label wants just the
+    // first, which is why both are passed rather than derived in the component.
+    fullName =
+      [profile?.first_name, profile?.surname].filter(Boolean).join(" ") || null;
+    avatarUrl = profile?.avatar_url ?? null;
     isAdmin = profile?.is_admin ?? false;
   }
 
@@ -98,7 +105,13 @@ export default async function LandingPage({
           <Link href="/pricing" className="transition-colors hover:text-black">Schools</Link>
         </div>
 
-        <NavAuth name={firstName} email={user?.email ?? null} isAdmin={isAdmin} />
+        <NavAuth
+          name={firstName}
+          fullName={fullName}
+          avatarUrl={avatarUrl}
+          email={user?.email ?? null}
+          isAdmin={isAdmin}
+        />
       </nav>
 
       {/* Hero + showcase — framed in a lighter rounded panel that spans the
