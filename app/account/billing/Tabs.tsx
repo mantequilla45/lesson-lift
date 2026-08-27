@@ -24,7 +24,16 @@ import { TABS } from "./tabs-shared";
 // exports from a "use client" module reach the server as reference stubs, not
 // arrays.
 
-export default function Tabs({ active }: { active: string }) {
+export default function Tabs({
+  active,
+  /** Where the tab links point. Defaults to this page's own URL; /profile passes
+   *  its own so the strip works inside the Subscription section, which is the
+   *  same three tabs under a different route. */
+  basePath = "/account/billing",
+}: {
+  active: string;
+  basePath?: string;
+}) {
   const searchParams = useSearchParams();
 
   return (
@@ -46,7 +55,7 @@ export default function Tabs({ active }: { active: string }) {
         return (
           <Link
             key={id}
-            href={`/account/billing?${params.toString()}`}
+            href={`${basePath}?${params.toString()}`}
             aria-current={isActive ? "page" : undefined}
             className="px-4 py-2 text-sm font-semibold rounded-xl transition-colors"
             style={

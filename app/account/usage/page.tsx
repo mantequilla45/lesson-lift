@@ -1,10 +1,15 @@
 import { redirect } from "next/navigation";
 
-// /account/usage was merged into /account/billing as its "Usage" tab.
+// /account/usage was merged into /account/billing as its "Usage" tab, which has
+// since moved again into /profile's Subscription section.
 //
 // Kept as a redirect rather than deleted: this was the destination of the landing
 // nav's "Usage" item for the whole of launch, so it is in browser histories and
 // bookmarks. Deleting the route would 404 those.
+//
+// Points at the final destination rather than at /account/billing, which is now
+// itself a redirect — chaining the two would cost an extra round trip to reach
+// the same place.
 //
 // A server-component redirect() rather than a next.config.ts entry: config
 // redirects are resolved before render and break the client-side transition for
@@ -13,5 +18,5 @@ import { redirect } from "next/navigation";
 // doesn't linger in the back-button history — press Back and you return to
 // wherever you actually came from.
 export default async function UsageRedirect() {
-  redirect("/account/billing?tab=usage");
+  redirect("/profile?section=subscription&tab=usage");
 }

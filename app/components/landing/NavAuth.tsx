@@ -3,18 +3,37 @@
 import { useRef, useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, ChevronDown, LayoutGrid, LogOut, BarChart3, Shield } from "lucide-react";
+import {
+  ArrowRight,
+  ChevronDown,
+  LayoutGrid,
+  LogOut,
+  BarChart3,
+  Shield,
+  UserRound,
+} from "lucide-react";
 import { createClient } from "@/app/lib/auth/client";
+import Avatar from "@/app/components/ui/Avatar";
 
 interface NavAuthProps {
   /** Display name (first name) when available, falls back to email. */
   name: string | null;
+  /** First name + surname, for the avatar's initials placeholder. */
+  fullName?: string | null;
+  /** Profile photo. Null falls back to initials, then to a glyph. */
+  avatarUrl?: string | null;
   email: string | null;
   /** Show the Admin link in the dropdown. */
   isAdmin?: boolean;
 }
 
-export default function NavAuth({ name, email, isAdmin = false }: NavAuthProps) {
+export default function NavAuth({
+  name,
+  fullName,
+  avatarUrl,
+  email,
+  isAdmin = false,
+}: NavAuthProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -57,7 +76,9 @@ export default function NavAuth({ name, email, isAdmin = false }: NavAuthProps) 
   }
 
   const label = name || email;
-  const initial = (name || email || "?").trim().charAt(0).toUpperCase();
+  // The avatar prefers the full name for two-letter initials; the email is the
+  // last resort, and gives one letter.
+  const avatarName = fullName || name || email || "";
 
   return (
     <div className="relative" ref={ref}>
@@ -68,12 +89,7 @@ export default function NavAuth({ name, email, isAdmin = false }: NavAuthProps) 
         className="flex items-center gap-2 pl-1.5 pr-2.5 py-1.5 rounded-xl border transition-colors hover:bg-black/5"
         style={{ borderColor: "#E0DCCB" }}
       >
-        <span
-          className="w-7 h-7 flex items-center justify-center rounded-lg text-white text-sm font-semibold"
-          style={{ backgroundColor: "#030303" }}
-        >
-          {initial}
-        </span>
+        <Avatar url={avatarUrl} name={avatarName} size={28} />
         <span className="text-sm font-semibold max-w-35 truncate" style={{ color: "#030303" }}>
           {label}
         </span>
@@ -82,9 +98,16 @@ export default function NavAuth({ name, email, isAdmin = false }: NavAuthProps) 
 
       {open && (
         <div className="absolute right-0 top-full mt-2 w-60 bg-white border border-gray-200 rounded-2xl shadow-lg z-50 overflow-hidden">
-          <div className="px-4 py-3 border-b border-gray-100">
-            <p className="text-xs text-gray-400">Signed in as</p>
-            <p className="text-sm font-medium text-gray-900 truncate">{email}</p>
+          <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-3">
+            <Avatar url={avatarUrl} name={avatarName} size={36} />
+            <div className="min-w-0">
+              {fullName ? (
+                <p className="text-sm font-medium text-gray-900 truncate">{fullName}</p>
+              ) : (
+                <p className="text-xs text-gray-400">Signed in as</p>
+              )}
+              <p className="text-xs text-gray-400 truncate">{email}</p>
+            </div>
           </div>
           <Link
             href="/tools"
@@ -102,10 +125,18 @@ export default function NavAuth({ name, email, isAdmin = false }: NavAuthProps) 
               Admin
             </Link>
           )}
-          {/* Straight to the canonical route, not the /account/usage redirect:
-              prefetching a route that immediately redirects is wasted work. */}
           <Link
-            href="/account/billing"
+            href="/profile"
+            className="w-full flex items-center gap-2 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+          >
+            <UserRound className="w-4 h-4" />
+            Profile
+          </Link>
+          {/* Straight to the canonical route, not the /account/billing redirect:
+              prefetching a route that immediately redirects is wasted work. That
+              one exists for Stripe's return URLs and old bookmarks. */}
+          <Link
+            href="/profile?section=subscription"
             className="w-full flex items-center gap-2 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
           >
             <BarChart3 className="w-4 h-4" />

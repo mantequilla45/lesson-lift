@@ -15,27 +15,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { X } from "lucide-react";
 import { createClient } from "@/app/lib/auth/client";
-
-interface MyAnnouncement {
-  id: string;
-  message: string;
-  type: "info" | "warning" | "maintenance";
-  dismissible: boolean;
-  starts_at: string;
-  seen: boolean;
-}
-
-// Borrowed from the palette the rest of the app already uses, so a banner reads
-// as part of the product rather than a system alert bolted on top.
-const TONE: Record<MyAnnouncement["type"], { bg: string; fg: string; border: string }> = {
-  info: { bg: "#EAEFF7", fg: "#2C55C0", border: "#D6DEF2" },
-  warning: { bg: "#FDF1DC", fg: "#8A5A12", border: "#F2E2C0" },
-  maintenance: { bg: "#FAE7E0", fg: "#A33F26", border: "#F0D2C7" },
-};
+// Shape and tones are shared with /notifications and the bell popover — three
+// renderings of the same rows, so the palette lives in one place.
+import { type MyNotification, toneFor } from "@/app/lib/notifications";
 
 export default function AnnouncementBanner() {
   const pathname = usePathname();
-  const [rows, setRows] = useState<MyAnnouncement[]>([]);
+  const [rows, setRows] = useState<MyNotification[]>([]);
 
   // Which ids we've already reported as seen this session. The RPC is
   // idempotent, so this is only to avoid pointless round trips on re-render.
@@ -49,7 +35,7 @@ export default function AnnouncementBanner() {
       // A signed-out user or a transient failure means no banner, not an error
       // state — this is decoration on someone else's page.
       if (cancelled || error) return;
-      setRows((data ?? []) as MyAnnouncement[]);
+      setRows((data ?? []) as MyNotification[]);
     })();
     return () => {
       cancelled = true;
@@ -68,7 +54,7 @@ export default function AnnouncementBanner() {
 
   if (!current) return null;
 
-  const tone = TONE[current.type] ?? TONE.info;
+  const tone = toneFor(current.type);
 
   const dismiss = async () => {
     // Optimistic: the row goes now, and the write is idempotent, so a failure
@@ -96,7 +82,7 @@ export default function AnnouncementBanner() {
 
         {rows.length > 1 && (
           <Link
-            href="/announcements"
+            href="/notifications"
             onClick={trackClickThrough}
             className="text-xs font-semibold underline shrink-0 mt-0.5 transition-opacity hover:opacity-70"
             style={{ color: tone.fg }}
@@ -109,7 +95,7 @@ export default function AnnouncementBanner() {
           <button
             type="button"
             onClick={dismiss}
-            aria-label="Dismiss announcement"
+            aria-label="Dismiss notification"
             className="shrink-0 rounded-lg p-0.5 transition-opacity hover:opacity-60 cursor-pointer"
             style={{ color: tone.fg }}
           >

@@ -3,7 +3,7 @@ import AppShell from "@/app/components/layout/AppShell";
 export default function Loading() {
   return (
     <AppShell
-      title="Announcements"
+      title="Notifications"
       banner={false}
       launcher={false}
       contentClassName="px-4 sm:px-6 lg:px-10 pb-16 space-y-3 animate-pulse"
