@@ -1,0 +1,25 @@
+.pair {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+}
+
+@media (max-width: 460px) {
+  .pair {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+}
+
+.phone {
+  display: flex;
+  gap: 8px;
+}
+
+/* The dial-code combobox sizes itself; the number takes what is left. Without
+   min-width: 0 the input refuses to shrink and pushes the row wider than the
+   panel. */
+.phone > :last-child {
+  flex: 1;
+  min-width: 0;
+}

@@ -17,7 +17,7 @@ export default async function SchoolImprovementPlanPage({
       sidebar={
         <ToolInfoPanel
           icon={<TrendingUp className="w-5 h-5 text-rose-600" />}
-          heroBg="bg-rose-50"
+
           title="School Improvement Plans"
           description="This tool can be used to draft a SIP based on a set of areas for development. The AI will generate the SIP either as a table, or in narrative form. The AI will identify priority objectives and present a detailed actionable school improvement plan."
           steps={[

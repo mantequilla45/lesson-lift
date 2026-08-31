@@ -8,7 +8,8 @@
 
 export const SECTIONS = [
   { id: "personal", label: "Personal info" },
-  { id: "subscription", label: "Subscription" },
+  { id: "subscription", label: "Plan and usage" },
+  { id: "badges", label: "Badges" },
   { id: "password", label: "Change password" },
   { id: "ticket", label: "Submit ticket" },
 ] as const;

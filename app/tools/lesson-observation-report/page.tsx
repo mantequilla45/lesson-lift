@@ -17,7 +17,7 @@ export default async function LessonObservationReportPage({
       sidebar={
         <ToolInfoPanel
           icon={<Eye className="w-5 h-5 text-rose-600" />}
-          heroBg="bg-rose-50"
+
           title="Lesson Observation Report"
           description="This tool can be used to write up a lesson observation. Simply enter your notes on the details of the lesson, the strengths and areas for development, and the AI will draft a formal report."
           steps={[

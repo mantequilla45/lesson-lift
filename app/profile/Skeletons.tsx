@@ -4,7 +4,7 @@
 // app/account/billing/Skeletons.tsx restates them: that module is the admin
 // console's design system, and a dependency from teacher UI onto admin UI is
 // exactly the direction that should never exist. The house convention
-// (animate-pulse with #EEECE4 fill) is small enough to restate.
+// (animate-pulse over a tinted bone) is small enough to restate.
 //
 // Shapes must match the real content's dimensions — a skeleton that's the wrong
 // height just moves the layout shift to a different moment.
@@ -15,7 +15,7 @@ function Bone({ className, style }: { className?: string; style?: React.CSSPrope
   return (
     <div
       className={`rounded ${className ?? ""}`}
-      style={{ backgroundColor: "#EEECE4", ...style }}
+      style={{ backgroundColor: "var(--j-tint)", ...style }}
     />
   );
 }
@@ -24,7 +24,7 @@ function Panel({ children }: { children: React.ReactNode }) {
   return (
     <div
       className="rounded-3xl p-6 sm:p-8 border animate-pulse"
-      style={{ backgroundColor: "#FAF9F5", borderColor: "#DAD8D0" }}
+      style={{ backgroundColor: "var(--j-card)", borderColor: "var(--j-line)" }}
     >
       {children}
     </div>
@@ -131,8 +131,34 @@ export function SubscriptionSkeleton() {
  * Dispatcher so the page's single Suspense boundary shows the shape of the
  * section actually being loaded, rather than one generic blob for all four.
  */
+/** Two levels' worth of medallion grid, which is roughly a screenful. */
+function BadgesSkeleton() {
+  return (
+    <div className="flex flex-col gap-5">
+      <Panel>
+        <Bone className="h-6 w-40 mb-3" />
+        <Bone className="h-4 w-full max-w-lg" />
+      </Panel>
+      {Array.from({ length: 2 }).map((_, level) => (
+        <Panel key={level}>
+          <Bone className="h-5 w-56 mb-5" />
+          <div className="grid gap-4 grid-cols-2 sm:grid-cols-4 lg:grid-cols-5">
+            {Array.from({ length: 10 }).map((_, i) => (
+              <div key={i} className="flex flex-col items-center gap-2">
+                <Bone className="w-16 h-17 rounded-full" />
+                <Bone className="h-3 w-16" />
+              </div>
+            ))}
+          </div>
+        </Panel>
+      ))}
+    </div>
+  );
+}
+
 export function SectionSkeleton({ section }: { section: Section }) {
   if (section === "subscription") return <SubscriptionSkeleton />;
+  if (section === "badges") return <BadgesSkeleton />;
   if (section === "password") return <ChangePasswordSkeleton />;
   if (section === "ticket") return <SubmitTicketSkeleton />;
   return <PersonalInfoSkeleton />;

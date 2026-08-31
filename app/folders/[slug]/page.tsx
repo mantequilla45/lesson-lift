@@ -1,13 +1,22 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Folder, FileText, Trash2, Loader2 } from "lucide-react";
-import AppShell from "@/app/components/layout/AppShell";
-import Card from "@/app/components/ui/Card";
-import ToolIcon from "@/app/components/ToolIcon";
+import {
+  CaretLeft,
+  FileText,
+  Trash,
+  CircleNotch,
+  FolderOpen,
+} from "@phosphor-icons/react/dist/ssr";
+import AppShellV2 from "@/app/components/v2/AppShellV2";
+import { ToolTile } from "@/app/components/v2/Squircle";
 import { listToolRuns, deleteToolRun, type ToolRun } from "@/app/lib/toolRuns";
-import { toolForSlug, typeLabel, formatDate } from "@/app/lib/toolRunDisplay";
+import { v2ToolForSlug, toolSolid } from "@/app/lib/tools";
+import { typeLabel, formatDate } from "@/app/lib/toolRunDisplay";
+import app from "@/app/components/v2/app.module.css";
+import styles from "./folder.module.css";
 
 export default function FolderDetailPage() {
   const params = useParams<{ slug: string }>();
@@ -17,10 +26,13 @@ export default function FolderDetailPage() {
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const tool = toolForSlug(slug);
+  const tool = v2ToolForSlug(slug);
 
   useEffect(() => {
-    listToolRuns(slug).then(setRuns).catch(() => setRuns([])).finally(() => setLoading(false));
+    listToolRuns(slug)
+      .then(setRuns)
+      .catch(() => setRuns([]))
+      .finally(() => setLoading(false));
   }, [slug]);
 
   const handleDelete = async (e: React.MouseEvent, id: string) => {
@@ -30,114 +42,114 @@ export default function FolderDetailPage() {
       await deleteToolRun(id);
       setRuns((prev) => prev.filter((r) => r.id !== id));
     } catch {
-      // leave row if delete fails
+      // Leave the row in place if the delete fails, rather than removing it
+      // optimistically and having it reappear on the next load.
     } finally {
       setDeletingId(null);
     }
   };
 
+  const name = tool?.name ?? typeLabel(slug);
+
   return (
-    <AppShell title="Folders">
-          <Card>
-            <button
-              onClick={() => router.push("/folders")}
-              className="flex items-center gap-1.5 text-sm text-muted hover:text-dark transition-colors cursor-pointer mb-5"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              All folders
-            </button>
+    <AppShellV2 title="Library">
+      <p className={styles.crumbs}>
+        <Link href="/folders" className={styles.crumbLink}>
+          <CaretLeft className={styles.crumbIcon} />
+          Library
+        </Link>
+        <span className={styles.crumbSep}>/</span>
+        <span>{name}</span>
+      </p>
 
-            <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-8">
-              <div className="flex items-center gap-4 min-w-0">
-                {tool ? (
-                  <ToolIcon name={tool.icon} className="w-12 h-12 shrink-0" />
-                ) : (
-                  <span className="w-12 h-12 rounded-2xl bg-gray-100 flex items-center justify-center shrink-0">
-                    <Folder className="w-6 h-6 text-gray-600" />
-                  </span>
-                )}
-                <div className="min-w-0">
-                  <h3 className="text-xl sm:text-2xl font-medium truncate">{tool?.label ?? typeLabel(slug)}</h3>
-                  <p className="text-sm text-muted">{runs.length} {runs.length === 1 ? "item" : "items"}</p>
-                </div>
-              </div>
-              {tool && (
-                <button
-                  onClick={() => router.push(tool.href)}
-                  className="sm:ml-auto shrink-0 px-5 py-2.5 rounded-xl bg-[#030303] text-white text-sm font-medium hover:bg-black transition-colors cursor-pointer"
+      <div className={styles.head}>
+        <ToolTile icon={tool?.icon ?? "folder"} solid={toolSolid(tool)} size="lg" />
+        <div className={styles.headText}>
+          <h1>{name}</h1>
+          <p className={app.helloSub}>
+            {loading
+              ? " "
+              : `${runs.length} ${runs.length === 1 ? "resource" : "resources"}`}
+          </p>
+        </div>
+        {tool && (
+          <Link href={tool.href} className={`${app.btn} ${app.btnP} ${styles.headBtn}`}>
+            Make another
+          </Link>
+        )}
+      </div>
+
+      <section className={app.panel}>
+        {loading ? (
+          <p className={styles.quiet}>Loading…</p>
+        ) : runs.length === 0 ? (
+          <div className={app.empty}>
+            <span className={app.emptyIcon}>
+              <FolderOpen weight="fill" />
+            </span>
+            <p className={app.emptyTitle}>This folder is empty</p>
+            <p className={app.emptyBody}>
+              {tool
+                ? `Anything you make with ${tool.name} lands here.`
+                : "Nothing has been filed here."}
+            </p>
+          </div>
+        ) : (
+          <div className={app.rows}>
+            {runs.map((run) => {
+              const input = run.input as Record<string, unknown>;
+              const subject = (input.subject as string) || null;
+              const year = (input.yearGroup as string) || null;
+              // Subject and year are optional on most tools, so the meta line is
+              // assembled from whatever is actually there rather than printing a
+              // row of em dashes.
+              const meta = [year, subject, formatDate(run.created_at)]
+                .filter(Boolean)
+                .join(" · ");
+
+              return (
+                <div
+                  key={run.id}
+                  className={app.row}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => tool && router.push(`${tool.href}?run=${run.id}`)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      if (tool) router.push(`${tool.href}?run=${run.id}`);
+                    }
+                  }}
                 >
-                  Open tool
-                </button>
-              )}
-            </div>
-
-            {loading ? (
-              <p className="text-sm text-muted py-10 text-center">Loading…</p>
-            ) : runs.length === 0 ? (
-              <p className="text-sm text-muted py-10 text-center">This folder is empty.</p>
-            ) : (
-              /* Five columns scroll inside their own box rather than widening
-                 the page. Same pattern as account/billing/UsageTable. */
-              <div className="overflow-x-auto -mx-1 px-1">
-              <table className="w-full text-sm min-w-150">
-                <thead>
-                  <tr className="text-left text-muted border-b border-line">
-                    <th className="font-normal pb-3 pr-4">Name</th>
-                    <th className="font-normal pb-3 pr-4">Subject</th>
-                    <th className="font-normal pb-3 pr-4">Year</th>
-                    <th className="font-normal pb-3 pr-4">Date</th>
-                    <th className="pb-3 w-8" />
-                  </tr>
-                </thead>
-                <tbody>
-                  {runs.map((run) => {
-                    const input = run.input as Record<string, unknown>;
-                    const subject = (input.subject as string) || "—";
-                    const year = (input.yearGroup as string) || "—";
-                    return (
-                      <tr
-                        key={run.id}
-                        // ?run= reopens THIS run. Without it the row opened an
-                        // empty tool and silently discarded what was clicked.
-                        onClick={() => tool && router.push(`${tool.href}?run=${run.id}`)}
-                        className="group border-b border-line/60 hover:bg-[#F1EFE3] transition-colors cursor-pointer"
-                      >
-                        <td className="py-3 pr-4">
-                          <div className="flex items-center gap-3">
-                            {/* Every run in this folder is the same tool, so a
-                                per-tag tint here carried no information. Neutral
-                                keeps the eye on the title. */}
-                            <span className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center shrink-0">
-                              <FileText className="w-4 h-4 text-gray-600" />
-                            </span>
-                            <span className="font-medium text-dark truncate max-w-xs">
-                              {run.title?.trim() || "Untitled"}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="py-3 pr-4 text-muted">{subject}</td>
-                        <td className="py-3 pr-4 text-muted">{year}</td>
-                        <td className="py-3 pr-4 text-muted whitespace-nowrap">{formatDate(run.created_at)}</td>
-                        <td className="py-3">
-                          <button
-                            aria-label="Delete"
-                            onClick={(e) => handleDelete(e, run.id)}
-                            disabled={deletingId === run.id}
-                            className="w-7 h-7 flex items-center justify-center rounded-md text-gray-400 opacity-0 group-hover:opacity-100 hover:text-red-600 hover:bg-white transition-all cursor-pointer"
-                          >
-                            {deletingId === run.id
-                              ? <Loader2 className="w-4 h-4 animate-spin" />
-                              : <Trash2 className="w-4 h-4" />}
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-              </div>
-            )}
-          </Card>
-    </AppShell>
+                  {/* Every resource in this folder came from the same tool, so a
+                      per-tool tile here would carry no information. Neutral
+                      keeps the eye on the title. */}
+                  <span className={styles.fileIcon}>
+                    <FileText weight="fill" />
+                  </span>
+                  <span className={app.rowMain}>
+                    <span className={app.rowTitle}>{run.title?.trim() || "Untitled"}</span>
+                    <span className={app.rowMeta}>{meta}</span>
+                  </span>
+                  <button
+                    type="button"
+                    aria-label={`Delete ${run.title?.trim() || "this resource"}`}
+                    onClick={(e) => handleDelete(e, run.id)}
+                    disabled={deletingId === run.id}
+                    className={styles.del}
+                  >
+                    {deletingId === run.id ? (
+                      <CircleNotch className={`${styles.delIcon} ${styles.spin}`} />
+                    ) : (
+                      <Trash className={styles.delIcon} />
+                    )}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
+    </AppShellV2>
   );
 }

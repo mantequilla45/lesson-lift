@@ -3,15 +3,35 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  Folder, MoreVertical, ChevronDown, ArrowUpDown, LayoutGrid, List as ListIcon,
-  Search, Pin, Check,
-} from "lucide-react";
-import AppShell from "@/app/components/layout/AppShell";
-import ToolIcon from "@/app/components/ToolIcon";
+  MagnifyingGlass,
+  DotsThreeVertical,
+  CaretDown,
+  ArrowsDownUp,
+  GridFour,
+  List as ListIcon,
+  PushPin,
+  Check,
+  FolderOpen,
+} from "@phosphor-icons/react/dist/ssr";
+import AppShellV2 from "@/app/components/v2/AppShellV2";
+import { ToolTile } from "@/app/components/v2/Squircle";
 import { listRecentRuns, type ToolRun } from "@/app/lib/toolRuns";
-import { toolForSlug, typeLabel, formatDate, catalogIndex } from "@/app/lib/toolRunDisplay";
+import { v2ToolForSlug, toolSolid } from "@/app/lib/tools";
+import { typeLabel, formatDate, catalogIndex } from "@/app/lib/toolRunDisplay";
+import { usePinnedTools, togglePin } from "@/app/lib/usePinnedTools";
+import app from "@/app/components/v2/app.module.css";
+import styles from "./folders.module.css";
 
-const PIN_STORAGE_KEY = "jooma:pinned-tools";
+/*
+ * Library.
+ *
+ * Folders here are DERIVED from tool_runs.tool_slug — one folder per tool that
+ * has at least one saved resource. There is no folders table, so a teacher
+ * cannot create, rename or move between them. The prototype's New folder,
+ * Upload and drag-to-move affordances are therefore absent rather than present
+ * and inert: an affordance that does nothing is worse than one that is missing.
+ */
+
 const DATE_RANGES = ["Any time", "Last 7 days", "Last 30 days", "This year"] as const;
 const COUNT_BUCKETS = ["Any", "1–5", "6–10", "11+"] as const;
 const SORTS = [
@@ -25,8 +45,9 @@ interface FolderData {
   slug: string;
   label: string;
   tag: string;
-  /** TOOLS registry icon key; "" when the slug isn't in the catalogue. */
+  /** Phosphor icon name, and the tile colour for this tool's category. */
   icon: string;
+  solid: string;
   count: number;
   subjects: string[];
   years: string[];
@@ -53,9 +74,12 @@ export default function FoldersPage() {
   const router = useRouter();
   const [runs, setRuns] = useState<ToolRun[]>([]);
   const [loading, setLoading] = useState(true);
-  const [pinnedHrefs, setPinnedHrefs] = useState<string[]>([]);
 
-  // Filters
+  // The shared store, NOT a local copy. This page used to keep its own
+  // useState mirror of the same localStorage key, so a pin made here did not
+  // reach the sidebar until a reload.
+  const pinnedHrefs = usePinnedTools();
+
   const [query, setQuery] = useState("");
   const [type, setType] = useState<string | null>(null);
   const [subject, setSubject] = useState<string | null>(null);
@@ -67,35 +91,26 @@ export default function FoldersPage() {
   const [view, setView] = useState<"grid" | "list">("grid");
 
   useEffect(() => {
-    listRecentRuns(1000).then(setRuns).catch(() => setRuns([])).finally(() => setLoading(false));
-    try {
-      const stored = localStorage.getItem(PIN_STORAGE_KEY);
-      setPinnedHrefs(stored ? JSON.parse(stored) : []);
-    } catch {
-      setPinnedHrefs([]);
-    }
+    listRecentRuns(1000)
+      .then(setRuns)
+      .catch(() => setRuns([]))
+      .finally(() => setLoading(false));
   }, []);
 
-  const togglePin = (slug: string) => {
-    const href = `/tools/${slug}`;
-    setPinnedHrefs((prev) => {
-      const next = prev.includes(href) ? prev.filter((h) => h !== href) : [...prev, href];
-      try { localStorage.setItem(PIN_STORAGE_KEY, JSON.stringify(next)); } catch {}
-      return next;
-    });
-  };
-
-  // Build one folder per tool that has at least one saved run.
+  // One folder per tool that has at least one saved run.
   const folders = useMemo<FolderData[]>(() => {
     const map = new Map<string, FolderData>();
     for (const r of runs) {
-      const tool = toolForSlug(r.tool_slug);
+      const tool = v2ToolForSlug(r.tool_slug);
       const input = r.input as Record<string, unknown>;
       const f = map.get(r.tool_slug) ?? {
         slug: r.tool_slug,
-        label: tool?.label ?? typeLabel(r.tool_slug),
+        label: tool?.name ?? typeLabel(r.tool_slug),
         tag: tool?.tag ?? "",
-        icon: tool?.icon ?? "",
+        // A run whose tool has been renamed or removed still belongs to the
+        // teacher, so it gets a neutral folder rather than being dropped.
+        icon: tool?.icon ?? "folder",
+        solid: toolSolid(tool),
         count: 0,
         subjects: [],
         years: [],
@@ -112,7 +127,6 @@ export default function FoldersPage() {
     return [...map.values()];
   }, [runs]);
 
-  // Filter option lists, derived from the data.
   const options = useMemo(() => {
     const subjects = new Set<string>();
     const years = new Set<string>();
@@ -131,20 +145,21 @@ export default function FoldersPage() {
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const out = folders.filter((f) =>
-      (!q || f.label.toLowerCase().includes(q)) &&
-      (!type || f.tag === type) &&
-      (!toolName || f.label === toolName) &&
-      (!subject || f.subjects.includes(subject)) &&
-      (!year || f.years.includes(year)) &&
-      inDateRange(f.latest, dateRange) &&
-      inCountBucket(f.count, countBucket)
+    const out = folders.filter(
+      (f) =>
+        (!q || f.label.toLowerCase().includes(q)) &&
+        (!type || f.tag === type) &&
+        (!toolName || f.label === toolName) &&
+        (!subject || f.subjects.includes(subject)) &&
+        (!year || f.years.includes(year)) &&
+        inDateRange(f.latest, dateRange) &&
+        inCountBucket(f.count, countBucket),
     );
     out.sort((a, b) => {
       if (sort === "name") return a.label.localeCompare(b.label);
       if (sort === "count") return b.count - a.count;
       if (sort === "recent") return b.latest - a.latest;
-      // "catalog" — mirror the /tools grid so folders stay put between visits
+      // "catalog" — mirror the Make grid so folders stay put between visits
       // instead of reshuffling every time something is generated. Slugs missing
       // from the catalogue land together at the end, ordered A–Z.
       const d = catalogIndex(a.slug) - catalogIndex(b.slug);
@@ -156,97 +171,183 @@ export default function FoldersPage() {
   const pinned = filtered.filter((f) => pinnedHrefs.includes(`/tools/${f.slug}`));
   const rest = filtered.filter((f) => !pinnedHrefs.includes(`/tools/${f.slug}`));
 
+  const total = runs.length;
+  const open = (slug: string) => router.push(`/folders/${slug}`);
+  const pin = (slug: string) => togglePin(`/tools/${slug}`);
+
   return (
-    <AppShell title="Folders">
-          {/* Search + action */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-            <div className="relative flex-1">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
-              <input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search for a tool"
-                className="w-full pl-11 pr-4 py-3 border border-line rounded-2xl bg-[#FAF9F5] text-base sm:text-sm font-light placeholder-[#A5A5A5] focus:outline-none focus:border-dark transition-colors"
-              />
-            </div>
-            <button
-              onClick={() => router.push("/tools")}
-              className="flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-[#030303] text-white text-sm font-medium hover:bg-black transition-colors cursor-pointer shrink-0"
-            >
-              Browse tools
-            </button>
-          </div>
+    <AppShellV2 title="Library">
+      <div className={app.hello}>
+        <p className={app.helloWhen}>
+          {loading ? " " : `${total} ${total === 1 ? "resource" : "resources"}`}
+        </p>
+        <h1>Library</h1>
+        <p className={app.helloSub}>
+          Everything you make is filed here, grouped by the tool that made it.
+        </p>
+      </div>
 
-          {/* Filter row */}
-          <div className="flex flex-wrap items-center gap-2">
-            <FilterDropdown label="Type" value={type} options={options.types} onChange={setType} />
-            <FilterDropdown label="Subject" value={subject} options={options.subjects} onChange={setSubject} />
-            <FilterDropdown label="Tool name" value={toolName} options={options.toolNames} onChange={setToolName} />
-            <FilterDropdown label="Year" value={year} options={options.years} onChange={setYear} />
-            <FilterDropdown label="Date created" value={dateRange === "Any time" ? null : dateRange}
-              options={[...DATE_RANGES]} onChange={(v) => setDateRange(v ?? "Any time")} allLabel="Any time" />
-            <FilterDropdown label="Number of resources" value={countBucket === "Any" ? null : countBucket}
-              options={[...COUNT_BUCKETS]} onChange={(v) => setCountBucket(v ?? "Any")} allLabel="Any" />
+      <div className={styles.bar}>
+        <div className={app.search}>
+          <MagnifyingGlass className={app.searchIcon} />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search your library"
+            aria-label="Search your library"
+            className={app.searchInput}
+          />
+        </div>
+        <button type="button" className={app.btn} onClick={() => router.push("/tools")}>
+          Browse tools
+        </button>
+      </div>
 
-            <SortMenu value={sort} onChange={setSort} />
+      <div className={styles.filters}>
+        <FilterDropdown label="Type" value={type} options={options.types} onChange={setType} />
+        <FilterDropdown label="Subject" value={subject} options={options.subjects} onChange={setSubject} />
+        <FilterDropdown label="Tool" value={toolName} options={options.toolNames} onChange={setToolName} />
+        <FilterDropdown label="Year" value={year} options={options.years} onChange={setYear} />
+        <FilterDropdown
+          label="Date created"
+          value={dateRange === "Any time" ? null : dateRange}
+          options={[...DATE_RANGES]}
+          onChange={(v) => setDateRange(v ?? "Any time")}
+          allLabel="Any time"
+        />
+        <FilterDropdown
+          label="Number of resources"
+          value={countBucket === "Any" ? null : countBucket}
+          options={[...COUNT_BUCKETS]}
+          onChange={(v) => setCountBucket(v ?? "Any")}
+          allLabel="Any"
+        />
 
-            {/* sm:ml-auto — with eight controls wrapping on a phone, ml-auto
-                left this stranded alone on a right-pushed line. */}
-            <div className="w-full sm:w-auto sm:ml-auto flex items-center justify-center sm:justify-start gap-1 border border-line rounded-xl p-1 bg-[#FAF9F5]">
-              <button onClick={() => setView("grid")} aria-label="Grid view"
-                className={`w-8 h-8 flex items-center justify-center rounded-lg transition-colors cursor-pointer ${view === "grid" ? "bg-[#1a1a1a] text-white" : "text-muted hover:bg-gray-100"}`}>
-                <LayoutGrid className="w-4 h-4" />
-              </button>
-              <button onClick={() => setView("list")} aria-label="List view"
-                className={`w-8 h-8 flex items-center justify-center rounded-lg transition-colors cursor-pointer ${view === "list" ? "bg-[#1a1a1a] text-white" : "text-muted hover:bg-gray-100"}`}>
-                <ListIcon className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
+        <SortMenu value={sort} onChange={setSort} />
 
-          {loading ? (
-            <p className="text-sm text-muted py-16 text-center">Loading…</p>
-          ) : folders.length === 0 ? (
-            <p className="text-sm text-muted py-16 text-center">
-              No folders yet — generate something with a tool and it&apos;ll be filed here automatically.
+        {/* On a phone the eight controls above wrap, and `margin-left: auto`
+            would strand this toggle alone on its own right-pushed line. */}
+        <div className={styles.viewToggle}>
+          <button
+            type="button"
+            onClick={() => setView("grid")}
+            aria-label="Grid view"
+            aria-pressed={view === "grid"}
+            className={`${styles.viewBtn} ${view === "grid" ? styles.viewBtnOn : ""}`}
+          >
+            <GridFour className={styles.viewIcon} />
+          </button>
+          <button
+            type="button"
+            onClick={() => setView("list")}
+            aria-label="List view"
+            aria-pressed={view === "list"}
+            className={`${styles.viewBtn} ${view === "list" ? styles.viewBtnOn : ""}`}
+          >
+            <ListIcon className={styles.viewIcon} />
+          </button>
+        </div>
+      </div>
+
+      {loading ? (
+        <p className={styles.quiet}>Loading…</p>
+      ) : folders.length === 0 ? (
+        <div className={app.panel}>
+          <div className={app.empty}>
+            <span className={app.emptyIcon}>
+              <FolderOpen weight="fill" />
+            </span>
+            <p className={app.emptyTitle}>Nothing filed yet</p>
+            <p className={app.emptyBody}>
+              Make something with any tool and it lands here automatically.
             </p>
-          ) : filtered.length === 0 ? (
-            <p className="text-sm text-muted py-16 text-center">No folders match your filters.</p>
-          ) : (
-            <>
-              {pinned.length > 0 && (
-                <Section title="Pinned" folders={pinned} view={view} pinnedHrefs={pinnedHrefs} onTogglePin={togglePin} onOpen={(s) => router.push(`/folders/${s}`)} />
-              )}
-              <Section title="All folders" folders={rest} view={view} pinnedHrefs={pinnedHrefs} onTogglePin={togglePin} onOpen={(s) => router.push(`/folders/${s}`)} />
-            </>
+          </div>
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className={app.panel}>
+          <div className={app.empty}>
+            <span className={app.emptyIcon}>
+              <MagnifyingGlass weight="fill" />
+            </span>
+            <p className={app.emptyTitle}>Nothing matches those filters</p>
+            <p className={app.emptyBody}>Clear one of them, or search for a tool by name.</p>
+          </div>
+        </div>
+      ) : (
+        <>
+          {pinned.length > 0 && (
+            <Section
+              title="Pinned"
+              folders={pinned}
+              view={view}
+              pinnedHrefs={pinnedHrefs}
+              onTogglePin={pin}
+              onOpen={open}
+            />
           )}
-    </AppShell>
+          <Section
+            title={pinned.length > 0 ? "Everything else" : "All folders"}
+            folders={rest}
+            view={view}
+            pinnedHrefs={pinnedHrefs}
+            onTogglePin={pin}
+            onOpen={open}
+          />
+        </>
+      )}
+    </AppShellV2>
   );
 }
 
 function Section({
-  title, folders, view, pinnedHrefs, onTogglePin, onOpen,
+  title,
+  folders,
+  view,
+  pinnedHrefs,
+  onTogglePin,
+  onOpen,
 }: {
-  title: string; folders: FolderData[]; view: "grid" | "list";
-  pinnedHrefs: string[]; onTogglePin: (slug: string) => void; onOpen: (slug: string) => void;
+  title: string;
+  folders: FolderData[];
+  view: "grid" | "list";
+  pinnedHrefs: string[];
+  onTogglePin: (slug: string) => void;
+  onOpen: (slug: string) => void;
 }) {
   if (folders.length === 0) return null;
   return (
-    <section>
-      <div className="flex items-center gap-4 mb-4 mt-2">
-        <h4 className="text-sm text-muted shrink-0">{title}</h4>
-        <div className="h-px bg-muted/30 w-full" />
+    <section className={styles.section}>
+      <div className={app.sh}>
+        <div className={app.shTitle}>
+          <h2>{title}</h2>
+          <span className={app.shSub}>
+            {folders.length} {folders.length === 1 ? "folder" : "folders"}
+          </span>
+        </div>
       </div>
+
       {view === "grid" ? (
-        <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(min(240px, 100%), 1fr))" }}>
+        <div className={styles.grid}>
           {folders.map((f) => (
-            <FolderCard key={f.slug} folder={f} pinned={pinnedHrefs.includes(`/tools/${f.slug}`)} onTogglePin={onTogglePin} onOpen={onOpen} />
+            <FolderCard
+              key={f.slug}
+              folder={f}
+              pinned={pinnedHrefs.includes(`/tools/${f.slug}`)}
+              onTogglePin={onTogglePin}
+              onOpen={onOpen}
+            />
           ))}
         </div>
       ) : (
-        <div className="rounded-2xl border border-line overflow-hidden bg-[#FAF9F5]">
+        <div className={styles.list}>
           {folders.map((f) => (
-            <FolderRow key={f.slug} folder={f} pinned={pinnedHrefs.includes(`/tools/${f.slug}`)} onTogglePin={onTogglePin} onOpen={onOpen} />
+            <FolderRow
+              key={f.slug}
+              folder={f}
+              pinned={pinnedHrefs.includes(`/tools/${f.slug}`)}
+              onTogglePin={onTogglePin}
+              onOpen={onOpen}
+            />
           ))}
         </div>
       )}
@@ -255,95 +356,130 @@ function Section({
 }
 
 function FolderCard({
-  folder, pinned, onTogglePin, onOpen,
+  folder,
+  pinned,
+  onTogglePin,
+  onOpen,
 }: {
-  folder: FolderData; pinned: boolean; onTogglePin: (slug: string) => void; onOpen: (slug: string) => void;
+  folder: FolderData;
+  pinned: boolean;
+  onTogglePin: (slug: string) => void;
+  onOpen: (slug: string) => void;
 }) {
   return (
-    <div
-      onClick={() => onOpen(folder.slug)}
-      className="group relative rounded-2xl border border-line bg-[#FAF9F5] p-5 cursor-pointer transition-all duration-200 ease-out hover:bg-[#F1EFE3] hover:border-[#F1EFE3] hover:-translate-y-0.5 hover:shadow-[0_6px_16px_-6px_rgba(28,27,27,0.25)]"
-    >
-      <FolderMenu pinned={pinned} onTogglePin={() => onTogglePin(folder.slug)} onOpen={() => onOpen(folder.slug)} />
-      {folder.icon ? (
-        <ToolIcon
-          name={folder.icon}
-          className="w-11 h-11 mb-4 transition-transform duration-200 ease-out group-hover:scale-110 group-hover:-rotate-3"
-        />
-      ) : (
-        // Slug isn't in the catalogue, so there's no branded icon. ToolIcon
-        // renders null for an unknown key, which would collapse the layout.
-        <span className="w-11 h-11 rounded-xl bg-gray-100 flex items-center justify-center mb-4 transition-transform duration-200 ease-out group-hover:scale-110 group-hover:-rotate-3">
-          <Folder className="w-5 h-5 text-gray-600" />
-        </span>
-      )}
-      <h5 className="font-semibold text-dark truncate pr-6">{folder.label}</h5>
-      <p className="text-sm text-muted mt-0.5">{folder.count} {folder.count === 1 ? "item" : "items"}</p>
+    <div className={styles.card} onClick={() => onOpen(folder.slug)}>
+      <FolderMenu
+        pinned={pinned}
+        onTogglePin={() => onTogglePin(folder.slug)}
+        onOpen={() => onOpen(folder.slug)}
+      />
+      <ToolTile icon={folder.icon} solid={folder.solid} size="md" />
+      <h3 className={styles.cardName}>{folder.label}</h3>
+      <p className={styles.cardCount}>
+        {folder.count} {folder.count === 1 ? "resource" : "resources"}
+      </p>
     </div>
   );
 }
 
 function FolderRow({
-  folder, pinned, onTogglePin, onOpen,
+  folder,
+  pinned,
+  onTogglePin,
+  onOpen,
 }: {
-  folder: FolderData; pinned: boolean; onTogglePin: (slug: string) => void; onOpen: (slug: string) => void;
+  folder: FolderData;
+  pinned: boolean;
+  onTogglePin: (slug: string) => void;
+  onOpen: (slug: string) => void;
 }) {
   return (
-    <div
-      onClick={() => onOpen(folder.slug)}
-      className="group flex items-center gap-4 px-5 py-3 border-b border-line/60 last:border-0 hover:bg-[#F1EFE3] transition-colors cursor-pointer"
-    >
-      {folder.icon ? (
-        <ToolIcon
-          name={folder.icon}
-          className="w-9 h-9 shrink-0 transition-transform duration-200 ease-out group-hover:scale-110 group-hover:-rotate-3"
-        />
-      ) : (
-        <span className="w-9 h-9 rounded-lg bg-gray-100 flex items-center justify-center shrink-0 transition-transform duration-200 ease-out group-hover:scale-110 group-hover:-rotate-3">
-          <Folder className="w-4 h-4 text-gray-600" />
-        </span>
-      )}
-      <span className="font-medium text-dark flex-1 truncate">{folder.label}</span>
-      {/* 288px of fixed columns in a 343px row. Below `sm` a row is icon +
-          name + menu, which is the right amount of information for a phone. */}
-      <span className="hidden sm:inline text-sm text-muted w-28 shrink-0">{folder.count} items</span>
-      <span className="hidden sm:inline text-sm text-muted w-44 shrink-0 whitespace-nowrap">{formatDate(new Date(folder.latest).toISOString())}</span>
-      <FolderMenu pinned={pinned} onTogglePin={() => onTogglePin(folder.slug)} onOpen={() => onOpen(folder.slug)} inline />
+    <div className={styles.listRow} onClick={() => onOpen(folder.slug)}>
+      <ToolTile icon={folder.icon} solid={folder.solid} size="sm" />
+      <span className={styles.rowName}>{folder.label}</span>
+      {/* Hidden on a phone, where icon + name + menu is the right amount of
+          information for the width available. */}
+      <span className={styles.rowCount}>
+        {folder.count} {folder.count === 1 ? "resource" : "resources"}
+      </span>
+      <span className={styles.rowDate}>
+        {formatDate(new Date(folder.latest).toISOString())}
+      </span>
+      <FolderMenu
+        pinned={pinned}
+        onTogglePin={() => onTogglePin(folder.slug)}
+        onOpen={() => onOpen(folder.slug)}
+        inline
+      />
     </div>
   );
 }
 
 function FolderMenu({
-  pinned, onTogglePin, onOpen, inline,
+  pinned,
+  onTogglePin,
+  onOpen,
+  inline,
 }: {
-  pinned: boolean; onTogglePin: () => void; onOpen: () => void; inline?: boolean;
+  pinned: boolean;
+  onTogglePin: () => void;
+  onOpen: () => void;
+  inline?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    const h = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+    const h = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
     document.addEventListener("mousedown", h);
     return () => document.removeEventListener("mousedown", h);
   }, []);
+
   return (
-    <div ref={ref} className={inline ? "relative shrink-0" : "absolute top-4 right-4"}>
+    <div ref={ref} className={inline ? styles.menuInline : styles.menuCorner}>
       <button
+        type="button"
         aria-label="Folder menu"
-        onClick={(e) => { e.stopPropagation(); setOpen((v) => !v); }}
-        className="w-7 h-7 flex items-center justify-center rounded-md text-muted hover:bg-white transition-colors cursor-pointer"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={(e) => {
+          e.stopPropagation();
+          setOpen((v) => !v);
+        }}
+        className={styles.menuBtn}
       >
-        <MoreVertical className="w-4 h-4" />
+        <DotsThreeVertical weight="bold" className={styles.menuIcon} />
       </button>
       {open && (
-        <div className="absolute right-0 top-full mt-1 w-40 bg-white border border-gray-200 rounded-xl shadow-lg z-20 py-1">
-          <button onClick={(e) => { e.stopPropagation(); setOpen(false); onOpen(); }}
-            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer">
+        <div className={styles.menuPanel} role="menu">
+          <button
+            type="button"
+            role="menuitem"
+            onClick={(e) => {
+              e.stopPropagation();
+              setOpen(false);
+              onOpen();
+            }}
+            className={styles.menuItem}
+          >
             Open
           </button>
-          <button onClick={(e) => { e.stopPropagation(); setOpen(false); onTogglePin(); }}
-            className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer">
-            <Pin className={`w-3.5 h-3.5 ${pinned ? "fill-current text-violet-600" : ""}`} />
-            {pinned ? "Unpin" : "Pin"}
+          <button
+            type="button"
+            role="menuitem"
+            onClick={(e) => {
+              e.stopPropagation();
+              setOpen(false);
+              onTogglePin();
+            }}
+            className={styles.menuItem}
+          >
+            <PushPin
+              weight={pinned ? "fill" : "regular"}
+              className={styles.menuItemIcon}
+            />
+            {pinned ? "Unpin" : "Pin to sidebar"}
           </button>
         </div>
       )}
@@ -352,45 +488,72 @@ function FolderMenu({
 }
 
 function FilterDropdown({
-  label, value, options, onChange, allLabel = "All",
+  label,
+  value,
+  options,
+  onChange,
+  allLabel = "All",
 }: {
-  label: string; value: string | null; options: string[]; onChange: (v: string | null) => void; allLabel?: string;
+  label: string;
+  value: string | null;
+  options: string[];
+  onChange: (v: string | null) => void;
+  allLabel?: string;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    const h = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+    const h = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
     document.addEventListener("mousedown", h);
     return () => document.removeEventListener("mousedown", h);
   }, []);
+
   const active = value !== null;
   return (
-    <div ref={ref} className="relative">
+    <div ref={ref} className={styles.filter}>
       <button
+        type="button"
         onClick={() => setOpen((v) => !v)}
-        className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-sm transition-colors cursor-pointer ${
-          active ? "border-dark bg-[#1a1a1a] text-white" : "border-line bg-[#FAF9F5] text-gray-700 hover:border-dark"
-        }`}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        className={`${app.chip} ${active ? app.chipOn : ""}`}
       >
         {value ?? label}
-        <ChevronDown className="w-3.5 h-3.5" />
+        <CaretDown className={styles.caret} />
       </button>
       {open && (
-        <div className="absolute left-0 top-full mt-1 w-[min(14rem,calc(100vw-2rem))] max-h-72 overflow-y-auto bg-white border border-gray-200 rounded-xl shadow-lg z-20 py-1">
-          <button onClick={() => { onChange(null); setOpen(false); }}
-            className="w-full flex items-center justify-between px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer">
+        <div className={styles.filterPanel} role="listbox">
+          <button
+            type="button"
+            onClick={() => {
+              onChange(null);
+              setOpen(false);
+            }}
+            className={styles.filterItem}
+          >
             {allLabel}
-            {!active && <Check className="w-3.5 h-3.5" />}
+            {!active && <Check className={styles.check} />}
           </button>
           {options.length === 0 ? (
-            <p className="px-4 py-2 text-xs text-muted">No options</p>
-          ) : options.map((opt) => (
-            <button key={opt} onClick={() => { onChange(opt); setOpen(false); }}
-              className="w-full flex items-center justify-between px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer">
-              <span className="truncate">{opt}</span>
-              {value === opt && <Check className="w-3.5 h-3.5 shrink-0" />}
-            </button>
-          ))}
+            <p className={styles.filterNone}>No options</p>
+          ) : (
+            options.map((opt) => (
+              <button
+                key={opt}
+                type="button"
+                onClick={() => {
+                  onChange(opt);
+                  setOpen(false);
+                }}
+                className={styles.filterItem}
+              >
+                <span className={styles.filterLabel}>{opt}</span>
+                {value === opt && <Check className={styles.check} />}
+              </button>
+            ))
+          )}
         </div>
       )}
     </div>
@@ -401,23 +564,39 @@ function SortMenu({ value, onChange }: { value: string; onChange: (v: string) =>
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    const h = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+    const h = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
     document.addEventListener("mousedown", h);
     return () => document.removeEventListener("mousedown", h);
   }, []);
+
   return (
-    <div ref={ref} className="relative">
-      <button onClick={() => setOpen((v) => !v)} aria-label="Sort"
-        className="w-9 h-9 flex items-center justify-center rounded-xl border border-line bg-[#FAF9F5] text-gray-700 hover:border-dark transition-colors cursor-pointer">
-        <ArrowUpDown className="w-4 h-4" />
+    <div ref={ref} className={styles.filter}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-label="Sort"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        className={styles.sortBtn}
+      >
+        <ArrowsDownUp className={styles.viewIcon} />
       </button>
       {open && (
-        <div className="absolute right-0 top-full mt-1 w-[min(12rem,calc(100vw-2rem))] bg-white border border-gray-200 rounded-xl shadow-lg z-20 py-1">
+        <div className={`${styles.filterPanel} ${styles.filterPanelRight}`} role="listbox">
           {SORTS.map((s) => (
-            <button key={s.key} onClick={() => { onChange(s.key); setOpen(false); }}
-              className="w-full flex items-center justify-between px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer">
+            <button
+              key={s.key}
+              type="button"
+              onClick={() => {
+                onChange(s.key);
+                setOpen(false);
+              }}
+              className={styles.filterItem}
+            >
               {s.label}
-              {value === s.key && <Check className="w-3.5 h-3.5" />}
+              {value === s.key && <Check className={styles.check} />}
             </button>
           ))}
         </div>

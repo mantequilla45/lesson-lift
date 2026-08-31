@@ -1,16 +1,14 @@
-import AppShell from "@/app/components/layout/AppShell";
+import AppShellV2 from "@/app/components/v2/AppShellV2";
+import styles from "./notifications.module.css";
 
 export default function Loading() {
   return (
-    <AppShell
-      title="Notifications"
-      banner={false}
-      launcher={false}
-      contentClassName="px-4 sm:px-6 lg:px-10 pb-16 space-y-3 animate-pulse"
-    >
-      {Array.from({ length: 2 }).map((_, i) => (
-        <div key={i} className="h-20 rounded-2xl" style={{ backgroundColor: "#EEECE4" }} />
-      ))}
-    </AppShell>
+    <AppShellV2 title="Updates" banner={false} launcher={false}>
+      <div className={styles.skeleton}>
+        {Array.from({ length: 2 }).map((_, i) => (
+          <div key={i} className={styles.skeletonRow} />
+        ))}
+      </div>
+    </AppShellV2>
   );
 }

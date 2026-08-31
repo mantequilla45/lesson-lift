@@ -1,143 +1,204 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
-import { CiSearch } from "react-icons/ci";
-import { Pin } from "lucide-react";
-import AppShell from "@/app/components/layout/AppShell";
-import Card from "@/app/components/ui/Card";
-import ToolIcon from "@/app/components/ToolIcon";
-import { TOOLS } from "@/app/lib/tools";
+import { useMemo, useState } from "react";
+import { MagnifyingGlass, PushPin } from "@phosphor-icons/react/dist/ssr";
+import AppShellV2 from "@/app/components/v2/AppShellV2";
+import { ToolTile } from "@/app/components/v2/Squircle";
+import { V2_TOOLS, V2_CATEGORIES, toolSolid, type V2Tool } from "@/app/lib/tools";
 import { usePinnedTools, togglePin } from "@/app/lib/usePinnedTools";
+import app from "@/app/components/v2/app.module.css";
+import styles from "./ToolsGrid.module.css";
+
+/*
+ * Make.
+ *
+ * Search matches name, description AND synonyms. The synonyms are the tools'
+ * old names, and they are what keeps "worksheet generator" finding Worksheets
+ * for a teacher arriving from Google or from muscle memory. They are hidden,
+ * never rendered.
+ *
+ * No credit costs anywhere on these cards. Credits live in the sidebar meter
+ * and on the account page, and nowhere else.
+ */
 
 export default function ToolsGrid({ disabledSlugs }: { disabledSlugs: string[] }) {
   const [query, setQuery] = useState("");
-  // Pinned tools live in a shared localStorage-backed store (useSyncExternalStore),
-  // so the Tools grid and SideNav stay in sync the instant a pin changes.
+  const [category, setCategory] = useState<string>("all");
+
+  // Pinned tools live in a shared localStorage-backed store
+  // (useSyncExternalStore), so this grid and the sidebar stay in sync the
+  // instant a pin changes.
   const pinnedHrefs = usePinnedTools();
 
-  const q = query.toLowerCase().trim();
   // Tools an admin has switched off in /admin/tools. Resolved on the server and
   // passed in, rather than fetched here: filtering client-side would render the
   // disabled tools for a frame before removing them, which reads as a glitch.
   // The proxy blocks the route and the API regardless — this only stops us
   // advertising something that would refuse.
-  const disabled = new Set(disabledSlugs);
-  const available = TOOLS.filter((t) => !disabled.has(t.href.replace("/tools/", "")));
+  const available = useMemo(() => {
+    const disabled = new Set(disabledSlugs);
+    return V2_TOOLS.filter((t) => !disabled.has(t.href.replace("/tools/", "")));
+  }, [disabledSlugs]);
 
-  const pinned = available.filter((t) => pinnedHrefs.includes(t.href));
-  const rest = available.filter((t) => !pinnedHrefs.includes(t.href));
+  const matches = useMemo(() => {
+    const q = query.toLowerCase().trim();
+    if (!q) return available;
+    return available.filter(
+      (t) =>
+        t.name.toLowerCase().includes(q) ||
+        t.description.toLowerCase().includes(q) ||
+        // The old names. Never displayed, only matched.
+        t.synonyms.some((s) => s.toLowerCase().includes(q)),
+    );
+  }, [available, query]);
 
-  const filteredPinned = pinned.filter(
-    (t) => !q || t.label.toLowerCase().includes(q) || t.description.toLowerCase().includes(q)
+  const sections = useMemo(
+    () =>
+      V2_CATEGORIES.map((c) => ({
+        ...c,
+        tools: matches.filter((t) => t.category === c.id),
+      })).filter((c) => c.tools.length > 0 && (category === "all" || category === c.id)),
+    [matches, category],
   );
-  const filteredRest = rest.filter(
-    (t) => !q || t.label.toLowerCase().includes(q) || t.description.toLowerCase().includes(q)
-  );
+
+  const pinned = matches.filter((t) => pinnedHrefs.includes(t.href));
 
   return (
-    <AppShell title="Tools">
-          {/* Hero search */}
-          <Card>
-            <h3 className="text-xl sm:text-2xl font-medium mb-5">What would you like to do?</h3>
-            <div className="relative">
-              <CiSearch className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted" />
-              <input
-                type="text"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search for a tool"
-                className="w-full pl-12 pr-3 py-3 border border-[#F1EFE3] font-light rounded-2xl bg-white text-base sm:text-sm placeholder-[#A5A5A5] focus:outline-none focus:border-line transition-all"
+    <AppShellV2 title="Make">
+      <div className={app.hello}>
+        <p className={app.helloWhen}>{available.length} tools</p>
+        <h1>What would you like to make?</h1>
+      </div>
+
+      <div className={styles.searchRow}>
+        <div className={app.search}>
+          <MagnifyingGlass className={app.searchIcon} />
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder={`Search ${available.length} tools. Try cover lesson, or report`}
+            aria-label="Search tools"
+            className={app.searchInput}
+          />
+        </div>
+      </div>
+
+      <div className={styles.cats}>
+        <button
+          type="button"
+          onClick={() => setCategory("all")}
+          className={`${app.chip} ${category === "all" ? app.chipOn : ""}`}
+        >
+          Everything
+        </button>
+        {V2_CATEGORIES.map((c) => (
+          <button
+            key={c.id}
+            type="button"
+            onClick={() => setCategory(c.id)}
+            className={`${app.chip} ${category === c.id ? app.chipOn : ""}`}
+          >
+            {c.name}
+          </button>
+        ))}
+      </div>
+
+      {/* Pinned cuts across categories, so it sits above them and only while
+          showing everything — inside a single category it would repeat cards
+          already on screen a few rows down. */}
+      {category === "all" && pinned.length > 0 && (
+        <section className={styles.section}>
+          <div className={styles.catHead}>
+            <h2>Pinned</h2>
+            <span className={styles.catCount}>
+              {pinned.length} {pinned.length === 1 ? "tool" : "tools"}
+            </span>
+          </div>
+          <div className={styles.grid}>
+            {pinned.map((tool) => (
+              <ToolCard key={tool.href} tool={tool} pinned onTogglePin={togglePin} />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {sections.map((section) => (
+        <section key={section.id} className={styles.section}>
+          <div className={styles.catHead}>
+            <h2>{section.name}</h2>
+            <span className={styles.catCount}>
+              {section.tools.length} {section.tools.length === 1 ? "tool" : "tools"}
+            </span>
+          </div>
+          <div className={styles.grid}>
+            {section.tools.map((tool) => (
+              <ToolCard
+                key={tool.href}
+                tool={tool}
+                solid={section.solid}
+                pinned={pinnedHrefs.includes(tool.href)}
+                onTogglePin={togglePin}
               />
-            </div>
-          </Card>
+            ))}
+          </div>
+        </section>
+      ))}
 
-          <Card>
-            {/* Pinned */}
-            {filteredPinned.length > 0 && (
-              <section className="mb-5">
-                <div className="flex items-center gap-4 mb-5">
-                  <h4 className="text-sm text-muted shrink-0">Pinned</h4>
-                  <div className="h-px bg-muted/30 w-full" />
-                </div>
-                {/* min(350px, 100%) so the track can never demand more width
-                    than its container — a bare 350px minimum forced horizontal
-                    overflow on any phone. */}
-                <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(min(350px, 100%), 1fr))" }}>
-                  {filteredPinned.map((tool) => (
-                    <ToolCard key={tool.href} tool={tool} isPinned onTogglePin={togglePin} />
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {/* All tools */}
-            {filteredRest.length > 0 && (
-              <section>
-                <div className="flex items-center gap-4 mb-5">
-                  <h4 className="text-sm text-muted shrink-0">All tools</h4>
-                  <div className="h-px bg-muted/30 w-full" />
-                </div>
-                {/* min(350px, 100%) so the track can never demand more width
-                    than its container — a bare 350px minimum forced horizontal
-                    overflow on any phone. */}
-                <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(min(350px, 100%), 1fr))" }}>
-                  {filteredRest.map((tool) => (
-                    <ToolCard key={tool.href} tool={tool} isPinned={false} onTogglePin={togglePin} />
-                  ))}
-                </div>
-              </section>
-            )}
-          </Card>
-
-          {filteredPinned.length === 0 && filteredRest.length === 0 && (
-            <p className="text-sm text-muted text-center py-12 sm:py-16">No tools match your search.</p>
-          )}
-    </AppShell>
+      {sections.length === 0 && (
+        <div className={app.panel}>
+          <div className={app.empty}>
+            <span className={app.emptyIcon}>
+              <MagnifyingGlass weight="fill" />
+            </span>
+            <p className={app.emptyTitle}>Nothing matches that</p>
+            <p className={app.emptyBody}>
+              Try a shorter phrase, or pick a category above to browse.
+            </p>
+          </div>
+        </div>
+      )}
+    </AppShellV2>
   );
 }
 
 function ToolCard({
   tool,
-  isPinned,
+  solid,
+  pinned,
   onTogglePin,
 }: {
-  tool: typeof TOOLS[number];
-  isPinned: boolean;
+  tool: V2Tool;
+  solid?: string;
+  pinned: boolean;
   onTogglePin: (href: string) => void;
 }) {
   return (
-    // Link is a SIBLING overlay (not a parent), so clicking the pin button never
-    // hits the anchor element — that's what prevents nextjs-toploader from firing.
-    // `title` carries the full description: it is clamped to two lines below, and
-    // the browser's own tooltip is the way to read the rest.
-    <div
-      title={tool.description}
-      className="group relative flex gap-4 items-start p-5 border border-line rounded-2xl transition-all duration-200 ease-out hover:bg-[#F1EFE3] hover:border-[#F1EFE3] hover:-translate-y-0.5 hover:shadow-[0_6px_16px_-6px_rgba(28,27,27,0.25)]"
-    >
-      <Link
-        href={tool.href}
-        aria-label={tool.label}
-        className="absolute inset-0 rounded-2xl z-0"
-      />
-      <div className="relative z-10 shrink-0 pointer-events-none">
-        <ToolIcon name={tool.icon} className="w-10 h-10 transition-transform duration-200 ease-out group-hover:scale-110 group-hover:-rotate-3" />
+    // The Link is a SIBLING overlay, not a parent, so clicking the pin button
+    // never hits the anchor — which is what stops the page transition firing on
+    // a pin. `title` carries the full description: it is clamped to two lines,
+    // and the browser's own tooltip is how the rest is read.
+    <div className={styles.card} title={tool.description}>
+      <Link href={tool.href} aria-label={tool.name} className={styles.cardLink} />
+
+      <div className={styles.cardBody}>
+        <ToolTile icon={tool.icon} solid={solid ?? toolSolid(tool)} size="md" />
+        <div className={styles.cardText}>
+          <h3>{tool.name}</h3>
+          <p>{tool.description}</p>
+        </div>
       </div>
-      <div className="relative z-10 min-w-0 flex-1 pointer-events-none">
-        <h5 className="font-semibold text-md mb-0.5">{tool.label}</h5>
-        <p className="text-sm text-muted font-light line-clamp-2">{tool.description}</p>
-      </div>
+
       <button
+        type="button"
         onClick={() => onTogglePin(tool.href)}
-        title={isPinned ? "Unpin" : "Pin to top"}
-        aria-label={isPinned ? "Unpin tool" : "Pin tool to top"}
-        className={`relative z-20 w-7 h-7 rounded-full flex items-center justify-center transition-all shrink-0 ${
-          isPinned
-            ? "text-violet-600 opacity-100"
-            : "text-gray-400 opacity-0 group-hover:opacity-100 hover:text-violet-600 hover:bg-white"
-        }`}
+        title={pinned ? "Unpin" : "Pin to the sidebar"}
+        aria-label={pinned ? `Unpin ${tool.name}` : `Pin ${tool.name} to the sidebar`}
+        aria-pressed={pinned}
+        className={`${styles.pin} ${pinned ? styles.pinOn : ""}`}
       >
-        <Pin className={`w-3.5 h-3.5 ${isPinned ? "fill-current" : ""}`} />
+        <PushPin weight={pinned ? "fill" : "regular"} className={styles.pinIcon} />
       </button>
     </div>
   );

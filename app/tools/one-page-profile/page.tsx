@@ -17,7 +17,7 @@ export default async function OnePageProfilePage({
       sidebar={
         <ToolInfoPanel
           icon={<UserCircle className="w-5 h-5 text-emerald-600" />}
-          heroBg="bg-emerald-50"
+
           title="One Page Support Profile"
           description="This tool can be used to create a one page profile for a student. Simply enter notes from your discussion with the pupil and the AI will turn these into a one page profile for use with student passports or other internal guidance documents."
           steps={[

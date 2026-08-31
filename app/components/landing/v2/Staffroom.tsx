@@ -1,5 +1,5 @@
 import Reveal from "./Reveal";
-import BadgeMedallion, { type BadgeTier } from "./BadgeMedallion";
+import BadgeMedallion, { type BadgeTier } from "@/app/components/v2/BadgeMedallion";
 import shared from "./landing.module.css";
 import styles from "./Staffroom.module.css";
 

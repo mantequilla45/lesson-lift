@@ -938,12 +938,12 @@ export default function LessonSlideshowForm({
             {slides && slides.length > 0 && !isGenerating && (
               <div className="flex items-center gap-2">
                 <button onClick={handleCopy}
-                  className="flex items-center gap-2 px-4 py-2 bg-[#1a1a1a] text-white rounded-xl text-sm font-medium hover:bg-gray-800 transition-colors">
+                  className="flex items-center gap-2 px-4 py-2 bg-(--j-purple) text-white rounded-xl text-sm font-medium hover:bg-(--j-deep) transition-colors">
                   {copied ? <><Check className="w-4 h-4" />Copied</> : <><Copy className="w-4 h-4" />Copy to clipboard</>}
                 </button>
                 <DropdownMenu
                   ariaLabel="Download options"
-                  triggerClassName="flex items-center gap-2 px-4 py-2 bg-[#1a1a1a] text-white rounded-xl text-sm font-medium hover:bg-gray-800 transition-colors cursor-pointer"
+                  triggerClassName="flex items-center gap-2 px-4 py-2 bg-(--j-purple) text-white rounded-xl text-sm font-medium hover:bg-(--j-deep) transition-colors cursor-pointer"
                   menuClassName="w-56"
                   trigger={<>Download <ChevronDown className="w-4 h-4" /></>}
                   items={[
@@ -1003,7 +1003,7 @@ export default function LessonSlideshowForm({
           </div>
           <button type="button" onClick={() => handleRefine(refineInstruction)}
             disabled={isRefining || !refineInstruction.trim()}
-            className="bg-[#1a1a1a] text-white py-2 px-6 rounded-xl text-sm font-medium hover:bg-gray-800 transition-colors disabled:opacity-50 flex items-center gap-2">
+            className="bg-(--j-purple) text-white py-2 px-6 rounded-xl text-sm font-medium hover:bg-(--j-deep) transition-colors disabled:opacity-50 flex items-center gap-2">
             {isRefining ? <><Loader2 className="w-4 h-4 animate-spin" />Refining...</> : "Refine results"}
           </button>
         </div>

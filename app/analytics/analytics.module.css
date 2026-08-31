@@ -1,0 +1,233 @@
+.crumbs {
+  margin-bottom: 16px;
+}
+
+.crumbLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 0.83rem;
+  font-weight: 600;
+  color: var(--j-purple);
+}
+
+.crumbLink:hover {
+  text-decoration: underline;
+}
+
+.crumbIcon {
+  width: 13px;
+  height: 13px;
+}
+
+/* ── Summary ─────────────────────────────────────────────────────────────── */
+
+.summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.stat {
+  background: var(--j-card);
+  border: 1px solid var(--j-line);
+  border-radius: var(--j-r-lg);
+  padding: 16px 18px;
+  display: flex;
+  gap: 13px;
+  align-items: center;
+  min-width: 0;
+}
+
+.stat b {
+  display: block;
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--j-ink);
+  letter-spacing: -0.04em;
+  line-height: 1.1;
+}
+
+.stat span {
+  font-size: 0.79rem;
+  color: var(--j-faint);
+  display: block;
+  margin-top: 3px;
+}
+
+.statIcon {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+
+/* Sized on the container, never with a class on the SVG. */
+.statIcon svg {
+  width: 19px;
+  height: 19px;
+}
+
+.statIcon[data-tone="violet"] {
+  background: var(--j-tint-violet);
+  color: var(--j-purple);
+}
+
+.statIcon[data-tone="green"] {
+  background: var(--j-tint-green);
+  color: #0f6e56;
+}
+
+.statIcon[data-tone="blue"] {
+  background: var(--j-tint-blue);
+  color: #1d6fd0;
+}
+
+.statIcon[data-tone="amber"] {
+  background: var(--j-tint-amber);
+  color: #b8860b;
+}
+
+@media (max-width: 1240px) {
+  .summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .summary {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ── Bars ────────────────────────────────────────────────────────────────── */
+
+.bars {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+}
+
+.bar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.barName {
+  width: 12rem;
+  flex: none;
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--j-ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.barTrack {
+  flex: 1;
+  min-width: 0;
+  height: 22px;
+  border-radius: var(--j-pill);
+  background: var(--j-tint);
+  overflow: hidden;
+}
+
+.barFill {
+  display: block;
+  height: 100%;
+  border-radius: var(--j-pill);
+  background: var(--j-purple);
+}
+
+.barCount {
+  width: 2.5rem;
+  flex: none;
+  text-align: right;
+  font-size: 0.86rem;
+  font-weight: 800;
+  color: var(--j-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.barTime {
+  width: 4.5rem;
+  flex: none;
+  text-align: right;
+  font-size: 0.78rem;
+  color: var(--j-faint);
+}
+
+/* 280px of fixed columns leaves the bar itself no width on a phone, so the
+   label takes its own line and the rest share what is left. */
+@media (max-width: 640px) {
+  .bar {
+    flex-wrap: wrap;
+    gap: 6px 10px;
+  }
+
+  .barName {
+    width: 100%;
+  }
+}
+
+/* ── Shared ──────────────────────────────────────────────────────────────── */
+
+.quiet {
+  font-size: 0.86rem;
+  color: var(--j-faint);
+  padding: 30px 0;
+  text-align: center;
+}
+
+.del {
+  width: 30px;
+  height: 30px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: none;
+  border-radius: 50%;
+  color: var(--j-faint);
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+
+/* Always visible, not hover-revealed: a hover-only control cannot be reached
+   on a touch screen at all. */
+.del:hover {
+  background: #fbeceb;
+  color: #b3261e;
+}
+
+.del:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.delIcon {
+  width: 16px;
+  height: 16px;
+}
+
+.spin {
+  animation: analytics-spin 0.9s linear infinite;
+}
+
+@keyframes analytics-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spin {
+    animation-duration: 2.4s;
+  }
+}

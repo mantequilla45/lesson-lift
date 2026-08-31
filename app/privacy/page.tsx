@@ -1,16 +1,16 @@
 export default function PrivacyPage() {
   return (
-    <div className="min-h-screen" style={{ backgroundColor: "#F1EFE3" }}>
+    <div className="min-h-screen" style={{ backgroundColor: "var(--j-tint)" }}>
       <div className="max-w-3xl mx-auto px-6 py-16">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/logo/logo.svg" alt="Jooma" className="mb-10" style={{ height: 30, width: "auto" }} />
 
-        <h1 className="text-4xl font-semibold tracking-tight mb-2" style={{ color: "#1a1a1a" }}>
+        <h1 className="text-4xl font-semibold tracking-tight mb-2" style={{ color: "var(--j-purple)" }}>
           Privacy Policy
         </h1>
         <p className="text-sm mb-10" style={{ color: "#7a604a" }}>Last updated: 1 June 2026</p>
 
-        <div className="rounded-2xl p-8 space-y-8" style={{ backgroundColor: "#FAF9F5" }}>
+        <div className="rounded-2xl p-8 space-y-8" style={{ backgroundColor: "var(--j-card)" }}>
 
           <Section title="1. Who We Are">
             <p>Jooma Ltd (&quot;Jooma&quot;, &quot;we&quot;, &quot;us&quot;) is the data controller for personal data processed through our service. We are registered in England and Wales.</p>
@@ -121,7 +121,7 @@ export default function PrivacyPage() {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section>
-      <h2 className="text-lg font-semibold mb-3" style={{ color: "#1a1a1a" }}>{title}</h2>
+      <h2 className="text-lg font-semibold mb-3" style={{ color: "var(--j-purple)" }}>{title}</h2>
       <div className="space-y-3 text-sm leading-relaxed" style={{ color: "#3a2814" }}>
         {children}
       </div>
@@ -131,12 +131,12 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 function Table({ rows }: { rows: [string, string][] }) {
   return (
-    <div className="rounded-xl overflow-hidden border" style={{ borderColor: "#DAD8D0" }}>
+    <div className="rounded-xl overflow-hidden border" style={{ borderColor: "var(--j-line)" }}>
       <table className="w-full text-sm">
         <tbody>
           {rows.map(([label, value], i) => (
             <tr key={i} style={{ backgroundColor: i % 2 === 0 ? "#f5f3ec" : "#faf9f5" }}>
-              <td className="px-4 py-2.5 font-semibold w-2/5 align-top" style={{ color: "#1a1a1a" }}>{label}</td>
+              <td className="px-4 py-2.5 font-semibold w-2/5 align-top" style={{ color: "var(--j-purple)" }}>{label}</td>
               <td className="px-4 py-2.5 align-top" style={{ color: "#3a2814" }}>{value}</td>
             </tr>
           ))}

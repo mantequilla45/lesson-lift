@@ -17,7 +17,7 @@ export default async function PolicyGeneratorPage({
       sidebar={
         <ToolInfoPanel
           icon={<ScrollText className="w-5 h-5 text-blue-600" />}
-          heroBg="bg-blue-50"
+
           title="Policy Generator"
           description="Create a draft school policy or a policy section structure. Enter the policy name and the AI will generate a complete, professional document you can customise for your setting."
           steps={[

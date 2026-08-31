@@ -256,9 +256,9 @@ export default function PersonalInfoSection() {
   return (
     <div
       className="rounded-3xl p-6 sm:p-8 border"
-      style={{ backgroundColor: "#FAF9F5", borderColor: "#DAD8D0" }}
+      style={{ backgroundColor: "var(--j-card)", borderColor: "var(--j-line)" }}
     >
-      <h2 className="text-lg font-bold mb-6" style={{ color: "#1a1a1a" }}>
+      <h2 className="text-lg font-bold mb-6" style={{ color: "var(--j-ink)" }}>
         Personal info
       </h2>
 
@@ -287,7 +287,7 @@ export default function PersonalInfoSection() {
               onClick={() => fileRef.current?.click()}
               disabled={photoBusy}
               className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border bg-white transition-colors hover:border-gray-400 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-              style={{ borderColor: "#DAD8D0", color: "#1a1a1a" }}
+              style={{ borderColor: "var(--j-line)", color: "var(--j-ink)" }}
             >
               {photoBusy ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -302,14 +302,14 @@ export default function PersonalInfoSection() {
                 onClick={() => void removePhoto()}
                 disabled={photoBusy}
                 className="inline-flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-sm font-semibold transition-opacity hover:opacity-70 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-                style={{ color: "#8a8078" }}
+                style={{ color: "var(--j-faint)" }}
               >
                 <Trash2 className="w-4 h-4" />
                 Remove
               </button>
             )}
           </div>
-          <p className="text-xs mt-2" style={{ color: "#8a8078" }}>
+          <p className="text-xs mt-2" style={{ color: "var(--j-faint)" }}>
             PNG, JPG or WebP, up to 2 MB.
           </p>
           {photoError && (
@@ -351,9 +351,9 @@ export default function PersonalInfoSection() {
               value={email}
               readOnly
               aria-describedby="email-note"
-              className={`${INPUT_CLASS} bg-[#F1EFE3] text-[#8a8078] cursor-not-allowed`}
+              className={`${INPUT_CLASS} bg-(--j-tint) text-(--j-faint) cursor-not-allowed`}
             />
-            <p id="email-note" className="text-xs mt-1.5" style={{ color: "#8a8078" }}>
+            <p id="email-note" className="text-xs mt-1.5" style={{ color: "var(--j-faint)" }}>
               Contact support if you need to change this.
             </p>
           </Field>
@@ -391,7 +391,7 @@ export default function PersonalInfoSection() {
           <button
             type="submit"
             disabled={!canSave}
-            className="px-8 py-3 rounded-xl text-sm font-medium text-white transition-colors disabled:bg-[#F1EFE3] disabled:text-[#A5A5A5] disabled:cursor-default bg-[#030303] hover:bg-black cursor-pointer"
+            className="px-8 py-3 rounded-xl text-sm font-medium text-white transition-colors disabled:bg-(--j-tint) disabled:text-(--j-faint) disabled:cursor-default bg-(--j-purple) hover:bg-(--j-deep) cursor-pointer"
           >
             {saving ? "Saving…" : "Save"}
           </button>

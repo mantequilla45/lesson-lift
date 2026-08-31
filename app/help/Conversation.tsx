@@ -150,8 +150,8 @@ export default function Conversation({
                   className="px-3.5 py-2.5 rounded-2xl text-sm whitespace-pre-wrap wrap-break-word border"
                   style={
                     mine
-                      ? { backgroundColor: "#1a1a1a", borderColor: "#1a1a1a", color: "#fff" }
-                      : { backgroundColor: "#fff", borderColor: "#DAD8D0", color: "#1C1B1B" }
+                      ? { backgroundColor: "var(--j-purple)", borderColor: "var(--j-purple)", color: "#fff" }
+                      : { backgroundColor: "#fff", borderColor: "var(--j-line)", color: "var(--j-ink)" }
                   }
                 >
                   {m.body}
@@ -171,7 +171,7 @@ export default function Conversation({
 
       <div
         className={`border-t shrink-0 ${compact ? "px-4 py-3" : "px-6 py-4"}`}
-        style={{ borderColor: "#DAD8D0" }}
+        style={{ borderColor: "var(--j-line)" }}
       >
         {status === "closed" && (
           <p className="text-xs text-muted mb-2">
@@ -198,7 +198,7 @@ export default function Conversation({
           maxLength={5000}
           placeholder="Type your message…"
           className="w-full px-3.5 py-2.5 border rounded-2xl bg-white text-sm resize-none focus:outline-none focus:border-gray-400 transition-colors"
-          style={{ borderColor: "#DAD8D0" }}
+          style={{ borderColor: "var(--j-line)" }}
         />
         <div className="flex items-center justify-between mt-2">
           <span className="text-[11px] text-muted">
@@ -209,7 +209,7 @@ export default function Conversation({
             onClick={() => void send()}
             disabled={sending || !draft.trim()}
             className="px-4 py-2 rounded-2xl text-sm font-semibold text-white transition-opacity disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-            style={{ backgroundColor: "#1a1a1a" }}
+            style={{ backgroundColor: "var(--j-purple)" }}
           >
             {sending ? "Sending…" : "Send"}
           </button>

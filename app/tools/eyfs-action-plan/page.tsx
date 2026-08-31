@@ -17,7 +17,7 @@ export default async function EYFSActionPlanPage({
       sidebar={
         <ToolInfoPanel
           icon={<ClipboardList className="w-5 h-5 text-emerald-600" />}
-          heroBg="bg-emerald-50"
+
           title="EYFS Action Plan"
           description="Generate a detailed, structured action plan for any EYFS improvement objective. Covers a 4-phase implementation timeline, success criteria, responsibilities, monitoring approaches, and a full resources and staffing breakdown."
           steps={[

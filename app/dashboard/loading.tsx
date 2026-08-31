@@ -1,26 +1,32 @@
-import AppShell from "@/app/components/layout/AppShell";
+import AppShellV2 from "@/app/components/v2/AppShellV2";
+import styles from "./loading.module.css";
 
-// The dashboard became an async server component when it started reading
-// editable copy, so navigation now has a server round-trip to cover. Without
-// this the route segment shows nothing at all while that resolves. Shapes
-// mirror DashboardView so the real content lands without a layout shift.
+// Today is an async server component because it reads editable copy, so
+// navigation has a server round-trip to cover. Without this the route segment
+// shows nothing at all while that resolves. Shapes mirror TodayView so the real
+// content lands without a layout shift.
 export default function Loading() {
   return (
-    <AppShell title="Dashboard" launcher={false} banner={false}>
-      <div
-        className="rounded-3xl border p-5 sm:p-6 lg:p-8 animate-pulse"
-        style={{ backgroundColor: "#FAF9F5", borderColor: "#DAD8D0" }}
-      >
-        {/* Widths cap at the viewport so the skeleton does not overflow a phone
-            before the real content has even arrived. */}
-        <div className="h-7 w-full max-w-64 rounded mb-2" style={{ backgroundColor: "#EEECE4" }} />
-        <div className="h-4 w-full max-w-80 rounded mb-6" style={{ backgroundColor: "#EEECE4" }} />
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="h-24 rounded-2xl" style={{ backgroundColor: "#EEECE4" }} />
-          ))}
-        </div>
+    <AppShellV2 title="Today" launcher={false} banner={false}>
+      <div className={styles.hello}>
+        <div className={`${styles.bar} ${styles.eyebrow}`} />
+        <div className={`${styles.bar} ${styles.title}`} />
+        <div className={`${styles.bar} ${styles.sub}`} />
       </div>
-    </AppShell>
+
+      <div className={styles.mo} />
+
+      <div className={styles.metrics}>
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className={styles.metric} />
+        ))}
+      </div>
+
+      <div className={styles.quick}>
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div key={i} className={styles.card} />
+        ))}
+      </div>
+    </AppShellV2>
   );
 }

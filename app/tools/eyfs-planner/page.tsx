@@ -17,7 +17,7 @@ export default async function EYFSPlannerPage({
       sidebar={
         <ToolInfoPanel
           icon={<Baby className="w-5 h-5 text-emerald-600" />}
-          heroBg="bg-emerald-50"
+
           title="EYFS Planner"
           description="This tool identifies the areas of learning from your Early Years curriculum and plans activities for each of these areas based on a topic. It covers all 7 EYFS learning areas with child-led and adult-led activities, including indoor and outdoor provision."
           steps={[

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import Wordmark from "./Wordmark";
+import Wordmark from "@/app/components/v2/Wordmark";
 import NavAuth from "../NavAuth";
 import shared from "./landing.module.css";
 import styles from "./LandingNav.module.css";

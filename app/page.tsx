@@ -4,7 +4,7 @@ import { createClient } from "@/app/lib/auth/server";
 import { getCopy } from "@/app/lib/copy";
 import { PLANS, planCredits } from "@/app/lib/plans";
 
-import { SquircleDefs } from "@/app/components/landing/v2/Squircle";
+import { SquircleDefs } from "@/app/components/v2/Squircle";
 import LandingNav from "@/app/components/landing/v2/LandingNav";
 import Hero from "@/app/components/landing/v2/Hero";
 import ProblemStats from "@/app/components/landing/v2/ProblemStats";

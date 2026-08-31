@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import AppShell from "@/app/components/layout/AppShell";
+import AppShellV2 from "@/app/components/v2/AppShellV2";
 import SettingsNav from "./SettingsNav";
 // asSection/SECTIONS come from a plain module, not from SettingsNav.tsx: a
 // "use client" file's non-component exports arrive here as client-reference
@@ -7,8 +7,10 @@ import SettingsNav from "./SettingsNav";
 // runtime. Same trap as app/account/billing/tabs-shared.ts.
 import { asSection } from "./sections-shared";
 import { SectionSkeleton } from "./Skeletons";
+import ProfileHeader from "./ProfileHeader";
 import PersonalInfoSection from "./PersonalInfoSection";
 import SubscriptionSection from "./SubscriptionSection";
+import BadgesSection from "./BadgesSection";
 import ChangePasswordSection from "./ChangePasswordSection";
 import SubmitTicketSection from "./SubmitTicketSection";
 
@@ -42,7 +44,9 @@ export default async function ProfilePage({
   const section = asSection(rawSection);
 
   return (
-    <AppShell title="Profile" contentClassName="px-4 sm:px-6 lg:px-10 pb-16">
+    <AppShellV2 title="Profile" contentClassName="px-4 sm:px-6 lg:px-10 pb-16">
+      <ProfileHeader />
+
       <div className="grid gap-6 lg:grid-cols-[200px_minmax(0,1fr)] items-start">
         <SettingsNav active={section} />
 
@@ -65,11 +69,12 @@ export default async function ProfilePage({
             {section === "subscription" && (
               <SubscriptionSection tab={tab} checkout={checkout} topup={topup} />
             )}
+            {section === "badges" && <BadgesSection />}
             {section === "password" && <ChangePasswordSection />}
             {section === "ticket" && <SubmitTicketSection />}
           </Suspense>
         </div>
       </div>
-    </AppShell>
+    </AppShellV2>
   );
 }

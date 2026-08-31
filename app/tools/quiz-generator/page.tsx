@@ -17,7 +17,7 @@ export default async function QuizGeneratorPage({
       sidebar={
         <ToolInfoPanel
           icon={<CircleHelp className="w-5 h-5 text-violet-600" />}
-          heroBg="bg-violet-50"
+
           title="Quiz Generator"
           description="This quiz generator can be used to generate a multiple choice quiz on any given topic. Once generated, the quiz is fully editable and you can choose to export to popular quiz platforms."
           steps={[

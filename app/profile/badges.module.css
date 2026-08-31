@@ -1,0 +1,130 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.head {
+  background: var(--j-card);
+  border: 1px solid var(--j-line);
+  border-radius: var(--j-r-xl);
+  padding: 22px 24px;
+}
+
+.title {
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  color: var(--j-ink);
+  margin: 0 0 6px;
+}
+
+.lede {
+  font-size: 0.9rem;
+  color: var(--j-muted);
+  margin: 0;
+  max-width: 60ch;
+}
+
+/* ── One level ───────────────────────────────────────────────────────────── */
+
+.level {
+  background: var(--j-card);
+  border: 1px solid var(--j-line);
+  border-radius: var(--j-r-xl);
+  padding: 20px 22px;
+}
+
+.levelHead {
+  display: flex;
+  align-items: baseline;
+  gap: 11px;
+  margin-bottom: 16px;
+}
+
+.levelNo {
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--j-purple);
+  background: var(--j-tint);
+  border-radius: var(--j-pill);
+  padding: 4px 10px;
+  flex: none;
+}
+
+.levelTitle {
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--j-ink);
+  margin: 0;
+}
+
+/* ── The grid ────────────────────────────────────────────────────────────── */
+
+.grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  /* min() so a track can never demand more width than its container. */
+  grid-template-columns: repeat(auto-fill, minmax(min(170px, 100%), 1fr));
+  gap: 16px 14px;
+}
+
+.badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 7px;
+}
+
+/* Sized on the container, never with a class on the SVG: the medallion draws
+   its own viewBox and a utility on the element would fight it. */
+.medal {
+  display: block;
+  width: 64px;
+}
+
+.medal svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  filter: drop-shadow(0 4px 7px rgba(29, 23, 48, 0.16));
+}
+
+.badgeText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.badgeName {
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: var(--j-ink);
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+}
+
+/* Faint is for metadata only, so a description that carries the badge's meaning
+   uses muted instead. */
+.badgeDesc {
+  font-size: 0.74rem;
+  color: var(--j-muted);
+  line-height: 1.35;
+}
+
+@media (max-width: 560px) {
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .medal {
+    width: 54px;
+  }
+}

@@ -375,18 +375,18 @@ export default function GenerateModal({ onClose }: Props) {
       <div className="relative z-10 flex items-stretch justify-center gap-3 w-full max-h-[90vh]">
       <div
         className="relative rounded-2xl shadow-2xl w-full max-w-2xl border overflow-hidden flex flex-col"
-        style={{ borderColor: "#DAD8D0", backgroundColor: "#FAF9F5" }}
+        style={{ borderColor: "var(--j-line)", backgroundColor: "var(--j-card)" }}
       >
         {/* Header */}
-        <div className="flex items-start gap-3 p-6 pb-4 border-b" style={{ borderColor: "#DAD8D0" }}>
+        <div className="flex items-start gap-3 p-6 pb-4 border-b" style={{ borderColor: "var(--j-line)" }}>
           <div
             className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
-            style={{ backgroundColor: "#FFCC33" }}
+            style={{ backgroundColor: "var(--j-purple)" }}
           >
-            <Sparkles className="w-5 h-5" style={{ color: "#1a1a1a" }} />
+            <Sparkles className="w-5 h-5" style={{ color: "var(--j-purple)" }} />
           </div>
           <div className="flex-1 min-w-0">
-            <h2 className="text-base font-semibold" style={{ color: "#1a1a1a" }}>
+            <h2 className="text-base font-semibold" style={{ color: "var(--j-purple)" }}>
               {step === 1 ? "Pick your topic" : step === 2 ? "Refine your slideshow" : "Pick a theme"}
             </h2>
             <p className="text-sm text-gray-500 mt-0.5">
@@ -402,7 +402,7 @@ export default function GenerateModal({ onClose }: Props) {
               <span
                 key={n}
                 className="h-1.5 w-6 rounded-full"
-                style={{ backgroundColor: step === n ? "#1a1a1a" : "#DAD8D0" }}
+                style={{ backgroundColor: step === n ? "var(--j-purple)" : "var(--j-line)" }}
               />
             ))}
           </div>
@@ -462,7 +462,7 @@ export default function GenerateModal({ onClose }: Props) {
                     disabled={busy}
                     className="rounded-xl border-2 overflow-hidden text-left transition-shadow hover:shadow-md focus:outline-none disabled:opacity-60"
                     style={{
-                      borderColor: selected ? "#1a1a1a" : "#DAD8D0",
+                      borderColor: selected ? "var(--j-purple)" : "var(--j-line)",
                       backgroundColor: "#fff",
                     }}
                     aria-pressed={selected}
@@ -512,10 +512,10 @@ export default function GenerateModal({ onClose }: Props) {
                     </div>
                     <div
                       className="px-3 py-2 border-t flex items-center justify-between"
-                      style={{ borderColor: selected ? "#1a1a1a" : "#DAD8D0" }}
+                      style={{ borderColor: selected ? "var(--j-purple)" : "var(--j-line)" }}
                     >
                       <div className="min-w-0">
-                        <p className="text-xs font-semibold truncate" style={{ color: "#1a1a1a" }}>
+                        <p className="text-xs font-semibold truncate" style={{ color: "var(--j-purple)" }}>
                           {t.name}
                         </p>
                         <p className="text-[10px] text-gray-500 truncate">{t.description}</p>
@@ -523,7 +523,7 @@ export default function GenerateModal({ onClose }: Props) {
                       {selected && (
                         <div
                           className="w-4 h-4 rounded-full flex items-center justify-center shrink-0"
-                          style={{ backgroundColor: "#1a1a1a" }}
+                          style={{ backgroundColor: "var(--j-purple)" }}
                         >
                           <svg viewBox="0 0 20 20" className="w-2.5 h-2.5 text-white fill-current">
                             <path d="M7.6 13.6 4 10l1.4-1.4 2.2 2.2 7-7L16 5.2z" />
@@ -555,7 +555,7 @@ export default function GenerateModal({ onClose }: Props) {
                   data-lpignore="true"
                   name="lesson-topic"
                   className="w-full px-4 py-3 text-sm bg-white border rounded-xl focus:outline-none focus:ring-2 disabled:opacity-60 placeholder:text-gray-400"
-                  style={{ borderColor: "#DAD8D0", fontSize: "15px" }}
+                  style={{ borderColor: "var(--j-line)", fontSize: "15px" }}
                 />
                 {!topic && <PlaceholderOverlay text={topicPlaceholder} />}
               </div>
@@ -615,7 +615,7 @@ export default function GenerateModal({ onClose }: Props) {
                   data-lpignore="true"
                   name="lesson-instructions"
                   className="w-full px-3 py-2.5 text-sm bg-white border rounded-xl focus:outline-none resize-none overflow-y-auto disabled:opacity-60 placeholder:text-gray-400"
-                  style={{ borderColor: "#DAD8D0", minHeight: "76px", maxHeight: "260px" }}
+                  style={{ borderColor: "var(--j-line)", minHeight: "76px", maxHeight: "260px" }}
                 />
                 <div className="flex items-center justify-between mt-1.5 px-0.5">
                   {outlineError
@@ -725,8 +725,8 @@ export default function GenerateModal({ onClose }: Props) {
                     className="rounded-xl border transition-colors overflow-hidden"
                     style={
                       includeVocab
-                        ? { backgroundColor: "#fff", borderColor: "#1a1a1a" }
-                        : { backgroundColor: "#fff", borderColor: "#DAD8D0" }
+                        ? { backgroundColor: "#fff", borderColor: "var(--j-purple)" }
+                        : { backgroundColor: "#fff", borderColor: "var(--j-line)" }
                     }
                   >
                     <button
@@ -739,15 +739,15 @@ export default function GenerateModal({ onClose }: Props) {
                         <Key className="w-4 h-4 text-amber-600" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold" style={{ color: "#1a1a1a" }}>Key vocabulary</p>
+                        <p className="text-sm font-semibold" style={{ color: "var(--j-purple)" }}>Key vocabulary</p>
                         <p className="text-xs text-gray-500 truncate">Add a slide with key terms — we&apos;ll suggest them for you</p>
                       </div>
                       <div
                         className="w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0"
                         style={
                           includeVocab
-                            ? { backgroundColor: "#1a1a1a", borderColor: "#1a1a1a" }
-                            : { borderColor: "#DAD8D0" }
+                            ? { backgroundColor: "var(--j-purple)", borderColor: "var(--j-purple)" }
+                            : { borderColor: "var(--j-line)" }
                         }
                       >
                         {includeVocab && (
@@ -830,7 +830,7 @@ export default function GenerateModal({ onClose }: Props) {
                             data-lpignore="true"
                             name="vocab-term"
                             className="w-full px-3 py-2 text-sm bg-white border rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-200 disabled:opacity-60"
-                            style={{ borderColor: "#DAD8D0" }}
+                            style={{ borderColor: "var(--j-line)" }}
                           />
                         </div>
                       </div>
@@ -846,8 +846,8 @@ export default function GenerateModal({ onClose }: Props) {
                     className="rounded-xl border transition-colors overflow-hidden"
                     style={
                       includeYouTube
-                        ? { backgroundColor: "#fff", borderColor: "#1a1a1a" }
-                        : { backgroundColor: "#fff", borderColor: "#DAD8D0" }
+                        ? { backgroundColor: "#fff", borderColor: "var(--j-purple)" }
+                        : { backgroundColor: "#fff", borderColor: "var(--j-line)" }
                     }
                   >
                     <button
@@ -860,15 +860,15 @@ export default function GenerateModal({ onClose }: Props) {
                         <VideoIcon className="w-4 h-4 text-red-600" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold" style={{ color: "#1a1a1a" }}>YouTube video</p>
+                        <p className="text-sm font-semibold" style={{ color: "var(--j-purple)" }}>YouTube video</p>
                         <p className="text-xs text-gray-500 truncate">We&apos;ll include a relevant video for you</p>
                       </div>
                       <div
                         className="w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0"
                         style={
                           includeYouTube
-                            ? { backgroundColor: "#1a1a1a", borderColor: "#1a1a1a" }
-                            : { borderColor: "#DAD8D0" }
+                            ? { backgroundColor: "var(--j-purple)", borderColor: "var(--j-purple)" }
+                            : { borderColor: "var(--j-line)" }
                         }
                       >
                         {includeYouTube && (
@@ -889,7 +889,7 @@ export default function GenerateModal({ onClose }: Props) {
                           onChange={(e) => setYoutubeLength(e.target.value as typeof youtubeLength)}
                           disabled={busy}
                           className="flex-1 px-2.5 py-1.5 text-xs bg-white border rounded-lg focus:outline-none disabled:opacity-60"
-                          style={{ borderColor: "#DAD8D0" }}
+                          style={{ borderColor: "var(--j-line)" }}
                         >
                           <option value="short">Under 5 mins</option>
                           <option value="medium">5 – 20 mins</option>
@@ -914,7 +914,7 @@ export default function GenerateModal({ onClose }: Props) {
 
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">Images</p>
-                <div className="bg-white border rounded-xl p-4" style={{ borderColor: "#DAD8D0" }}>
+                <div className="bg-white border rounded-xl p-4" style={{ borderColor: "var(--j-line)" }}>
                   <button
                     type="button"
                     onClick={() => setImagesExpanded((v) => !v)}
@@ -925,9 +925,9 @@ export default function GenerateModal({ onClose }: Props) {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <p className="text-sm font-semibold" style={{ color: "#1a1a1a" }}>Image source</p>
+                        <p className="text-sm font-semibold" style={{ color: "var(--j-purple)" }}>Image source</p>
                         {imageSource === "auto" && imageMixWeb === 8 && imageStyle === "illustration" && (
-                          <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full" style={{ backgroundColor: "#EEECE4", color: "#8a8078" }}>
+                          <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full" style={{ backgroundColor: "var(--j-tint)", color: "var(--j-faint)" }}>
                             Default
                           </span>
                         )}
@@ -963,8 +963,8 @@ export default function GenerateModal({ onClose }: Props) {
                           className="px-3 py-1.5 text-xs font-semibold rounded-full border transition-colors"
                           style={
                             selected
-                              ? { backgroundColor: "#1a1a1a", borderColor: "#1a1a1a", color: "#fff" }
-                              : { backgroundColor: "#fff", borderColor: "#DAD8D0", color: "#1a1a1a" }
+                              ? { backgroundColor: "var(--j-purple)", borderColor: "var(--j-purple)", color: "#fff" }
+                              : { backgroundColor: "#fff", borderColor: "var(--j-line)", color: "var(--j-purple)" }
                           }
                         >
                           {opt.label}
@@ -1015,8 +1015,8 @@ export default function GenerateModal({ onClose }: Props) {
                               className="px-2.5 py-1.5 text-[11px] font-medium rounded-lg border capitalize transition-colors"
                               style={
                                 selected
-                                  ? { backgroundColor: "#1a1a1a", borderColor: "#1a1a1a", color: "#fff" }
-                                  : { backgroundColor: "#fff", borderColor: "#DAD8D0", color: "#1a1a1a" }
+                                  ? { backgroundColor: "var(--j-purple)", borderColor: "var(--j-purple)", color: "#fff" }
+                                  : { backgroundColor: "#fff", borderColor: "var(--j-line)", color: "var(--j-purple)" }
                               }
                             >
                               {s.label}
@@ -1042,7 +1042,7 @@ export default function GenerateModal({ onClose }: Props) {
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between gap-2 p-4 border-t" style={{ borderColor: "#DAD8D0" }}>
+        <div className="flex items-center justify-between gap-2 p-4 border-t" style={{ borderColor: "var(--j-line)" }}>
           {step === 1 ? (
             <>
               <button
@@ -1058,7 +1058,7 @@ export default function GenerateModal({ onClose }: Props) {
                 onClick={() => setStep(2)}
                 disabled={!canContinue}
                 className="px-4 py-2 text-sm font-semibold rounded-lg transition-colors disabled:opacity-50 flex items-center gap-1.5"
-                style={{ backgroundColor: "#1a1a1a", color: "#fff" }}
+                style={{ backgroundColor: "var(--j-purple)", color: "#fff" }}
               >
                 Continue
                 <ChevronRight className="w-4 h-4" />
@@ -1080,7 +1080,7 @@ export default function GenerateModal({ onClose }: Props) {
                 onClick={() => setStep(3)}
                 disabled={busy}
                 className="px-4 py-2 text-sm font-semibold rounded-lg transition-colors disabled:opacity-50 flex items-center gap-1.5"
-                style={{ backgroundColor: "#1a1a1a", color: "#fff" }}
+                style={{ backgroundColor: "var(--j-purple)", color: "#fff" }}
               >
                 Continue
                 <ChevronRight className="w-4 h-4" />
@@ -1102,7 +1102,7 @@ export default function GenerateModal({ onClose }: Props) {
                 onClick={handleGenerate}
                 disabled={busy || !topic.trim()}
                 className="px-4 py-2 text-sm font-semibold rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2 min-w-36 justify-center"
-                style={{ backgroundColor: "#FFCC33", color: "#1a1a1a" }}
+                style={{ backgroundColor: "var(--j-purple)", color: "var(--j-purple)" }}
               >
                 {busy ? (
                   <>
@@ -1151,8 +1151,8 @@ function ToggleCard({
       className="w-full flex items-center gap-3 p-3 rounded-xl border transition-colors text-left disabled:opacity-60"
       style={
         checked
-          ? { backgroundColor: "#fff", borderColor: "#1a1a1a" }
-          : { backgroundColor: "#fff", borderColor: "#DAD8D0" }
+          ? { backgroundColor: "#fff", borderColor: "var(--j-purple)" }
+          : { backgroundColor: "#fff", borderColor: "var(--j-line)" }
       }
     >
       <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${iconBg}`}>
@@ -1160,11 +1160,11 @@ function ToggleCard({
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <p className="text-sm font-semibold" style={{ color: "#1a1a1a" }}>{title}</p>
+          <p className="text-sm font-semibold" style={{ color: "var(--j-purple)" }}>{title}</p>
           {badge && (
             <span
               className="text-[10px] font-semibold px-1.5 py-0.5 rounded"
-              style={{ backgroundColor: "#FFCC33", color: "#1a1a1a" }}
+              style={{ backgroundColor: "var(--j-purple)", color: "var(--j-purple)" }}
             >
               {badge}
             </span>
@@ -1176,8 +1176,8 @@ function ToggleCard({
         className="w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0"
         style={
           checked
-            ? { backgroundColor: "#1a1a1a", borderColor: "#1a1a1a" }
-            : { borderColor: "#DAD8D0" }
+            ? { backgroundColor: "var(--j-purple)", borderColor: "var(--j-purple)" }
+            : { borderColor: "var(--j-line)" }
         }
       >
         {checked && (
@@ -1259,7 +1259,7 @@ function PillSelect({
         onClick={() => !disabled && setOpen((v) => !v)}
         disabled={disabled}
         className="flex items-center gap-1.5 pl-3 pr-2.5 py-1.5 rounded-full border text-sm font-medium transition-colors hover:bg-gray-50 disabled:opacity-50"
-        style={{ borderColor: "#DAD8D0", color: "#1a1a1a", backgroundColor: open ? "#f5f4f0" : "#fff" }}
+        style={{ borderColor: "var(--j-line)", color: "var(--j-purple)", backgroundColor: open ? "#f5f4f0" : "#fff" }}
       >
         {icon && <span className="text-gray-500">{icon}</span>}
         <span>{selected?.label ?? placeholder}</span>
@@ -1272,7 +1272,7 @@ function PillSelect({
         <div
           ref={menuRef}
           className="fixed z-[60] w-max max-w-[15rem] rounded-xl border bg-white shadow-lg py-1.5 max-h-64 overflow-y-auto"
-          style={{ borderColor: "#DAD8D0", top: menuPos.top, left: menuPos.left, minWidth: menuPos.width }}
+          style={{ borderColor: "var(--j-line)", top: menuPos.top, left: menuPos.left, minWidth: menuPos.width }}
         >
           {options.map((o) => (
             <button
@@ -1281,7 +1281,7 @@ function PillSelect({
               onClick={() => { onChange(o.value); setOpen(false); }}
               className="w-full text-left px-3 py-1.5 text-sm hover:bg-gray-50 transition-colors"
               style={{
-                color: o.value === value ? "#1a1a1a" : "#6b7280",
+                color: o.value === value ? "var(--j-purple)" : "#6b7280",
                 fontWeight: o.value === value ? 600 : 400,
               }}
             >
@@ -1367,7 +1367,7 @@ function InlineUploadZone({
             onClick={() => !disabled && !busy && fileRef.current?.click()}
             className="relative rounded-xl border-2 border-dashed cursor-pointer transition-colors"
             style={{
-              borderColor: dragOver ? "#1a1a1a" : "#DAD8D0",
+              borderColor: dragOver ? "var(--j-purple)" : "var(--j-line)",
               backgroundColor: dragOver ? "#f5f4f0" : "#fff",
             }}
           >
@@ -1388,7 +1388,7 @@ function InlineUploadZone({
                   >
                     <div
                       className="w-10 h-10 rounded-xl flex items-center justify-center border transition-colors group-hover:bg-gray-50"
-                      style={{ borderColor: "#DAD8D0" }}
+                      style={{ borderColor: "var(--j-line)" }}
                     >
                       <FileUp className="w-4.5 h-4.5 text-gray-500" />
                     </div>
@@ -1402,7 +1402,7 @@ function InlineUploadZone({
                   >
                     <div
                       className="w-10 h-10 rounded-xl flex items-center justify-center border transition-colors group-hover:bg-gray-50"
-                      style={{ borderColor: "#DAD8D0" }}
+                      style={{ borderColor: "var(--j-line)" }}
                     >
                       <FolderSymlink className="w-4.5 h-4.5 text-gray-500" />
                     </div>
@@ -1416,7 +1416,7 @@ function InlineUploadZone({
                   >
                     <div
                       className="w-10 h-10 rounded-xl flex items-center justify-center border transition-colors group-hover:bg-gray-50"
-                      style={{ borderColor: "#DAD8D0" }}
+                      style={{ borderColor: "var(--j-line)" }}
                     >
                       <LinkIcon className="w-4.5 h-4.5 text-gray-500" />
                     </div>
@@ -1451,14 +1451,14 @@ function InlineUploadZone({
                 data-lpignore="true"
                 name="resource-url"
                 className="flex-1 px-3 py-2 text-xs bg-white border rounded-xl focus:outline-none disabled:opacity-60"
-                style={{ borderColor: "#DAD8D0" }}
+                style={{ borderColor: "var(--j-line)" }}
               />
               <button
                 type="button"
                 onClick={() => { if (urlInput.trim()) { onAttach({ kind: "url", url: urlInput.trim() }); setUrlOpen(false); setUrlInput(""); } }}
                 disabled={!urlInput.trim() || disabled || busy}
                 className="px-3 py-2 text-xs font-semibold rounded-xl disabled:opacity-50"
-                style={{ backgroundColor: "#1a1a1a", color: "#fff" }}
+                style={{ backgroundColor: "var(--j-purple)", color: "#fff" }}
               >
                 {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Fetch"}
               </button>
@@ -1522,8 +1522,8 @@ function ResourceAttachmentCard({
       className="rounded-xl border transition-colors overflow-hidden"
       style={
         checked
-          ? { backgroundColor: "#fff", borderColor: "#1a1a1a" }
-          : { backgroundColor: "#fff", borderColor: "#DAD8D0" }
+          ? { backgroundColor: "#fff", borderColor: "var(--j-purple)" }
+          : { backgroundColor: "#fff", borderColor: "var(--j-line)" }
       }
     >
       <button
@@ -1536,15 +1536,15 @@ function ResourceAttachmentCard({
           <FileUp className="w-4 h-4 text-violet-700" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold" style={{ color: "#1a1a1a" }}>Use existing resources in my lesson</p>
+          <p className="text-sm font-semibold" style={{ color: "var(--j-purple)" }}>Use existing resources in my lesson</p>
           <p className="text-xs text-gray-500 truncate">Paste in a URL or upload a file</p>
         </div>
         <div
           className="w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0"
           style={
             checked
-              ? { backgroundColor: "#1a1a1a", borderColor: "#1a1a1a" }
-              : { borderColor: "#DAD8D0" }
+              ? { backgroundColor: "var(--j-purple)", borderColor: "var(--j-purple)" }
+              : { borderColor: "var(--j-line)" }
           }
         >
           {checked && (
@@ -1622,14 +1622,14 @@ function ResourceAttachmentCard({
                     data-lpignore="true"
                     name="resource-url"
                     className="flex-1 px-2.5 py-2 text-xs bg-white border rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-200 disabled:opacity-60"
-                    style={{ borderColor: "#DAD8D0" }}
+                    style={{ borderColor: "var(--j-line)" }}
                   />
                   <button
                     type="button"
                     onClick={() => urlInput.trim() && onAttach({ kind: "url", url: urlInput.trim() })}
                     disabled={!urlInput.trim() || disabled || busy}
                     className="px-3 py-2 text-xs font-semibold rounded-lg disabled:opacity-50"
-                    style={{ backgroundColor: "#1a1a1a", color: "#fff" }}
+                    style={{ backgroundColor: "var(--j-purple)", color: "#fff" }}
                   >
                     {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Fetch"}
                   </button>
@@ -1671,7 +1671,7 @@ function ResourceButton({
       onClick={onClick}
       disabled={disabled}
       className="relative flex flex-col items-center justify-center gap-2 px-3 py-4 rounded-xl border bg-white hover:bg-gray-50 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-      style={{ borderColor: "#DAD8D0" }}
+      style={{ borderColor: "var(--j-line)" }}
     >
       {busy ? <Loader2 className="w-5 h-5 animate-spin text-emerald-700" /> : icon}
       <span className="text-[11px] font-semibold text-gray-800 text-center leading-tight">{label}</span>
@@ -1716,7 +1716,7 @@ function CountryDropdown({
         onClick={() => setOpen((v) => !v)}
         disabled={disabled}
         className="w-full flex items-center gap-2 px-2.5 py-2 text-xs bg-white border rounded-lg focus:outline-none disabled:opacity-60"
-        style={{ borderColor: "#DAD8D0" }}
+        style={{ borderColor: "var(--j-line)" }}
       >
         <FlagImg code={selected.flagCode} className="w-4 h-3 shrink-0" />
         <span className="flex-1 text-left truncate">{selected.name}</span>
@@ -1725,7 +1725,7 @@ function CountryDropdown({
       {open && (
         <div
           className="absolute z-20 mt-1 left-0 w-full max-h-64 overflow-y-auto bg-white border rounded-lg shadow-lg py-1"
-          style={{ borderColor: "#DAD8D0" }}
+          style={{ borderColor: "var(--j-line)" }}
         >
           {COUNTRIES.map((c) => {
             const isSel = c.id === selected.id;
@@ -1735,7 +1735,7 @@ function CountryDropdown({
                 type="button"
                 onClick={() => { onChange(c.id); setOpen(false); }}
                 className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs hover:bg-gray-50 text-left"
-                style={isSel ? { backgroundColor: "#F1EFE3" } : undefined}
+                style={isSel ? { backgroundColor: "var(--j-tint)" } : undefined}
               >
                 <FlagImg code={c.flagCode} className="w-4 h-3 shrink-0" />
                 <span className="flex-1 truncate">{c.name}</span>
@@ -1801,8 +1801,8 @@ function CurriculumAlignmentCard({
       className="rounded-xl border transition-colors overflow-hidden"
       style={
         checked
-          ? { backgroundColor: "#fff", borderColor: "#1a1a1a" }
-          : { backgroundColor: "#fff", borderColor: "#DAD8D0" }
+          ? { backgroundColor: "#fff", borderColor: "var(--j-purple)" }
+          : { backgroundColor: "#fff", borderColor: "var(--j-line)" }
       }
     >
       <button
@@ -1815,15 +1815,15 @@ function CurriculumAlignmentCard({
           <BookOpen className="w-4 h-4 text-emerald-600" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold" style={{ color: "#1a1a1a" }}>Align to curriculum</p>
+          <p className="text-sm font-semibold" style={{ color: "var(--j-purple)" }}>Align to curriculum</p>
           <p className="text-xs text-gray-500 truncate">Tailor the deck to a specific subject and strand</p>
         </div>
         <div
           className="w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0"
           style={
             checked
-              ? { backgroundColor: "#1a1a1a", borderColor: "#1a1a1a" }
-              : { borderColor: "#DAD8D0" }
+              ? { backgroundColor: "var(--j-purple)", borderColor: "var(--j-purple)" }
+              : { borderColor: "var(--j-line)" }
           }
         >
           {checked && (
@@ -1847,7 +1847,7 @@ function CurriculumAlignmentCard({
               onChange={(e) => onCurriculumChange(e.target.value)}
               disabled={disabled || curricula.length === 0}
               className={selectCls}
-              style={{ borderColor: "#DAD8D0" }}
+              style={{ borderColor: "var(--j-line)" }}
             >
               {curricula.length === 0 ? (
                 <option value="">No curriculum available</option>
@@ -1862,7 +1862,7 @@ function CurriculumAlignmentCard({
               onChange={(e) => onGradeChange(e.target.value)}
               disabled={disabled}
               className={selectCls}
-              style={{ borderColor: "#DAD8D0" }}
+              style={{ borderColor: "var(--j-line)" }}
             >
               <option value="">Select grade</option>
               {YEARS.map((y) => <option key={y} value={y}>{y}</option>)}
@@ -1876,7 +1876,7 @@ function CurriculumAlignmentCard({
               onChange={(e) => onSubjectChange(e.target.value)}
               disabled={disabled || subjects.length === 0}
               className={selectCls}
-              style={{ borderColor: "#DAD8D0" }}
+              style={{ borderColor: "var(--j-line)" }}
             >
               <option value="">{suggesting ? "Finding best subject…" : "Select subject"}</option>
               {subjects.map((s) => <option key={s.name} value={s.name}>{s.name}</option>)}
@@ -1892,7 +1892,7 @@ function CurriculumAlignmentCard({
             onChange={(e) => onStrandChange(e.target.value)}
             disabled={disabled || !subject || strands.length === 0}
             className={selectCls}
-            style={{ borderColor: "#DAD8D0" }}
+            style={{ borderColor: "var(--j-line)" }}
           >
             <option value="">{subject ? "Select strand" : "Pick a subject first"}</option>
             {strands.map((s) => <option key={s} value={s}>{s}</option>)}
@@ -1912,7 +1912,7 @@ function CurriculumAlignmentCard({
             {hintOpen && (
               <div
                 className="absolute z-10 left-0 mt-1 w-72 p-3 bg-white rounded-xl border shadow-lg"
-                style={{ borderColor: "#DAD8D0" }}
+                style={{ borderColor: "var(--j-line)" }}
               >
                 <p className="text-xs font-semibold text-gray-900 mb-1">Don&apos;t worry — this is optional</p>
                 <p className="text-[11px] text-gray-600 leading-snug">

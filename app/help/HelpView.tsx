@@ -3,7 +3,7 @@
 import { useCallback, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, Plus } from "lucide-react";
-import AppShell from "@/app/components/layout/AppShell";
+import AppShellV2 from "@/app/components/v2/AppShellV2";
 import { createClient } from "@/app/lib/auth/client";
 import Conversation from "./Conversation";
 // Shared with /profile's "Submit ticket" section — see the header comment there
@@ -85,7 +85,7 @@ export default function HelpView({
        against the viewport, so a banner would push its bottom edge off screen
        rather than compressing it. Teachers still see notifications everywhere
        else, at /notifications, and in the bell. */
-    <AppShell
+    <AppShellV2
       title="Help"
       variant="fixed"
       banner={false}
@@ -99,7 +99,7 @@ export default function HelpView({
             className="rounded-3xl border overflow-hidden grid
               grid-cols-1 lg:grid-cols-[minmax(240px,320px)_minmax(0,1fr)]
               h-[calc(100dvh-9rem)] lg:h-[calc(100dvh-190px)] min-h-0 lg:min-h-110"
-            style={{ backgroundColor: "#FAF9F5", borderColor: "#DAD8D0" }}
+            style={{ backgroundColor: "var(--j-card)", borderColor: "var(--j-line)" }}
           >
             {/* ── Conversation list ─────────────────────────────────────
                 Below `lg` the list and the conversation are alternate views of
@@ -111,11 +111,11 @@ export default function HelpView({
               className={`lg:border-r flex-col min-h-0 ${
                 composing || thread ? "hidden lg:flex" : "flex"
               }`}
-              style={{ borderColor: "#DAD8D0" }}
+              style={{ borderColor: "var(--j-line)" }}
             >
               <div
                 className="p-3 border-b shrink-0"
-                style={{ borderColor: "#DAD8D0" }}
+                style={{ borderColor: "var(--j-line)" }}
               >
                 <button
                   type="button"
@@ -125,7 +125,7 @@ export default function HelpView({
                     setComposing(true);
                   }}
                   className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl text-sm font-semibold text-white cursor-pointer transition-opacity hover:opacity-90"
-                  style={{ backgroundColor: "#1a1a1a" }}
+                  style={{ backgroundColor: "var(--j-purple)" }}
                 >
                   <Plus className="w-4 h-4" />
                   New conversation
@@ -147,8 +147,8 @@ export default function HelpView({
                         onClick={() => openThread(t.id)}
                         className="w-full text-left px-4 py-3 border-b transition-colors cursor-pointer hover:bg-black/3"
                         style={{
-                          borderColor: "#EEECE4",
-                          backgroundColor: active ? "#EEECE4" : "transparent",
+                          borderColor: "var(--j-tint)",
+                          backgroundColor: active ? "var(--j-tint)" : "transparent",
                         }}
                       >
                         <div className="flex items-center gap-2">
@@ -158,7 +158,7 @@ export default function HelpView({
                           {t.has_unread && (
                             <span
                               className="w-2 h-2 rounded-full shrink-0"
-                              style={{ backgroundColor: "#1a1a1a" }}
+                              style={{ backgroundColor: "var(--j-purple)" }}
                               title="New reply"
                             />
                           )}
@@ -173,8 +173,8 @@ export default function HelpView({
                           <span
                             className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
                             style={{
-                              backgroundColor: t.status === "closed" ? "#EEECE4" : "#E8F0E9",
-                              color: t.status === "closed" ? "#8a8078" : "#1f6b3b",
+                              backgroundColor: t.status === "closed" ? "var(--j-tint)" : "#E8F0E9",
+                              color: t.status === "closed" ? "var(--j-faint)" : "#1f6b3b",
                             }}
                           >
                             {STATUS_LABEL[t.status] ?? t.status}
@@ -212,7 +212,7 @@ export default function HelpView({
                 <>
                   <div
                     className="px-4 sm:px-6 py-3 sm:py-4 border-b shrink-0"
-                    style={{ borderColor: "#DAD8D0" }}
+                    style={{ borderColor: "var(--j-line)" }}
                   >
                     {/* The only way back to the list on a phone, where the two
                         panes are alternate views rather than columns. */}
@@ -238,6 +238,6 @@ export default function HelpView({
               )}
             </div>
           </div>
-    </AppShell>
+    </AppShellV2>
   );
 }

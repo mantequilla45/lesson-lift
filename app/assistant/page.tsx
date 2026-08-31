@@ -1,6 +1,6 @@
 import AssistantView from "@/app/assistant/AssistantView";
 
-export const metadata = { title: "AI assistant — Jooma" };
+export const metadata = { title: "Ask Mo | Jooma" };
 
 /** A new, unsaved conversation. The chat row is created on the first message,
  *  so landing here and leaving never litters the sidebar. */

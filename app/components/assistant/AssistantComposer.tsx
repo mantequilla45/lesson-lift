@@ -181,7 +181,7 @@ export default function AssistantComposer({
 
       <div
         className="rounded-2xl border bg-white px-5 py-3"
-        style={{ borderColor: "#DAD8D0" }}
+        style={{ borderColor: "var(--j-line-2)" }}
       >
         <textarea
           ref={textareaRef}
@@ -210,7 +210,7 @@ export default function AssistantComposer({
             title="Attach a PDF, Word document or text file"
             aria-label="Attach a document"
             className="w-9 h-9 shrink-0 flex items-center justify-center rounded-xl transition-colors hover:opacity-80 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-            style={{ backgroundColor: "#F1EFE3" }}
+            style={{ backgroundColor: "var(--j-tint)" }}
           >
             {uploading
               ? <Loader2 className="w-4 h-4 animate-spin text-muted" />
@@ -242,7 +242,7 @@ export default function AssistantComposer({
                 aria-label={listening ? "Stop dictating" : "Dictate"}
                 aria-pressed={listening}
                 className="w-9 h-9 shrink-0 flex items-center justify-center rounded-xl transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-                style={{ backgroundColor: listening ? "#1a1a1a" : "#F1EFE3" }}
+                style={{ backgroundColor: listening ? "var(--j-purple)" : "var(--j-tint)" }}
               >
                 <Mic className={`w-4 h-4 ${listening ? "text-white animate-pulse" : "text-dark"}`} />
               </button>
@@ -253,7 +253,7 @@ export default function AssistantComposer({
               onClick={submit}
               disabled={blocked || !value.trim()}
               aria-label="Send"
-              className="w-9 h-9 shrink-0 flex items-center justify-center rounded-xl bg-[#1a1a1a] text-white transition-opacity hover:opacity-90 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+              className="w-9 h-9 shrink-0 flex items-center justify-center rounded-xl bg-(--j-purple) text-white transition-opacity hover:opacity-90 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
             >
               {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowUp className="w-4 h-4" />}
             </button>
@@ -292,7 +292,7 @@ function Select({
       aria-label={placeholder}
       onChange={(e) => onChange(e.target.value || null)}
       className="h-9 rounded-xl border bg-white px-3 text-[13px] font-semibold text-dark focus:outline-none disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-      style={{ borderColor: "#F1EFE3" }}
+      style={{ borderColor: "var(--j-tint)" }}
     >
       <option value="">{placeholder}</option>
       {options.map((o) => (

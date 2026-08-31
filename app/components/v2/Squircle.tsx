@@ -11,7 +11,9 @@ import styles from "./Squircle.module.css";
  *
  * `clip-path: url(#jsq)` resolves against the current document, so this has to
  * render on the page itself. Putting it in a layout that the page does not
- * share would leave every tile unclipped and square.
+ * share would leave every tile unclipped and square. Both surfaces that use
+ * tiles therefore mount it: the landing page in app/page.tsx, and the signed-in
+ * app in AppShellV2. An unclipped, square tile means it is missing from the tree.
  */
 export function SquircleDefs() {
   return (
@@ -67,8 +69,9 @@ export function ToolTile({
 }: {
   icon: string;
   solid: string;
-  /** Tile sizes are tokens. `tab` is the small inline tile in the demo tabs. */
-  size?: "sm" | "md" | "lg" | "tab";
+  /** Tile sizes are tokens. `tab` is the small inline tile in the demo tabs,
+   *  `xs` the sidebar pins. */
+  size?: "xs" | "sm" | "md" | "lg" | "tab";
 }) {
   return (
     <span

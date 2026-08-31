@@ -1,0 +1,189 @@
+.page {
+  min-height: 100vh;
+  background: var(--j-bg);
+  color: var(--j-body);
+  font-family: var(--font-jakarta), system-ui, sans-serif;
+  font-size: 15px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  padding: 20px;
+  display: flex;
+}
+
+/* globals.css sets `body { color: #030303 }`, the cream theme's ink, so a link
+   that merely inherits picks that up. `:where()` carries zero specificity, so
+   any component rule below beats it with a single class. */
+:where(.page) a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.shell {
+  width: 100%;
+  max-width: 1120px;
+  margin: auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+/* ── Brand side ──────────────────────────────────────────────────────────── */
+
+.brand {
+  background: linear-gradient(150deg, var(--j-deep), #4a24a8);
+  border-radius: var(--j-r-xl);
+  padding: 48px 44px;
+  display: flex;
+  align-items: center;
+  color: #fff;
+  position: relative;
+  overflow: hidden;
+}
+
+.brand::after {
+  content: "";
+  position: absolute;
+  right: -90px;
+  bottom: -90px;
+  width: 320px;
+  height: 320px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(205, 188, 247, 0.26), transparent 68%);
+  pointer-events: none;
+}
+
+.brandInner {
+  position: relative;
+}
+
+.brandLine {
+  margin-top: 32px;
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+  color: #fff;
+}
+
+.brandList {
+  margin: 26px 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+}
+
+.brandList li {
+  position: relative;
+  padding-left: 24px;
+  font-size: 0.92rem;
+  color: var(--j-lilac);
+}
+
+/* The tick. A pseudo-element rather than an icon per item, since the list is
+   decorative and already aria-hidden. */
+.brandList li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.44em;
+  width: 9px;
+  height: 5px;
+  border-left: 2px solid var(--j-lilac-2);
+  border-bottom: 2px solid var(--j-lilac-2);
+  transform: rotate(-45deg);
+}
+
+/* ── Form side ───────────────────────────────────────────────────────────── */
+
+.panel {
+  background: var(--j-card);
+  border: 1px solid var(--j-line);
+  border-radius: var(--j-r-xl);
+  padding: 48px 40px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.form {
+  width: 100%;
+  max-width: 380px;
+  margin: 0 auto;
+}
+
+.mark {
+  display: none;
+  color: var(--j-purple);
+  margin-bottom: 26px;
+}
+
+.head {
+  margin-bottom: 26px;
+}
+
+.head h1 {
+  font-size: 1.85rem;
+  font-weight: 800;
+  letter-spacing: -0.032em;
+  line-height: 1.12;
+  color: var(--j-ink);
+  margin: 0;
+}
+
+.lede {
+  margin-top: 9px;
+  font-size: 0.93rem;
+  color: var(--j-muted);
+}
+
+.footer {
+  margin-top: 26px;
+  text-align: center;
+  font-size: 0.88rem;
+  color: var(--j-muted);
+}
+
+.footer a {
+  color: var(--j-purple);
+  font-weight: 700;
+}
+
+.footer a:hover {
+  text-decoration: underline;
+}
+
+/* Below the split, the brand panel goes entirely rather than stacking above
+   the form: it is decoration, and pushing the fields below the fold on a phone
+   is the one thing this layout must not do. */
+@media (max-width: 900px) {
+  .shell {
+    grid-template-columns: minmax(0, 1fr);
+    max-width: 460px;
+  }
+
+  .brand {
+    display: none;
+  }
+
+  .mark {
+    display: block;
+  }
+
+  .panel {
+    padding: 36px 26px;
+  }
+}
+
+@media (max-width: 420px) {
+  .page {
+    padding: 0;
+  }
+
+  .panel {
+    border: 0;
+    border-radius: 0;
+    min-height: 100vh;
+  }
+}

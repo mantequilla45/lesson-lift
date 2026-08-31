@@ -6,7 +6,7 @@ import SlideshowLoadingAnimation from "@/app/components/editor/SlideshowLoadingA
 
 export default function LoadingAnimationTestPage() {
   return (
-    <div className="fixed inset-0 flex items-center justify-center" style={{ backgroundColor: "#F1EFE3" }}>
+    <div className="fixed inset-0 flex items-center justify-center" style={{ backgroundColor: "var(--j-tint)" }}>
       <SlideshowLoadingAnimation label="Loading slideshow" />
     </div>
   );

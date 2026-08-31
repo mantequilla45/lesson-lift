@@ -54,11 +54,13 @@ export default function SettingsNav({ active }: { active: string }) {
             key={id}
             href={`/profile?${params.toString()}`}
             aria-current={isActive ? "page" : undefined}
-            className="px-4 py-2.5 text-sm font-semibold rounded-2xl transition-colors whitespace-nowrap shrink-0 lg:shrink"
+            className={`px-4 py-2.5 text-sm font-semibold rounded-2xl transition-colors whitespace-nowrap shrink-0 lg:shrink${
+              isActive ? "" : " hover:bg-(--j-tint)"
+            }`}
             style={
               isActive
-                ? { backgroundColor: "#1a1a1a", color: "#fff" }
-                : { color: "#6b6055" }
+                ? { backgroundColor: "var(--j-purple)", color: "#fff" }
+                : { color: "var(--j-body)" }
             }
           >
             {label}

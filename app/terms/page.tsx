@@ -1,16 +1,16 @@
 export default function TermsPage() {
   return (
-    <div className="min-h-screen" style={{ backgroundColor: "#F1EFE3" }}>
+    <div className="min-h-screen" style={{ backgroundColor: "var(--j-tint)" }}>
       <div className="max-w-3xl mx-auto px-6 py-16">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/logo/logo.svg" alt="Jooma" className="mb-10" style={{ height: 30, width: "auto" }} />
 
-        <h1 className="text-4xl font-semibold tracking-tight mb-2" style={{ color: "#1a1a1a" }}>
+        <h1 className="text-4xl font-semibold tracking-tight mb-2" style={{ color: "var(--j-purple)" }}>
           Terms of Service
         </h1>
         <p className="text-sm mb-10" style={{ color: "#7a604a" }}>Last updated: 1 June 2026</p>
 
-        <div className="rounded-2xl p-8 space-y-8" style={{ backgroundColor: "#FAF9F5" }}>
+        <div className="rounded-2xl p-8 space-y-8" style={{ backgroundColor: "var(--j-card)" }}>
 
           <Section title="1. About Jooma">
             <p>Jooma (&quot;we&quot;, &quot;us&quot;, &quot;our&quot;) is an AI-powered lesson planning tool operated by Jooma Ltd, a company registered in England and Wales. Jooma helps educators create lesson plans, worksheets, slideshows, and other classroom materials using artificial intelligence.</p>
@@ -97,7 +97,7 @@ export default function TermsPage() {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section>
-      <h2 className="text-lg font-semibold mb-3" style={{ color: "#1a1a1a" }}>{title}</h2>
+      <h2 className="text-lg font-semibold mb-3" style={{ color: "var(--j-purple)" }}>{title}</h2>
       <div className="space-y-3 text-sm leading-relaxed" style={{ color: "#3a2814" }}>
         {children}
       </div>

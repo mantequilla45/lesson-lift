@@ -10,7 +10,7 @@
 // layout also wraps the marketing site and /admin, and a support bubble does
 // not belong on either.
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -33,8 +33,26 @@ interface LauncherThread {
  *  The editor keeps its zoom controls there. */
 const HIDE_ON = ["/editor", "/admin", "/login", "/signup"];
 
+/**
+ * True only once hydration has happened, false on the server and on the
+ * client's first render.
+ *
+ * A store rather than a setState in an effect: this hook exists precisely for a
+ * value that differs between server and client, and it hands back the server
+ * snapshot for free without a second render pass.
+ */
+const subscribeToNothing = () => () => {};
+function useMounted(): boolean {
+  return useSyncExternalStore(
+    subscribeToNothing,
+    () => true,
+    () => false,
+  );
+}
+
 export default function SupportLauncher() {
   const pathname = usePathname();
+  const mounted = useMounted();
   const [open, setOpen] = useState(false);
   const [threads, setThreads] = useState<LauncherThread[]>([]);
   const [openId, setOpenId] = useState<string | null>(null);
@@ -74,8 +92,14 @@ export default function SupportLauncher() {
     return () => document.removeEventListener("keydown", onKey);
   }, [open]);
 
-  // createPortal needs a real document, so this renders nothing during SSR.
-  if (typeof document === "undefined") return null;
+  // createPortal needs a real document, so this renders nothing until mounted.
+  //
+  // `typeof document === "undefined"` is NOT enough on its own: it is false
+  // during the client's first render too, so the client would render the
+  // launcher on a pass where the server rendered nothing, which React reports
+  // as a hydration mismatch. `mounted` is only true after hydration, so both
+  // trees agree on the first pass and the button appears immediately after.
+  if (!mounted) return null;
   if (HIDE_ON.some((p) => pathname === p || pathname.startsWith(`${p}/`))) return null;
 
   const active = threads.find((t) => t.id === openId) ?? null;
@@ -90,15 +114,15 @@ export default function SupportLauncher() {
             // dvh, not vh: 100vh on mobile is the LARGE viewport, so with the
             // URL bar showing the panel's bottom edge sat below the fold.
             height: "min(560px, calc(100dvh - 8rem))",
-            backgroundColor: "#FAF9F5",
-            borderColor: "#DAD8D0",
+            backgroundColor: "var(--j-card)",
+            borderColor: "var(--j-line)",
           }}
           role="dialog"
           aria-label="Support"
         >
           <div
             className="flex items-center gap-2 px-4 py-3 border-b shrink-0"
-            style={{ borderColor: "#DAD8D0" }}
+            style={{ borderColor: "var(--j-line)" }}
           >
             {active || composing ? (
               <button
@@ -160,7 +184,7 @@ export default function SupportLauncher() {
                     type="button"
                     onClick={() => setOpenId(t.id)}
                     className="w-full text-left px-4 py-3 border-b transition-colors cursor-pointer hover:bg-black/3"
-                    style={{ borderColor: "#EEECE4" }}
+                    style={{ borderColor: "var(--j-tint)" }}
                   >
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-semibold truncate grow">
@@ -169,7 +193,7 @@ export default function SupportLauncher() {
                       {t.has_unread && (
                         <span
                           className="w-2 h-2 rounded-full shrink-0"
-                          style={{ backgroundColor: "#1a1a1a" }}
+                          style={{ backgroundColor: "var(--j-purple)" }}
                         />
                       )}
                     </div>
@@ -186,12 +210,12 @@ export default function SupportLauncher() {
           )}
 
           {!active && !composing && (
-            <div className="p-3 border-t shrink-0" style={{ borderColor: "#DAD8D0" }}>
+            <div className="p-3 border-t shrink-0" style={{ borderColor: "var(--j-line)" }}>
               <button
                 type="button"
                 onClick={() => setComposing(true)}
                 className="w-full px-4 py-2.5 rounded-2xl text-sm font-semibold text-white cursor-pointer transition-opacity hover:opacity-90"
-                style={{ backgroundColor: "#1a1a1a" }}
+                style={{ backgroundColor: "var(--j-purple)" }}
               >
                 New conversation
               </button>
@@ -208,13 +232,13 @@ export default function SupportLauncher() {
         }}
         aria-label={open ? "Close support" : "Get help"}
         className="fixed bottom-6 right-6 z-9998 w-14 h-14 rounded-full shadow-lg flex items-center justify-center text-white transition-transform hover:scale-105 cursor-pointer"
-        style={{ backgroundColor: "#1a1a1a" }}
+        style={{ backgroundColor: "var(--j-purple)" }}
       >
         {open ? <X className="w-5 h-5" /> : <MessageCircle className="w-5 h-5" />}
         {!open && unread > 0 && (
           <span
             className="absolute -top-0.5 -right-0.5 min-w-5 h-5 px-1 rounded-full text-[11px] font-bold flex items-center justify-center border-2"
-            style={{ backgroundColor: "#B3261E", borderColor: "#F1EFE3" }}
+            style={{ backgroundColor: "#B3261E", borderColor: "var(--j-tint)" }}
           >
             {unread}
           </span>
@@ -265,7 +289,7 @@ function QuickCompose({ onCreated }: { onCreated: (id: string) => void }) {
         maxLength={200}
         placeholder="Subject"
         className="w-full px-3.5 py-2.5 border rounded-2xl bg-white text-sm mb-3 focus:outline-none focus:border-gray-400 transition-colors"
-        style={{ borderColor: "#DAD8D0" }}
+        style={{ borderColor: "var(--j-line)" }}
       />
       <textarea
         value={body}
@@ -274,14 +298,14 @@ function QuickCompose({ onCreated }: { onCreated: (id: string) => void }) {
         maxLength={5000}
         placeholder="What were you trying to do, and what happened instead?"
         className="w-full px-3.5 py-2.5 border rounded-2xl bg-white text-sm resize-none mb-3 focus:outline-none focus:border-gray-400 transition-colors"
-        style={{ borderColor: "#DAD8D0" }}
+        style={{ borderColor: "var(--j-line)" }}
       />
       <button
         type="button"
         onClick={() => void submit()}
         disabled={busy || !subject.trim() || !body.trim()}
         className="w-full px-4 py-2.5 rounded-2xl text-sm font-semibold text-white transition-opacity disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-        style={{ backgroundColor: "#1a1a1a" }}
+        style={{ backgroundColor: "var(--j-purple)" }}
       >
         {busy ? "Sending…" : "Send message"}
       </button>

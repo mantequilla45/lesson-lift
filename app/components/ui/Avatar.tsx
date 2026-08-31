@@ -87,8 +87,8 @@ export default function Avatar({
       style={{
         width: size,
         height: size,
-        backgroundColor: "#E8E6D9",
-        color: "#6b6055",
+        backgroundColor: "var(--j-tint)",
+        color: "var(--j-deep)",
         // Scales with the circle so one component serves both the 36px navbar
         // and the 96px form without a size lookup table.
         fontSize: Math.round(size * 0.4),

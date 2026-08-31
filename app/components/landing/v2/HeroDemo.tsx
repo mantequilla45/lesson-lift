@@ -11,7 +11,7 @@ import {
   STEP_MS,
   type DemoTabId,
 } from "@/app/lib/landing/demo-content";
-import { ToolTile } from "./Squircle";
+import { ToolTile } from "@/app/components/v2/Squircle";
 import DemoSlides from "./DemoSlides";
 import DemoComprehension from "./DemoComprehension";
 import DemoWorksheet from "./DemoWorksheet";

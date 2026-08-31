@@ -17,7 +17,7 @@ export default async function ComprehensionGeneratorPage({
       sidebar={
         <ToolInfoPanel
           icon={<BookOpen className="w-5 h-5 text-amber-600" />}
-          heroBg="bg-amber-50"
+
           title="Comprehension Generator"
           description="This tool can be used to create reading comprehension activities. Select your curriculum, year group, text source and reading focuses, then hit generate."
           steps={[

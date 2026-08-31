@@ -40,7 +40,7 @@ export default function Tabs({
     <nav
       aria-label="Usage and billing sections"
       className="inline-flex gap-1 p-1 rounded-2xl border mb-6"
-      style={{ backgroundColor: "#FAF9F5", borderColor: "#DAD8D0" }}
+      style={{ backgroundColor: "var(--j-card)", borderColor: "var(--j-line)" }}
     >
       {TABS.map(({ id, label }) => {
         // Copy the CURRENT params and change only `tab`, rather than building a
@@ -60,8 +60,8 @@ export default function Tabs({
             className="px-4 py-2 text-sm font-semibold rounded-xl transition-colors"
             style={
               isActive
-                ? { backgroundColor: "#1a1a1a", color: "#fff" }
-                : { color: "#6b6055" }
+                ? { backgroundColor: "var(--j-purple)", color: "#fff" }
+                : { color: "var(--j-body)" }
             }
           >
             {label}

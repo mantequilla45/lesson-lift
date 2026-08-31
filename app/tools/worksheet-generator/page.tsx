@@ -17,7 +17,7 @@ export default async function WorksheetGeneratorPage({
       sidebar={
         <ToolInfoPanel
           icon={<FileText className="w-5 h-5 text-violet-600" />}
-          heroBg="bg-violet-50"
+
           title="Worksheet Generator"
           description="This tool can be used to create worksheets. Simply enter the year group, subject and learning objective you are targeting (remember to be specific) and hit generate."
           steps={[

@@ -17,7 +17,7 @@ export default async function PerformanceManagementPage({
       sidebar={
         <ToolInfoPanel
           icon={<Target className="w-5 h-5 text-rose-600" />}
-          heroBg="bg-rose-50"
+
           title="Performance Management Targets"
           description="This tool can be used to draft performance management targets for staff. Simply provide the school type, staff role, pay scale, and responsibilities and summary of targets."
           steps={[

@@ -24,6 +24,12 @@
   background: linear-gradient(158deg, rgba(255, 255, 255, 0.24), rgba(255, 255, 255, 0) 60%);
 }
 
+/* Sidebar pins and other inline chrome, where a 38px tile is too heavy. */
+.xs {
+  width: 26px;
+  height: 26px;
+}
+
 .sm {
   width: var(--j-tile-sm);
   height: var(--j-tile-sm);

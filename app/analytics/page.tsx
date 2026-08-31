@@ -1,13 +1,24 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, FileText, Trash2, Loader2, Sparkles, Clock, Wrench, CalendarDays } from "lucide-react";
-import AppShell from "@/app/components/layout/AppShell";
-import Card from "@/app/components/ui/Card";
-import { minutesSavedFor } from "@/app/lib/tools";
+import {
+  CaretLeft,
+  FileText,
+  Trash,
+  CircleNotch,
+  Clock,
+  Wrench,
+  CalendarBlank,
+} from "@phosphor-icons/react/dist/ssr";
+import AppShellV2 from "@/app/components/v2/AppShellV2";
+import { ToolTile } from "@/app/components/v2/Squircle";
+import { minutesSavedFor, v2ToolForSlug, toolSolid } from "@/app/lib/tools";
 import { listRecentRuns, deleteToolRun, type ToolRun } from "@/app/lib/toolRuns";
-import { toolForSlug, typeLabel, formatDate, TAG_COLORS } from "@/app/lib/toolRunDisplay";
+import { typeLabel, formatDate } from "@/app/lib/toolRunDisplay";
+import app from "@/app/components/v2/app.module.css";
+import styles from "./analytics.module.css";
 
 function formatHours(minutes: number) {
   if (minutes < 60) return `${minutes} min`;
@@ -58,167 +69,188 @@ export default function AnalyticsPage() {
       await deleteToolRun(id);
       setRuns((prev) => prev.filter((r) => r.id !== id));
     } catch {
-      // leave row if delete fails
+      // Leave the row in place if the delete fails, rather than removing it
+      // optimistically and having it reappear on the next load.
     } finally {
       setDeletingId(null);
     }
   };
 
   return (
-    <AppShell title="Analytics">
-          {/* Summary */}
-          <Card>
-            <button
-              onClick={() => router.push("/dashboard")}
-              className="flex items-center gap-1.5 text-sm text-muted hover:text-dark transition-colors cursor-pointer mb-5"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Back to dashboard
-            </button>
+    <AppShellV2 title="Activity">
+      <p className={styles.crumbs}>
+        <Link href="/dashboard" className={styles.crumbLink}>
+          <CaretLeft className={styles.crumbIcon} />
+          Today
+        </Link>
+      </p>
 
-            <h3 className="text-xl sm:text-2xl font-medium mb-6">Your activity</h3>
+      <div className={app.hello}>
+        <p className={app.helloWhen}>Your activity</p>
+        <h1>Everything you have made</h1>
+      </div>
 
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <Summary icon={<Sparkles className="w-4 h-4 text-white" />} iconBg="bg-violet-500" bg="bg-violet-100"
-                value={String(runs.length)} label="Total generations" />
-              <Summary icon={<Clock className="w-4 h-4 text-white" />} iconBg="bg-emerald-500" bg="bg-emerald-100"
-                value={`${Math.round(totalMinutes / 60)} hours`} label="Estimated time saved" />
-              <Summary icon={<Wrench className="w-4 h-4 text-white" />} iconBg="bg-blue-500" bg="bg-blue-100"
-                value={String(toolsUsed)} label="Tools used" />
-              <Summary icon={<CalendarDays className="w-4 h-4 text-white" />} iconBg="bg-amber-400" bg="bg-amber-100"
-                value={String(thisWeek)} label="This week" />
-            </div>
-          </Card>
+      <div className={styles.summary}>
+        <div className={styles.stat}>
+          <span className={styles.statIcon} data-tone="violet">
+            <FileText weight="fill" />
+          </span>
+          <div>
+            <b>{loading ? "—" : runs.length}</b>
+            <span>Resources made</span>
+          </div>
+        </div>
+        <div className={styles.stat}>
+          <span className={styles.statIcon} data-tone="green">
+            <Clock weight="fill" />
+          </span>
+          <div>
+            {/* Never a zero headline, the same rule as Today. */}
+            <b>
+              {loading
+                ? "—"
+                : runs.length === 0
+                  ? "Let us find out"
+                  : formatHours(totalMinutes)}
+            </b>
+            <span>Time saved</span>
+          </div>
+        </div>
+        <div className={styles.stat}>
+          <span className={styles.statIcon} data-tone="blue">
+            <Wrench weight="fill" />
+          </span>
+          <div>
+            <b>{loading ? "—" : toolsUsed}</b>
+            <span>Tools used</span>
+          </div>
+        </div>
+        <div className={styles.stat}>
+          <span className={styles.statIcon} data-tone="amber">
+            <CalendarBlank weight="fill" />
+          </span>
+          <div>
+            <b>{loading ? "—" : thisWeek}</b>
+            <span>This week</span>
+          </div>
+        </div>
+      </div>
 
-          {/* Per-tool breakdown */}
-          <Card>
-            <h3 className="text-lg sm:text-xl font-medium mb-6">Usage by tool</h3>
-            {loading ? (
-              <p className="text-sm text-muted py-10 text-center">Loading…</p>
-            ) : breakdown.length === 0 ? (
-              <p className="text-sm text-muted py-10 text-center">No activity yet.</p>
-            ) : (
-              <div className="space-y-3">
-                {/* 284px of fixed columns left the bar with nothing on a phone.
-                    The label takes its own line below `sm`; sm:contents then
-                    dissolves the mobile grouping wrapper so the desktop row is
-                    preserved exactly as it was. */}
-                {breakdown.map((b) => (
-                  <div key={b.slug} className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-4">
-                    <div className="w-full sm:w-48 shrink-0 text-sm font-medium text-dark truncate">
-                      {toolForSlug(b.slug)?.label ?? typeLabel(b.slug)}
-                    </div>
-                    <div className="flex items-center gap-3 sm:contents">
-                      <div className="flex-1 h-6 rounded-full bg-[#F1EFE3] overflow-hidden">
-                        <div
-                          className="h-full rounded-full bg-stone-700"
-                          style={{ width: `${Math.max(6, (b.count / maxCount) * 100)}%` }}
-                        />
-                      </div>
-                      <div className="w-12 shrink-0 text-sm font-semibold text-dark text-right tabular-nums">
-                        {b.count}
-                      </div>
-                      <div className="w-20 shrink-0 text-xs text-muted text-right">
-                        {formatHours(b.minutes)}
-                      </div>
-                    </div>
-                  </div>
-                ))}
+      <div className={app.sh}>
+        <div className={app.shTitle}>
+          <h2>Usage by tool</h2>
+        </div>
+      </div>
+      <section className={app.panel}>
+        {loading ? (
+          <p className={styles.quiet}>Loading…</p>
+        ) : breakdown.length === 0 ? (
+          <div className={app.empty}>
+            <span className={app.emptyIcon}>
+              <Wrench weight="fill" />
+            </span>
+            <p className={app.emptyTitle}>Nothing to chart yet</p>
+            <p className={app.emptyBody}>Make something and it shows up here.</p>
+          </div>
+        ) : (
+          <div className={styles.bars}>
+            {/* Below the breakpoint the label takes its own line: 280px of fixed
+                columns left the bar itself with no width at all on a phone. */}
+            {breakdown.map((b) => (
+              <div key={b.slug} className={styles.bar}>
+                <span className={styles.barName}>
+                  {v2ToolForSlug(b.slug)?.name ?? typeLabel(b.slug)}
+                </span>
+                <span className={styles.barTrack}>
+                  <span
+                    className={styles.barFill}
+                    style={{ width: `${Math.max(6, (b.count / maxCount) * 100)}%` }}
+                  />
+                </span>
+                <span className={styles.barCount}>{b.count}</span>
+                <span className={styles.barTime}>{formatHours(b.minutes)}</span>
               </div>
-            )}
-          </Card>
+            ))}
+          </div>
+        )}
+      </section>
 
-          {/* Full activity list */}
-          <Card>
-            <h3 className="text-lg sm:text-xl font-medium mb-6">
-              All activity <span className="text-muted">({runs.length})</span>
-            </h3>
-            {loading ? (
-              <p className="text-sm text-muted py-10 text-center">Loading…</p>
-            ) : runs.length === 0 ? (
-              <p className="text-sm text-muted py-10 text-center">
-                Nothing yet — generate something with a tool and it&apos;ll appear here.
-              </p>
-            ) : (
-              /* Six columns scroll inside their own box rather than widening
-                 the page. Same pattern as account/billing/UsageTable. */
-              <div className="overflow-x-auto -mx-1 px-1">
-              <table className="w-full text-sm min-w-180">
-                <thead>
-                  <tr className="text-left text-muted border-b border-line">
-                    <th className="font-normal pb-3 pr-4">Name</th>
-                    <th className="font-normal pb-3 pr-4">Type</th>
-                    <th className="font-normal pb-3 pr-4">Subject</th>
-                    <th className="font-normal pb-3 pr-4">Year</th>
-                    <th className="font-normal pb-3 pr-4">Date</th>
-                    <th className="pb-3 w-8" />
-                  </tr>
-                </thead>
-                <tbody>
-                  {runs.map((run) => {
-                    const tool = toolForSlug(run.tool_slug);
-                    const colors = (tool && TAG_COLORS[tool.tag]) || { bg: "bg-gray-100", icon: "text-gray-600" };
-                    const input = run.input as Record<string, unknown>;
-                    const subject = (input.subject as string) || "—";
-                    const year = (input.yearGroup as string) || "—";
-                    return (
-                      <tr
-                        key={run.id}
-                        // ?run= reopens THIS run. Without it the row opened an
-                        // empty tool and silently discarded what was clicked.
-                        onClick={() => tool && router.push(`${tool.href}?run=${run.id}`)}
-                        className="group border-b border-line/60 hover:bg-[#F1EFE3] transition-colors cursor-pointer"
-                      >
-                        <td className="py-3 pr-4">
-                          <div className="flex items-center gap-3">
-                            <span className={`w-8 h-8 rounded-lg ${colors.bg} flex items-center justify-center shrink-0`}>
-                              <FileText className={`w-4 h-4 ${colors.icon}`} />
-                            </span>
-                            <span className="font-medium text-dark truncate max-w-xs">
-                              {run.title?.trim() || "Untitled"}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="py-3 pr-4 text-muted">{typeLabel(run.tool_slug)}</td>
-                        <td className="py-3 pr-4 text-muted">{subject}</td>
-                        <td className="py-3 pr-4 text-muted">{year}</td>
-                        <td className="py-3 pr-4 text-muted whitespace-nowrap">{formatDate(run.created_at)}</td>
-                        <td className="py-3">
-                          <button
-                            aria-label="Delete"
-                            onClick={(e) => handleDelete(e, run.id)}
-                            disabled={deletingId === run.id}
-                            className="w-7 h-7 flex items-center justify-center rounded-md text-gray-400 opacity-0 group-hover:opacity-100 hover:text-red-600 hover:bg-white transition-all cursor-pointer"
-                          >
-                            {deletingId === run.id
-                              ? <Loader2 className="w-4 h-4 animate-spin" />
-                              : <Trash2 className="w-4 h-4" />}
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-              </div>
-            )}
-          </Card>
-    </AppShell>
-  );
-}
+      <div className={app.sh}>
+        <div className={app.shTitle}>
+          <h2>All activity</h2>
+          {!loading && runs.length > 0 && (
+            <span className={app.shSub}>
+              {runs.length} {runs.length === 1 ? "resource" : "resources"}
+            </span>
+          )}
+        </div>
+      </div>
+      <section className={app.panel}>
+        {loading ? (
+          <p className={styles.quiet}>Loading…</p>
+        ) : runs.length === 0 ? (
+          <div className={app.empty}>
+            <span className={app.emptyIcon}>
+              <FileText weight="fill" />
+            </span>
+            <p className={app.emptyTitle}>Nothing here yet</p>
+            <p className={app.emptyBody}>
+              Make something with any tool and it appears in this list.
+            </p>
+          </div>
+        ) : (
+          <div className={app.rows}>
+            {runs.map((run) => {
+              const tool = v2ToolForSlug(run.tool_slug);
+              const input = run.input as Record<string, unknown>;
+              const subject = (input.subject as string) || null;
+              const year = (input.yearGroup as string) || null;
+              const meta = [tool?.name ?? run.tool_slug, year, subject, formatDate(run.created_at)]
+                .filter(Boolean)
+                .join(" · ");
 
-function Summary({
-  icon, iconBg, bg, value, label,
-}: {
-  icon: React.ReactNode; iconBg: string; bg: string; value: string; label: string;
-}) {
-  return (
-    <div className={`relative rounded-2xl p-5 sm:p-6 ${bg} min-h-28 sm:min-h-32 flex flex-col justify-end`}>
-      <span className={`absolute top-5 right-5 w-9 h-9 rounded-xl ${iconBg} flex items-center justify-center`}>
-        {icon}
-      </span>
-      <p className="text-xl sm:text-2xl font-semibold text-dark">{value}</p>
-      <p className="text-xs text-muted mt-0.5">{label}</p>
-    </div>
+              return (
+                <div
+                  key={run.id}
+                  className={app.row}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => tool && router.push(`${tool.href}?run=${run.id}`)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      if (tool) router.push(`${tool.href}?run=${run.id}`);
+                    }
+                  }}
+                >
+                  <ToolTile
+                    icon={tool?.icon ?? "file-text"}
+                    solid={toolSolid(tool)}
+                    size="sm"
+                  />
+                  <span className={app.rowMain}>
+                    <span className={app.rowTitle}>{run.title?.trim() || "Untitled"}</span>
+                    <span className={app.rowMeta}>{meta}</span>
+                  </span>
+                  <button
+                    type="button"
+                    aria-label={`Delete ${run.title?.trim() || "this resource"}`}
+                    onClick={(e) => handleDelete(e, run.id)}
+                    disabled={deletingId === run.id}
+                    className={styles.del}
+                  >
+                    {deletingId === run.id ? (
+                      <CircleNotch className={`${styles.delIcon} ${styles.spin}`} />
+                    ) : (
+                      <Trash className={styles.delIcon} />
+                    )}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
+    </AppShellV2>
   );
 }

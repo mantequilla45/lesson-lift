@@ -1,5 +1,5 @@
 import Link from "next/link";
-import Wordmark from "./Wordmark";
+import Wordmark from "@/app/components/v2/Wordmark";
 import shared from "./landing.module.css";
 import styles from "./SiteFooter.module.css";
 

@@ -17,7 +17,7 @@ export default async function ModelAnswerGeneratorPage({
       sidebar={
         <ToolInfoPanel
           icon={<ClipboardCheck className="w-5 h-5 text-violet-600" />}
-          heroBg="bg-violet-50"
+
           title="Model Answer Generator"
           description="This tool can be used to generate model answers for exam-style questions worth varying marks. Simply enter the question and the total marks, and the AI will generate the response."
           steps={[

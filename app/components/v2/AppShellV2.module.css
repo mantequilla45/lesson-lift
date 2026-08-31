@@ -1,0 +1,54 @@
+/* The V2 app shell: a fixed rail beside a scrolling main column. */
+
+.app {
+  display: grid;
+  grid-template-columns: var(--j-nav) minmax(0, 1fr);
+  min-height: 100vh;
+  background: var(--j-bg);
+  color: var(--j-body);
+  font-family: var(--font-jakarta), system-ui, sans-serif;
+  font-size: 15px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Below the prototype's 900px breakpoint the rail becomes an off-canvas drawer
+   and the grid collapses to a single column. */
+@media (max-width: 900px) {
+  .app {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* min-width: 0 is load-bearing. A grid item's default `min-width: auto`
+   refuses to shrink below its content's intrinsic width, which is how one wide
+   table used to push the entire page sideways instead of scrolling inside its
+   own overflow-x box. */
+.main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* h-dvh rather than 100vh: on mobile 100vh includes the collapsing URL bar,
+   which puts Ask Mo's composer permanently below the fold. */
+.mainFixed {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: rgba(29, 23, 48, 0.45);
+}
+
+@media (min-width: 901px) {
+  .backdrop {
+    display: none;
+  }
+}

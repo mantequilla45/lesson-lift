@@ -1,0 +1,113 @@
+/* Skeleton shapes for Today. Sizes mirror TodayView.module.css so the real
+   content lands in the same places and nothing jumps. */
+
+.hello {
+  margin-bottom: 22px;
+}
+
+.bar {
+  background: var(--j-tint);
+  border-radius: 8px;
+}
+
+/* Widths cap against the viewport so the skeleton does not overflow a phone
+   before the real content has even arrived. */
+.eyebrow {
+  height: 12px;
+  width: min(140px, 60%);
+  margin-bottom: 12px;
+}
+
+.title {
+  height: 30px;
+  width: min(280px, 80%);
+  margin-bottom: 10px;
+}
+
+.sub {
+  height: 16px;
+  width: min(360px, 90%);
+}
+
+.mo {
+  height: 96px;
+  border-radius: var(--j-r-xl);
+  background: var(--j-tint);
+  margin-bottom: 20px;
+}
+
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.metric {
+  height: 72px;
+  border-radius: var(--j-r-lg);
+  background: var(--j-tint);
+}
+
+.quick {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 39px;
+}
+
+.card {
+  height: 148px;
+  border-radius: var(--j-r-lg);
+  background: var(--j-tint);
+}
+
+@media (max-width: 1240px) {
+  .metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .quick {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .quick {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .metrics,
+  .quick {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* One shared pulse, on the container, so every shape breathes in time rather
+   than each starting its own animation at mount. */
+.hello,
+.mo,
+.metrics,
+.quick {
+  animation: skeleton 1.6s ease-in-out infinite;
+}
+
+@keyframes skeleton {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hello,
+  .mo,
+  .metrics,
+  .quick {
+    animation: none;
+  }
+}

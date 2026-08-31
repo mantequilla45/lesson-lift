@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { Check, Copy, Loader2 } from "lucide-react";
+import { ChatTeardropDots } from "@phosphor-icons/react/dist/ssr";
 import { useState } from "react";
 import MarkdownResult from "@/app/components/MarkdownResult";
 import ToolLinkCard from "@/app/components/assistant/ToolLinkCard";
@@ -70,7 +71,7 @@ export default function ChatMessages({ turns, streaming = false }: Props) {
 function UserTurn({ content }: { content: string }) {
   return (
     <div className="flex justify-end">
-      <div className="max-w-[80%] rounded-2xl bg-[#1a1a1a] px-5 py-3 text-sm text-white whitespace-pre-wrap break-words">
+      <div className="max-w-[80%] rounded-2xl bg-(--j-purple) px-5 py-3 text-sm text-white whitespace-pre-wrap break-words">
         {content}
       </div>
     </div>
@@ -95,41 +96,80 @@ function AssistantTurn({
   };
 
   // An empty assistant turn means the request is in flight but no token has
-  // landed yet — show thinking dots rather than an empty bubble.
+  // landed yet — show that it is thinking rather than an empty bubble.
   if (streaming && !content) {
     return (
-      <div className="rounded-2xl bg-white px-5 py-4" style={{ border: "1px solid #EDEAE0" }}>
-        <div className="flex items-center gap-1.5 text-muted">
-          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-          <span className="text-xs">Thinking…</span>
+      <div className="flex gap-3">
+        <MoOrb />
+        <div
+          className="flex-1 min-w-0 rounded-2xl bg-(--j-card) px-5 py-4"
+          style={{ border: "1px solid var(--j-line)" }}
+        >
+          <div className="flex items-center gap-1.5 text-muted">
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            <span className="text-xs">Thinking…</span>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="rounded-2xl bg-white px-5 py-4" style={{ border: "1px solid #EDEAE0" }}>
-      <MarkdownResult text={content} />
-      {streaming && (
-        <span className="inline-block w-px h-[1em] bg-gray-500 animate-pulse ml-px align-text-bottom" />
-      )}
+    <div className="flex gap-3">
+      <MoOrb />
+      <div
+        className="flex-1 min-w-0 rounded-2xl bg-(--j-card) px-5 py-4"
+        style={{ border: "1px solid var(--j-line)" }}
+      >
+        <MarkdownResult text={content} />
+        {streaming && (
+          <span className="inline-block w-px h-[1em] bg-(--j-muted) animate-pulse ml-px align-text-bottom" />
+        )}
 
-      {toolCall && <ToolLinkCard prefill={toolCall} />}
+        {toolCall && <ToolLinkCard prefill={toolCall} />}
 
-      {/* Actions appear once the reply is complete — offering "copy" mid-stream
-          would copy a fragment. */}
-      {!streaming && content.trim() !== "" && (
-        <div className="mt-3 flex items-center gap-2 border-t pt-3" style={{ borderColor: "#EDEAE0" }}>
-          <button
-            type="button"
-            onClick={copy}
-            className="flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs text-muted transition-colors hover:bg-gray-50 cursor-pointer"
+        {/* Actions appear once the reply is complete — offering "copy"
+            mid-stream would copy a fragment. */}
+        {!streaming && content.trim() !== "" && (
+          <div
+            className="mt-3 flex items-center gap-2 border-t pt-3"
+            style={{ borderColor: "var(--j-line)" }}
           >
-            {copied ? <Check className="w-3.5 h-3.5 text-green-600" /> : <Copy className="w-3.5 h-3.5" />}
-            {copied ? "Copied" : "Copy"}
-          </button>
-        </div>
-      )}
+            <button
+              type="button"
+              onClick={copy}
+              className="flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs text-muted transition-colors hover:bg-(--j-tint) cursor-pointer"
+            >
+              {copied ? (
+                <Check className="w-3.5 h-3.5 text-green-600" />
+              ) : (
+                <Copy className="w-3.5 h-3.5" />
+              )}
+              {copied ? "Copied" : "Copy"}
+            </button>
+          </div>
+        )}
+      </div>
     </div>
+  );
+}
+
+/**
+ * Mo's mark beside each of its replies.
+ *
+ * Gives the assistant a consistent presence in the thread, so a teacher
+ * scanning back can tell at a glance which turns are theirs. `aria-hidden`
+ * because the turn is already distinguishable to a screen reader by its
+ * content and order; announcing "Mo" on every reply would be noise.
+ */
+function MoOrb() {
+  return (
+    <span
+      aria-hidden="true"
+      className="w-8 h-8 shrink-0 rounded-xl grid place-items-center"
+      style={{ backgroundColor: "var(--j-deep)" }}
+    >
+      <ChatTeardropDots weight="fill" className="w-4 h-4" style={{ color: "#fff" }} />
+    </span>
   );
 }

@@ -1,10 +1,12 @@
 "use client";
 
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { MdLock } from "react-icons/md";
+import { LockKey } from "@phosphor-icons/react/dist/ssr";
 import { createClient } from "@/app/lib/auth/client";
+import AuthLayout from "@/app/components/v2/AuthLayout";
+import auth from "@/app/components/v2/auth.module.css";
+import styles from "./verify.module.css";
 
 const CODE_LENGTH = 6;
 const FALLBACK_EMAIL = "your email";
@@ -91,13 +93,16 @@ export default function VerifyPage() {
   };
 
   const handlePaste = (index: number, e: React.ClipboardEvent<HTMLInputElement>) => {
-    const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, CODE_LENGTH - index);
+    const pasted = e.clipboardData
+      .getData("text")
+      .replace(/\D/g, "")
+      .slice(0, CODE_LENGTH - index);
     if (!pasted) return;
     e.preventDefault();
     setDigits((prev) => {
       const next = [...prev];
       for (let i = 0; i < pasted.length; i++) {
-        next[index + i] = pasted[i];
+        next[index + i] = pasted[i]!;
       }
       return next;
     });
@@ -106,107 +111,70 @@ export default function VerifyPage() {
   };
 
   return (
-    <div className="min-h-screen p-6 flex" style={{ backgroundColor: "#F1EFE3" }}>
-      <div className="w-full max-w-9xl mx-auto grid gap-6 lg:grid-cols-2">
-        {/* Illustration panel */}
-        <div
-          className="rounded-3xl p-10 flex items-center justify-center"
-          style={{ backgroundColor: "#E8E6D9" }}
-        >
-          <Image
-            src="/svgs/teacher.svg"
-            alt=""
-            width={467}
-            height={662}
-            priority
-            className="w-auto h-full max-h-full object-contain"
-          />
+    <AuthLayout
+      title="Check your email"
+      lede={
+        <>
+          We have sent a six digit code to{" "}
+          <strong className={styles.email}>{email}</strong>
+        </>
+      }
+    >
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          handleVerify();
+        }}
+      >
+        <div className={styles.code}>
+          {digits.map((digit, i) => (
+            <input
+              key={i}
+              ref={(el) => {
+                inputsRef.current[i] = el;
+              }}
+              type="text"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              maxLength={1}
+              value={digit}
+              onChange={(e) => handleChange(i, e.target.value)}
+              onKeyDown={(e) => handleKeyDown(i, e)}
+              onPaste={(e) => handlePaste(i, e)}
+              onFocus={(e) => e.target.select()}
+              aria-label={`Digit ${i + 1}`}
+              className={styles.digit}
+            />
+          ))}
         </div>
 
-        {/* Form panel */}
-        <div
-          className="rounded-3xl px-10 py-12 flex flex-col"
-          style={{ backgroundColor: "#FAF9F5" }}
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo/logo.svg" alt="Jooma" className="mx-auto mb-6" style={{ height: 34, width: "auto" }} />
+        {error && (
+          <p className={`${auth.error} ${styles.centre}`} role="alert">
+            {error}
+          </p>
+        )}
 
-          <div className="mx-auto w-full max-w-110 flex-1 flex flex-col justify-center">
-            <div className="text-center mb-8">
-              <h2 className="text-4xl font-medium leading-tight tracking-tight">6 digit code</h2>
-              <p className="mt-3 text-sm text-muted font-light">
-                Please enter the code we&apos;ve sent to{" "}
-                <span className="font-semibold text-dark">{email}</span>
-              </p>
-            </div>
+        <p className={styles.resend}>
+          Nothing arrived?{" "}
+          <button type="button" onClick={handleResend} className={styles.resendBtn}>
+            Send it again
+          </button>
+        </p>
 
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                handleVerify();
-              }}
-            >
-              <div className="flex justify-center gap-2 mb-4">
-                {digits.map((digit, i) => (
-                  <input
-                    key={i}
-                    ref={(el) => {
-                      inputsRef.current[i] = el;
-                    }}
-                    type="text"
-                    inputMode="numeric"
-                    autoComplete="one-time-code"
-                    maxLength={1}
-                    value={digit}
-                    onChange={(e) => handleChange(i, e.target.value)}
-                    onKeyDown={(e) => handleKeyDown(i, e)}
-                    onPaste={(e) => handlePaste(i, e)}
-                    onFocus={(e) => e.target.select()}
-                    aria-label={`Digit ${i + 1}`}
-                    className="w-12 h-14 text-center text-xl font-medium border border-line rounded-xl bg-white focus:outline-none focus:border-dark transition-colors"
-                  />
-                ))}
-              </div>
+        <button type="submit" disabled={!canSubmit} className={auth.submit}>
+          {loading ? "Verifying…" : "Verify"}
+        </button>
+      </form>
 
-              {error && (
-                <p className="text-center text-sm text-red-600 font-light mb-4">{error}</p>
-              )}
-
-              <div className="text-center mb-8">
-                <button
-                  type="button"
-                  onClick={handleResend}
-                  className="text-sm font-semibold text-dark hover:underline"
-                >
-                  Resend code
-                </button>
-              </div>
-
-              <div className="flex justify-center">
-                <button
-                  type="submit"
-                  disabled={!canSubmit}
-                  className="px-10 py-3 rounded-xl text-sm font-medium text-white transition-colors disabled:bg-[#F1EFE3] disabled:text-[#A5A5A5] disabled:cursor-default bg-[#030303] hover:bg-black"
-                >
-                  {loading ? "Verifying…" : "Submit"}
-                </button>
-              </div>
-            </form>
-          </div>
-
-          <div className="mx-auto w-full max-w-100 flex items-center gap-3 rounded-2xl border border-line p-4">
-            <span className="w-9 h-9 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
-              <MdLock className="w-5 h-5" />
-            </span>
-            <div>
-              <p className="text-sm font-medium">Secure & GDPR compliant</p>
-              <p className="text-xs text-muted font-light">
-                Your privacy matters — we protect your data
-              </p>
-            </div>
-          </div>
+      <div className={auth.trust}>
+        <span className={auth.trustIcon}>
+          <LockKey weight="fill" />
+        </span>
+        <div>
+          <p className={auth.trustTitle}>Secure and GDPR compliant</p>
+          <p className={auth.trustBody}>Your data stays yours, and your pupils&apos; stays theirs.</p>
         </div>
       </div>
-    </div>
+    </AuthLayout>
   );
 }

@@ -17,7 +17,7 @@ export default async function TargetedInterventionPage({
       sidebar={
         <ToolInfoPanel
           icon={<Target className="w-5 h-5 text-orange-500" />}
-          heroBg="bg-orange-50"
+
           title="Targeted Intervention Ideas"
           description="Generate personalised, evidence-based intervention strategies to close the gap for individual students — based on the attitudinal, aptitudinal, and attainment data you have."
           steps={[

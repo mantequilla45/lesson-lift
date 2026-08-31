@@ -181,16 +181,16 @@ export default function NotificationBell() {
                 <div
                   key={i}
                   className="h-14 rounded-xl"
-                  style={{ backgroundColor: "#EEECE4" }}
+                  style={{ backgroundColor: "var(--j-tint)" }}
                 />
               ))}
             </div>
           ) : preview.length === 0 ? (
             <div className="px-4 py-8 text-center">
-              <p className="text-sm font-medium" style={{ color: "#1a1a1a" }}>
+              <p className="text-sm font-medium" style={{ color: "var(--j-ink)" }}>
                 Nothing to report
               </p>
-              <p className="text-xs mt-1" style={{ color: "#8a8078" }}>
+              <p className="text-xs mt-1" style={{ color: "var(--j-faint)" }}>
                 Notifications from the Jooma team show up here.
               </p>
             </div>

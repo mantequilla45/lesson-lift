@@ -7,7 +7,7 @@ export default function Loading() {
 
         {/* Sidebar */}
         <div className="lg:col-span-1">
-          <div className="bg-[#FAF9F5] rounded-3xl overflow-hidden">
+          <div className="bg-(--j-card) rounded-3xl overflow-hidden">
             <div className="bg-amber-50 p-6 rounded-2xl">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-11 h-11 bg-white rounded-xl flex items-center justify-center shrink-0">
@@ -48,7 +48,7 @@ export default function Loading() {
 
         {/* Form */}
         <div className="lg:col-span-2">
-          <div className="bg-[#FAF9F5] rounded-3xl p-5 sm:p-6 lg:p-8 space-y-6">
+          <div className="bg-(--j-card) rounded-3xl p-5 sm:p-6 lg:p-8 space-y-6">
 
             {/* Curriculum + Year Group */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">

@@ -90,8 +90,8 @@ export default function RootLayout({
       data-scroll-behavior="smooth"
       className={`${bricolage.variable} ${geistMono.variable} ${lora.variable} ${playfair.variable} ${inter.variable} ${archivoBlack.variable} ${jakarta.variable} h-full antialiased scroll-smooth`}
     >
-      <body className="min-h-full flex flex-col" style={{ backgroundColor: "#F1EFE3" }} suppressHydrationWarning>
-        <NextTopLoader color="#1a1a1a" showSpinner={false} />
+      <body className="min-h-full flex flex-col" style={{ backgroundColor: "var(--j-bg)" }} suppressHydrationWarning>
+        <NextTopLoader color="#5B2ED6" showSpinner={false} />
         {children}
         <Analytics />
       </body>

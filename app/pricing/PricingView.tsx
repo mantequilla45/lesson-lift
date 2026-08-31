@@ -73,7 +73,7 @@ export default function PricingView({
   }
 
   return (
-    <div className="min-h-screen flex flex-col justify-center py-8 px-4" style={{ backgroundColor: "#F1EFE3" }}>
+    <div className="min-h-screen flex flex-col justify-center py-8 px-4" style={{ backgroundColor: "var(--j-tint)" }}>
       <div className="max-w-6xl mx-auto w-full">
 
         {/* Brand wordmark */}
@@ -86,11 +86,11 @@ export default function PricingView({
           {/* text-balance in place of the old hard <br /> — see app/lib/copy.ts */}
           <h1
             className="text-3xl md:text-4xl font-bold tracking-tight mb-3 text-balance max-w-2xl mx-auto"
-            style={{ color: "#1a1a1a" }}
+            style={{ color: "var(--j-purple)" }}
           >
             {copy["pricing.headline"]}
           </h1>
-          <p className="text-sm max-w-xl mx-auto" style={{ color: "#8a8078" }}>
+          <p className="text-sm max-w-xl mx-auto" style={{ color: "var(--j-faint)" }}>
             {copy["pricing.sub"]}
           </p>
         </div>
@@ -101,19 +101,19 @@ export default function PricingView({
           {/* Free */}
           <PlanCard
             badge="Free Plan"
-            badgeBg="#EEECE4"
-            badgeInk="#8a8078"
+            badgeBg="var(--j-tint)"
+            badgeInk="var(--j-faint)"
             price="£0"
             priceSuffix="/month"
-            cardBg="#FAF9F5"
-            cardBorder="#DAD8D0"
+            cardBg="var(--j-card)"
+            cardBorder="var(--j-line)"
             cta="Start for Free"
             ctaHref="/signup"
-            ctaBg="#1a1a1a"
+            ctaBg="var(--j-purple)"
             ctaInk="#fff"
             features={FREE_FEATURES}
             featureInk="#3a2f28"
-            includesInk="#1a1a1a"
+            includesInk="var(--j-purple)"
             bulletInk="#3a2f28"
           />
 
@@ -133,7 +133,7 @@ export default function PricingView({
             ctaInk="#fff"
             features={PRO_FEATURES}
             featureInk="#3a1a10"
-            includesInk="#1a1a1a"
+            includesInk="var(--j-purple)"
             bulletInk="#3a1a10"
           />
 
@@ -145,12 +145,12 @@ export default function PricingView({
         )}
 
         {/* Schools are sold hands-on, not self-serve. */}
-        <p className="text-center text-sm mt-6" style={{ color: "#8a8078" }}>
+        <p className="text-center text-sm mt-6" style={{ color: "var(--j-faint)" }}>
           Running a whole school?{" "}
           <a
             href="mailto:sales@jooma.ai"
             className="font-semibold underline transition-opacity hover:opacity-70"
-            style={{ color: "#1a1a1a" }}
+            style={{ color: "var(--j-purple)" }}
           >
             Talk to us
           </a>{" "}
@@ -162,7 +162,7 @@ export default function PricingView({
           <Link
             href="/"
             className="flex items-center gap-2 text-sm font-semibold transition-colors hover:opacity-70"
-            style={{ color: "#1a1a1a" }}
+            style={{ color: "var(--j-purple)" }}
           >
             <ArrowLeft className="w-4 h-4" />
             Back
@@ -209,11 +209,11 @@ function PlanCard({
 
       {/* Price */}
       <div className="text-center mb-4">
-        <span className="text-3xl font-bold tracking-tight" style={{ color: "#1a1a1a" }}>
+        <span className="text-3xl font-bold tracking-tight" style={{ color: "var(--j-purple)" }}>
           {price}
         </span>
         {priceSuffix && (
-          <span className="text-base font-medium" style={{ color: "#1a1a1a" }}>{priceSuffix}</span>
+          <span className="text-base font-medium" style={{ color: "var(--j-purple)" }}>{priceSuffix}</span>
         )}
       </div>
 

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { v2ToolsByCategory } from "@/app/lib/tools";
-import { ToolTile } from "./Squircle";
+import { ToolTile } from "@/app/components/v2/Squircle";
 import Reveal from "./Reveal";
 import shared from "./landing.module.css";
 import styles from "./ToolsGrid.module.css";

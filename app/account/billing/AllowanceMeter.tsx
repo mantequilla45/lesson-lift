@@ -32,7 +32,7 @@ function resetsOn(): string {
 
 function Bar({ fraction, tone }: { fraction: number; tone: string }) {
   return (
-    <div className="h-2 rounded-full overflow-hidden mb-2" style={{ backgroundColor: "#EEECE4" }}>
+    <div className="h-2 rounded-full overflow-hidden mb-2" style={{ backgroundColor: "var(--j-tint)" }}>
       <div
         className="h-full rounded-full transition-all"
         style={{
@@ -72,18 +72,18 @@ export default function AllowanceMeter({
     return (
       <div
         className="rounded-2xl p-6 border mt-5"
-        style={{ backgroundColor: "#FAF9F5", borderColor: "#DAD8D0" }}
+        style={{ backgroundColor: "var(--j-card)", borderColor: "var(--j-line)" }}
       >
         {/* Shown in credits, never pounds. The underlying meter is pence of
             model spend, but surfacing that next to the subscription price reads
             as "I paid £7.99 and only got £1.50", which is not what the plan is.
             See toCredits() in lib/plans.ts. */}
-        <p className="text-xs font-semibold mb-1" style={{ color: "#8a8078" }}>
+        <p className="text-xs font-semibold mb-1" style={{ color: "var(--j-faint)" }}>
           Credits this month
         </p>
-        <p className="text-xl font-bold mb-3" style={{ color: "#1a1a1a" }}>
+        <p className="text-xl font-bold mb-3" style={{ color: "var(--j-ink)" }}>
           {nf.format(creditsRemaining(spendPence, allowance))}{" "}
-          <span className="text-sm font-medium" style={{ color: "#8a8078" }}>
+          <span className="text-sm font-medium" style={{ color: "var(--j-faint)" }}>
             of {nf.format(toCredits(allowance))} left
           </span>
         </p>
@@ -91,12 +91,12 @@ export default function AllowanceMeter({
         <Bar fraction={fraction} tone={tone} />
 
         {creditPence > 0 && (
-          <p className="text-sm mb-1" style={{ color: "#6b6055" }}>
+          <p className="text-sm mb-1" style={{ color: "var(--j-body)" }}>
             Includes {nf.format(toCredits(creditPence))} top-up credits.
           </p>
         )}
 
-        <p className="text-sm" style={{ color: "#8a8078" }}>
+        <p className="text-sm" style={{ color: "var(--j-faint)" }}>
           Resets on {resetsOn()}. Unused credits don&apos;t carry over.
         </p>
 
@@ -128,14 +128,14 @@ export default function AllowanceMeter({
   return (
     <div
       className="rounded-2xl p-6 border mt-5"
-      style={{ backgroundColor: "#FAF9F5", borderColor: "#DAD8D0" }}
+      style={{ backgroundColor: "var(--j-card)", borderColor: "var(--j-line)" }}
     >
-      <p className="text-xs font-semibold mb-1" style={{ color: "#8a8078" }}>
+      <p className="text-xs font-semibold mb-1" style={{ color: "var(--j-faint)" }}>
         Generations
       </p>
-      <p className="text-xl font-bold mb-3" style={{ color: "#1a1a1a" }}>
+      <p className="text-xl font-bold mb-3" style={{ color: "var(--j-ink)" }}>
         {usedMonth}{" "}
-        <span className="text-sm font-medium" style={{ color: "#8a8078" }}>
+        <span className="text-sm font-medium" style={{ color: "var(--j-faint)" }}>
           of {monthlyGenerations} this month
         </span>
       </p>
@@ -146,14 +146,14 @@ export default function AllowanceMeter({
       />
 
       {dailyGenerations !== null && (
-        <p className="text-sm mb-1" style={{ color: "#6b6055" }}>
+        <p className="text-sm mb-1" style={{ color: "var(--j-body)" }}>
           {outOfDay
             ? "You've used today's generation — the next unlocks at midnight UTC."
             : `${usedToday} of ${dailyGenerations} used today.`}
         </p>
       )}
 
-      <p className="text-sm" style={{ color: "#8a8078" }}>
+      <p className="text-sm" style={{ color: "var(--j-faint)" }}>
         {outOfMonth
           ? `Your free generations reset on ${resetsOn()}.`
           : `Resets on ${resetsOn()}.`}

@@ -2,8 +2,8 @@
 
 import { usePathname } from "next/navigation";
 import Card from "@/app/components/ui/Card";
-import ToolIcon from "@/app/components/ToolIcon";
-import { TOOLS } from "@/app/lib/tools";
+import { ToolTile } from "@/app/components/v2/Squircle";
+import { v2ToolForSlug, toolSolid } from "@/app/lib/tools";
 
 interface Step {
   label: string;
@@ -12,36 +12,50 @@ interface Step {
 }
 
 interface ToolInfoPanelProps {
+  /** Fallback only, for a pathname that does not resolve to a known tool. */
   icon?: React.ReactNode;
-  heroBg?: string;
   title: string;
   description: string;
   steps: Step[];
 }
 
-const STEP_COLORS = ["bg-yellow-400", "bg-green-500", "bg-orange-400", "bg-blue-500"];
+// The step numbers walk down the brand rather than through four unrelated
+// hues. Purple first, because step one is where the eye lands.
+const STEP_COLORS = [
+  "bg-(--j-purple)",
+  "bg-(--j-mid)",
+  "bg-(--j-lilac-2)",
+  "bg-(--j-lilac)",
+];
 
 export default function ToolInfoPanel({
   icon,
-  heroBg = "bg-gray-50",
   title,
   description,
   steps,
 }: ToolInfoPanelProps) {
   const pathname = usePathname();
-  const tool = TOOLS.find((t) => pathname.startsWith(t.href));
+  // The slug, not the href: v2ToolForSlug is keyed by the /tools/<slug> segment.
+  const slug = pathname.split("/")[2] ?? "";
+  const tool = v2ToolForSlug(slug);
 
   return (
     <Card className="overflow-hidden p-0">
-      <div className={`p-5 sm:p-6 rounded-2xl ${heroBg}`}>
+      {/* The hero tint is the brand's, not a per-page prop. Each page used to
+          pass its own `heroBg`, which is how two pages ended up violet and one
+          blue for no reason a teacher could see. */}
+      <div className="p-5 sm:p-6 rounded-2xl bg-(--j-tint)">
         <div className="flex items-center gap-3 mb-4">
-          {tool
-            ? <ToolIcon name={tool.icon} className="w-11 h-11 shrink-0" />
-            : <div className="w-11 h-11 bg-white rounded-xl flex items-center justify-center shrink-0">{icon}</div>
-          }
-          <h1 className="text-xl sm:text-2xl font-semibold min-w-0">{title}</h1>
+          {tool ? (
+            <ToolTile icon={tool.icon} solid={toolSolid(tool)} size="lg" />
+          ) : (
+            <div className="w-11 h-11 bg-(--j-card) rounded-xl flex items-center justify-center shrink-0">
+              {icon}
+            </div>
+          )}
+          <h1 className="text-xl sm:text-2xl font-semibold min-w-0 text-(--j-ink)">{title}</h1>
         </div>
-        <p className="text-sm font-light">{description}</p>
+        <p className="text-sm font-light text-(--j-body)">{description}</p>
       </div>
       <div className="pt-5 pb-6 px-5 sm:px-8">
         <div className="h-px bg-gray-200 mb-5" />

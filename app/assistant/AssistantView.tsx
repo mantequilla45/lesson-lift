@@ -207,7 +207,7 @@ export default function AssistantView({ chatId }: { chatId?: string }) {
   return (
     <section
       className="flex flex-1 flex-col overflow-hidden rounded-2xl"
-      style={{ backgroundColor: "#FAF9F5" }}
+      style={{ backgroundColor: "var(--j-card)" }}
     >
       {locked ? (
         <AssistantLocked />

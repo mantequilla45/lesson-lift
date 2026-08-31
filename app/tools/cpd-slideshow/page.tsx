@@ -17,7 +17,7 @@ export default async function CpdSlideshowPage({
       sidebar={
         <ToolInfoPanel
           icon={<Monitor className="w-5 h-5 text-blue-600" />}
-          heroBg="bg-blue-50"
+
           title="CPD Slideshow Generator"
           description="This tool will create presentations for teacher professional development sessions. Simply enter the topic and number of slides and let the AI draft the content. You can also select whether the slides focus on practical application or research and theory."
           steps={[

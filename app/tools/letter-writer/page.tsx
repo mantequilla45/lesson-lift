@@ -17,7 +17,7 @@ export default async function LetterWriterPage({
       sidebar={
         <ToolInfoPanel
           icon={<Mail className="w-5 h-5 text-rose-600" />}
-          heroBg="bg-rose-50"
+
           title="Letter Writer"
           description="This tool can be used to write letters to parents, or other recipients. Simply indicate who the letter is to, provide a brief summary of content and required tone. The AI will then draft the letter for you."
           steps={[

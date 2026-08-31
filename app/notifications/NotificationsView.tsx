@@ -12,8 +12,8 @@
 // why the rename stopped at the UI.
 
 import { useEffect, useState } from "react";
-import { X } from "lucide-react";
-import AppShell from "@/app/components/layout/AppShell";
+import { X, Bell } from "@phosphor-icons/react/dist/ssr";
+import AppShellV2 from "@/app/components/v2/AppShellV2";
 import { createClient } from "@/app/lib/auth/client";
 import {
   type MyNotification,
@@ -21,6 +21,8 @@ import {
   labelFor,
   formatDate,
 } from "@/app/lib/notifications";
+import app from "@/app/components/v2/app.module.css";
+import styles from "./notifications.module.css";
 
 export default function NotificationsView() {
   const [rows, setRows] = useState<MyNotification[]>([]);
@@ -57,52 +59,45 @@ export default function NotificationsView() {
   };
 
   return (
-    <AppShell
-      title="Notifications"
-      banner={false}
-      launcher={false}
-      contentClassName="px-4 sm:px-6 lg:px-10 pb-16"
-    >
+    // The banner is suppressed because this page IS the list it links to, and
+    // the support launcher because a notification is not a support thread.
+    <AppShellV2 title="Updates" banner={false} launcher={false}>
       {loading ? (
-        <div className="space-y-3 animate-pulse">
+        <div className={styles.skeleton}>
           {Array.from({ length: 2 }).map((_, i) => (
-            <div
-              key={i}
-              className="h-20 rounded-2xl"
-              style={{ backgroundColor: "#EEECE4" }}
-            />
+            <div key={i} className={styles.skeletonRow} />
           ))}
         </div>
       ) : rows.length === 0 ? (
-        <div
-          className="rounded-3xl border py-12 sm:py-16 text-center"
-          style={{ backgroundColor: "#FAF9F5", borderColor: "#DAD8D0" }}
-        >
-          <p className="text-base font-medium" style={{ color: "#1a1a1a" }}>
-            Nothing to report
-          </p>
-          <p className="text-sm mt-1" style={{ color: "#8a8078" }}>
-            Notifications from the Jooma team show up here.
-          </p>
+        <div className={app.panel}>
+          <div className={app.empty}>
+            <span className={app.emptyIcon}>
+              <Bell weight="fill" />
+            </span>
+            <p className={app.emptyTitle}>Nothing to report</p>
+            <p className={app.emptyBody}>
+              Updates from the Jooma team show up here.
+            </p>
+          </div>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className={styles.list}>
           {rows.map((r) => {
             const tone = toneFor(r.type);
             return (
+              // Tones are shared with the banner and the bell popover — three
+              // renderings of the same rows — so they stay inline from
+              // app/lib/notifications.ts rather than being restated here.
               <div
                 key={r.id}
-                className="rounded-2xl border px-5 py-4 flex items-start gap-3"
+                className={styles.item}
                 style={{ backgroundColor: tone.bg, borderColor: tone.border }}
               >
-                <div className="grow min-w-0">
-                  <div
-                    className="text-[11px] font-bold uppercase tracking-wide mb-1"
-                    style={{ color: tone.fg, opacity: 0.75 }}
-                  >
+                <div className={styles.itemBody}>
+                  <div className={styles.itemMeta} style={{ color: tone.fg }}>
                     {labelFor(r.type)} · {formatDate(r.starts_at)}
                   </div>
-                  <p className="text-sm leading-snug" style={{ color: tone.fg }}>
+                  <p className={styles.itemText} style={{ color: tone.fg }}>
                     {r.message}
                   </p>
                 </div>
@@ -110,11 +105,11 @@ export default function NotificationsView() {
                   <button
                     type="button"
                     onClick={() => dismiss(r.id)}
-                    aria-label="Dismiss notification"
-                    className="shrink-0 rounded-lg p-0.5 transition-opacity hover:opacity-60 cursor-pointer"
+                    aria-label="Dismiss"
+                    className={styles.dismiss}
                     style={{ color: tone.fg }}
                   >
-                    <X className="w-4 h-4" />
+                    <X className={styles.dismissIcon} />
                   </button>
                 )}
               </div>
@@ -122,6 +117,6 @@ export default function NotificationsView() {
           })}
         </div>
       )}
-    </AppShell>
+    </AppShellV2>
   );
 }

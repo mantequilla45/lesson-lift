@@ -42,7 +42,7 @@ export default function ResumeButton() {
         onClick={resume}
         disabled={loading}
         className="inline-block py-2.5 px-5 rounded-xl text-sm font-semibold transition-opacity hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
-        style={{ backgroundColor: "#1a1a1a", color: "#fff" }}
+        style={{ backgroundColor: "var(--j-purple)", color: "#fff" }}
       >
         {loading ? "Renewing…" : "Renew subscription"}
       </button>

@@ -70,7 +70,7 @@ export default function ChatSidebar({
        the inner list already scrolls. */
     <aside
       className="w-full lg:w-[292px] shrink-0 rounded-2xl p-4 lg:p-6 flex flex-col gap-4 lg:gap-5 overflow-hidden max-h-64 lg:max-h-none"
-      style={{ backgroundColor: "#FAF9F5" }}
+      style={{ backgroundColor: "var(--j-card)" }}
     >
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-lg lg:text-[22px] font-medium text-dark min-w-0" style={{ letterSpacing: "-0.45px" }}>
@@ -91,7 +91,7 @@ export default function ChatSidebar({
 
       <div
         className="flex items-center gap-2 rounded-xl border bg-white px-4 h-11"
-        style={{ borderColor: "#F1EFE3" }}
+        style={{ borderColor: "var(--j-tint)" }}
       >
         <Search className="w-4 h-4 shrink-0 text-muted" />
         <input
@@ -105,7 +105,7 @@ export default function ChatSidebar({
 
       <div className="flex items-center gap-3">
         <span className="text-xs text-muted shrink-0">All Chats</span>
-        <div className="h-px flex-1" style={{ backgroundColor: "#EDEAE0" }} />
+        <div className="h-px flex-1" style={{ backgroundColor: "var(--j-line)" }} />
       </div>
 
       <div className="flex-1 overflow-y-auto -mx-1 px-1">
@@ -114,7 +114,7 @@ export default function ChatSidebar({
           // this one are indistinguishable and nothing shifts between them.
           <div className="space-y-2 animate-pulse" aria-hidden="true">
             {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="h-12 rounded-xl" style={{ backgroundColor: "#EEECE4" }} />
+              <div key={i} className="h-12 rounded-xl" style={{ backgroundColor: "var(--j-tint)" }} />
             ))}
           </div>
         ) : loadFailed ? (
@@ -149,7 +149,7 @@ export default function ChatSidebar({
                         if (e.key === "Escape") setEditingId(null);
                       }}
                       className="w-full rounded-xl border bg-white px-4 py-3 text-[13px] text-dark focus:outline-none"
-                      style={{ borderColor: "#1a1a1a" }}
+                      style={{ borderColor: "var(--j-purple)" }}
                     />
                   ) : (
                     <button
@@ -157,8 +157,8 @@ export default function ChatSidebar({
                       onClick={() => onSelect(chat.id)}
                       className="w-full rounded-xl px-4 py-3 pr-9 text-left text-[13px] transition-colors cursor-pointer"
                       style={{
-                        backgroundColor: active ? "#1a1a1a" : "#F1EFE3",
-                        color: active ? "#ffffff" : "#030303",
+                        backgroundColor: active ? "var(--j-purple)" : "var(--j-tint)",
+                        color: active ? "#fff" : "var(--j-ink)",
                       }}
                     >
                       <span className="block truncate">{chat.title}</span>
@@ -186,7 +186,7 @@ export default function ChatSidebar({
                       <div className="fixed inset-0 z-10" onClick={() => setMenuFor(null)} />
                       <div
                         className="absolute right-2 top-full z-20 mt-1 w-36 overflow-hidden rounded-lg border bg-white py-1 shadow-lg"
-                        style={{ borderColor: "#EDEAE0" }}
+                        style={{ borderColor: "var(--j-line)" }}
                       >
                         <button
                           type="button"

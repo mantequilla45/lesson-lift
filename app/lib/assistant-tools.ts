@@ -94,7 +94,9 @@ export interface AssistantTool {
   slug: string;
   /** Shown on the ToolLinkCard. */
   label: string;
-  /** Icon name for ToolIcon, matching the entry in tools.ts. */
+  /** Icon key, matching the entry in tools.ts. Rendering now goes through the
+   *  V2 metadata (v2ToolForSlug) and its Phosphor name, so this is only the
+   *  join key. */
   icon: string;
   /** Tells the model when to choose this tool over the others. */
   description: string;

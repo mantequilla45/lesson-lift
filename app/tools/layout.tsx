@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import AppShell from "@/app/components/layout/AppShell";
+import AppShellV2 from "@/app/components/v2/AppShellV2";
 import UpgradeGate from "@/app/components/UpgradeGate";
 
 const ROUTE_LABELS: Record<string, string> = {
@@ -56,7 +56,7 @@ export default function ToolsLayout({ children }: { children: React.ReactNode })
   const label = ROUTE_LABELS[pathname] ?? "Tools";
 
   return (
-    <AppShell
+    <AppShellV2
       title={label}
       slot={<UpgradeGate />}
       contentClassName="grow flex flex-col px-4 sm:px-6 lg:px-10 pb-16"
@@ -68,6 +68,6 @@ export default function ToolsLayout({ children }: { children: React.ReactNode })
         </Link>
       </div>
       <div className="grow">{children}</div>
-    </AppShell>
+    </AppShellV2>
   );
 }

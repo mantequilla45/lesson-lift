@@ -17,7 +17,7 @@ export default async function ModelTextGeneratorPage({
       sidebar={
         <ToolInfoPanel
           icon={<PenLine className="w-5 h-5 text-amber-600" />}
-          heroBg="bg-amber-50"
+
           title="Model Text Generator"
           description="This tool can be used to help write model texts. Simply tell it what to write, which language or grammatical features to use and how long to make it. The AI will then write a model text matching your requirements."
           steps={[

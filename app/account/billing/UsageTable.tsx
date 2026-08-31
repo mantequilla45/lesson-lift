@@ -78,7 +78,7 @@ export default function UsageTable({ rows }: { rows: ReportRow[] }) {
     return (
       <div
         className="rounded-2xl p-6 border text-sm"
-        style={{ backgroundColor: "#FAF9F5", borderColor: "#DAD8D0", color: "#6b6055" }}
+        style={{ backgroundColor: "var(--j-card)", borderColor: "var(--j-line)", color: "var(--j-body)" }}
       >
         No generations yet this month.
       </div>
@@ -88,12 +88,12 @@ export default function UsageTable({ rows }: { rows: ReportRow[] }) {
   return (
     <div
       className="rounded-2xl border overflow-hidden"
-      style={{ backgroundColor: "#FAF9F5", borderColor: "#DAD8D0" }}
+      style={{ backgroundColor: "var(--j-card)", borderColor: "var(--j-line)" }}
     >
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr style={{ color: "#8a8078" }} className="text-left">
+            <tr style={{ color: "var(--j-faint)" }} className="text-left">
               <th className="font-semibold px-4 py-3">Tool</th>
               <th className="font-semibold px-4 py-3 text-right">Generations</th>
               <th className="font-semibold px-4 py-3 text-right">Credits used</th>
@@ -111,23 +111,23 @@ export default function UsageTable({ rows }: { rows: ReportRow[] }) {
               // every read goes through Number().
               const each = perGen(Number(r.credits), Number(r.generations));
               return (
-                <tr key={r.tool_slug} className="border-t" style={{ borderColor: "#EEECE4" }}>
-                  <td className="px-4 py-3 font-medium" style={{ color: "#1a1a1a" }}>
+                <tr key={r.tool_slug} className="border-t" style={{ borderColor: "var(--j-tint)" }}>
+                  <td className="px-4 py-3 font-medium" style={{ color: "var(--j-ink)" }}>
                     {typeLabel(r.tool_slug)}
                   </td>
-                  <td className="px-4 py-3 text-right" style={{ color: "#6b6055" }}>
+                  <td className="px-4 py-3 text-right" style={{ color: "var(--j-body)" }}>
                     {nf.format(Number(r.generations))}
                   </td>
-                  <td className="px-4 py-3 text-right font-semibold" style={{ color: "#1a1a1a" }}>
+                  <td className="px-4 py-3 text-right font-semibold" style={{ color: "var(--j-ink)" }}>
                     {credits(Number(r.credits))}
                   </td>
-                  <td className="px-4 py-3 text-right" style={{ color: "#6b6055" }}>
+                  <td className="px-4 py-3 text-right" style={{ color: "var(--j-body)" }}>
                     {credits(each)}
                   </td>
-                  <td className="px-4 py-3 text-right" style={{ color: "#6b6055" }}>
+                  <td className="px-4 py-3 text-right" style={{ color: "var(--j-body)" }}>
                     {credits(each * 10)}
                   </td>
-                  <td className="px-4 py-3 text-right" style={{ color: "#6b6055" }}>
+                  <td className="px-4 py-3 text-right" style={{ color: "var(--j-body)" }}>
                     {credits(each * 100)}
                   </td>
                 </tr>
@@ -135,23 +135,23 @@ export default function UsageTable({ rows }: { rows: ReportRow[] }) {
             })}
           </tbody>
           <tfoot>
-            <tr className="border-t-2" style={{ borderColor: "#DAD8D0" }}>
-              <td className="px-4 py-3 font-bold" style={{ color: "#1a1a1a" }}>
+            <tr className="border-t-2" style={{ borderColor: "var(--j-line)" }}>
+              <td className="px-4 py-3 font-bold" style={{ color: "var(--j-ink)" }}>
                 Total
               </td>
-              <td className="px-4 py-3 text-right font-semibold" style={{ color: "#1a1a1a" }}>
+              <td className="px-4 py-3 text-right font-semibold" style={{ color: "var(--j-ink)" }}>
                 {nf.format(totals.generations)}
               </td>
-              <td className="px-4 py-3 text-right font-bold" style={{ color: "#1a1a1a" }}>
+              <td className="px-4 py-3 text-right font-bold" style={{ color: "var(--j-ink)" }}>
                 {credits(totals.credits)}
               </td>
-              <td className="px-4 py-3 text-right font-semibold" style={{ color: "#1a1a1a" }}>
+              <td className="px-4 py-3 text-right font-semibold" style={{ color: "var(--j-ink)" }}>
                 {credits(totalEach)}
               </td>
-              <td className="px-4 py-3 text-right font-semibold" style={{ color: "#1a1a1a" }}>
+              <td className="px-4 py-3 text-right font-semibold" style={{ color: "var(--j-ink)" }}>
                 {credits(totalEach * 10)}
               </td>
-              <td className="px-4 py-3 text-right font-semibold" style={{ color: "#1a1a1a" }}>
+              <td className="px-4 py-3 text-right font-semibold" style={{ color: "var(--j-ink)" }}>
                 {credits(totalEach * 100)}
               </td>
             </tr>

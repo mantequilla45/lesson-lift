@@ -17,7 +17,7 @@ export default async function PupilPremiumPlannerPage({
       sidebar={
         <ToolInfoPanel
           icon={<TrendingUp className="w-5 h-5 text-rose-600" />}
-          heroBg="bg-rose-50"
+
           title="Pupil Premium Planner"
           description="This tool can be used to suggest Tier 1, 2, and 3 (as defined in the DfE Pupil Premium Guidance) strategies to support disadvantaged students receiving funding. Simply enter the challenge(s), up to 3, you are aiming to tackle."
           steps={[

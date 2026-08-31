@@ -291,19 +291,17 @@ export function v2ToolsByCategory(): {
   solid: string;
   tools: V2Tool[];
 }[] {
-  const joined: V2Tool[] = TOOLS.flatMap((tool) => {
-    const meta = V2_META[tool.href];
-    if (!meta) return [];
-    return [{ ...tool, ...meta, synonyms: [tool.label] }];
-  });
-
   return V2_CATEGORIES.map((category) => ({
     id: category.id,
     name: category.name,
     solid: category.solid,
-    tools: joined.filter((t) => t.category === category.id),
+    tools: V2_TOOLS.filter((t) => t.category === category.id),
   }));
 }
+
+// V2_TOOLS and the lookups derived from it are declared BELOW the TOOLS array
+// they read, because `const` is not hoisted: evaluating them here would throw
+// on import.
 
 export const TOOLS: Tool[] = [
   {
@@ -552,6 +550,53 @@ export const TOOLS: Tool[] = [
     tag: "Leadership",
   },
 ];
+
+/**
+ * The joined tools as one flat list, in TOOLS order.
+ *
+ * Computed once at module scope rather than per call: several screens resolve a
+ * tool by slug on every row they render, and rebuilding the join inside a loop
+ * is how the same 35-entry array ends up allocated hundreds of times on one
+ * page.
+ *
+ * A tool with no V2 entry is dropped rather than rendered half-named, which
+ * makes a missing mapping visible immediately instead of shipping a blank tile.
+ */
+export const V2_TOOLS: V2Tool[] = TOOLS.flatMap((tool) => {
+  const meta = V2_META[tool.href];
+  if (!meta) return [];
+  return [{ ...tool, ...meta, synonyms: [tool.label] }];
+});
+
+/** Slug ("worksheet-generator") to its joined V2 tool. */
+const V2_BY_SLUG: Record<string, V2Tool> = Object.fromEntries(
+  V2_TOOLS.map((tool) => [tool.href.replace("/tools/", ""), tool]),
+);
+
+/** The category's solid colour, for the tile a tool's glyph sits on. */
+const CATEGORY_SOLID: Record<string, string> = Object.fromEntries(
+  V2_CATEGORIES.map((c) => [c.id, c.solid]),
+);
+
+/** A neutral tile for a run whose tool no longer exists. --j-muted. */
+const FALLBACK_SOLID = "#6D6683";
+
+/**
+ * Resolve a tool_runs.tool_slug to its V2 metadata.
+ *
+ * Returns undefined for a slug with no matching tool — a run saved by a tool
+ * that has since been renamed or removed. Callers render those with a neutral
+ * fallback rather than dropping the row, because it is still the teacher's
+ * resource and they must be able to open and delete it.
+ */
+export function v2ToolForSlug(slug: string): V2Tool | undefined {
+  return V2_BY_SLUG[slug];
+}
+
+/** The tile colour for a tool, or a neutral slate for an unrecognised one. */
+export function toolSolid(tool: V2Tool | undefined): string {
+  return tool ? (CATEGORY_SOLID[tool.category] ?? FALLBACK_SOLID) : FALLBACK_SOLID;
+}
 
 export const PINNED_HREFS: string[] = [];
 

@@ -31,7 +31,7 @@ export default function AssistantLocked() {
           "Every conversation saved and searchable",
         ].map((item) => (
           <li key={item} className="flex items-start gap-2.5 text-sm text-dark">
-            <Check className="mt-0.5 w-4 h-4 shrink-0" style={{ color: "#c25034" }} />
+            <Check className="mt-0.5 w-4 h-4 shrink-0" style={{ color: "var(--j-purple)" }} />
             {item}
           </li>
         ))}
@@ -39,7 +39,7 @@ export default function AssistantLocked() {
 
       <Link
         href="/pricing"
-        className="mt-8 rounded-xl bg-[#1a1a1a] px-6 py-3 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+        className="mt-8 rounded-xl bg-(--j-purple) px-6 py-3 text-sm font-semibold text-white transition-opacity hover:opacity-90"
       >
         Upgrade to Pro — £7.99 a month
       </Link>
