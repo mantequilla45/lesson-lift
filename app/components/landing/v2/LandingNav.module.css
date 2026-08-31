@@ -1,0 +1,73 @@
+.nav {
+  position: sticky;
+  top: 0;
+  z-index: 60;
+  background: rgba(247, 245, 252, 0.85);
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.25s;
+}
+
+.stuck {
+  border-bottom-color: var(--j-line);
+}
+
+.inner {
+  display: flex;
+  align-items: center;
+  gap: 34px;
+  height: 74px;
+}
+
+.brand {
+  color: var(--j-purple);
+  display: inline-flex;
+}
+
+.links {
+  display: flex;
+  gap: 28px;
+}
+
+.link {
+  font-size: 0.94rem;
+  font-weight: 600;
+  color: var(--j-body);
+  transition: color 0.15s;
+}
+
+.link:hover {
+  color: var(--j-purple);
+}
+
+.right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.cta {
+  padding: 11px 22px;
+  font-size: 0.92rem;
+}
+
+/* Four short links, so they wrap to their own row rather than collapsing into
+   a hamburger that hides the entire navigation behind a tap. */
+@media (max-width: 860px) {
+  .inner {
+    flex-wrap: wrap;
+    height: auto;
+    padding-top: 14px;
+    padding-bottom: 14px;
+    gap: 12px 20px;
+  }
+
+  .links {
+    order: 3;
+    width: 100%;
+    justify-content: center;
+    gap: 22px;
+    font-size: 0.88rem;
+  }
+}

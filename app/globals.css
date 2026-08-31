@@ -276,3 +276,58 @@ summary {
     animation: none;
   }
 }
+
+/* ── Jooma V2 tokens ─────────────────────────────────────────────────────────
+ *
+ * The V2 brand (purple, Plus Jakarta Sans) currently applies to the marketing
+ * landing page ONLY. The signed-in app is still on the cream/yellow theme
+ * declared in `@theme inline` at the top of this file, and 80-odd files depend
+ * on it. So these are scoped to `.jooma-v2` rather than `:root`: a component
+ * only sees them if it is rendered inside the landing page's root wrapper.
+ * When the dashboard is rebranded, this block moves to `:root` and the old
+ * tokens go.
+ *
+ * Values are the brand bible, verbatim. Do not type these hexes into
+ * components; reference the variable.
+ */
+.jooma-v2 {
+  --j-bg: #F7F5FC;
+  --j-card: #FFFFFF;
+  --j-tint: #F1ECFC;
+  --j-tint-2: #E9E2FB;
+  --j-lilac: #CDBCF7;
+  --j-lilac-2: #B7A6EC;
+  --j-mid: #8B6AE8;
+  --j-purple: #5B2ED6;
+  --j-deep: #3A1C8F;
+
+  --j-ink: #1D1730;    /* headings */
+  --j-body: #3C3552;   /* paragraphs */
+  --j-muted: #6D6683;  /* supporting */
+  --j-faint: #9A93AD;  /* metadata ONLY, never body copy */
+
+  --j-line: #EAE6F5;
+  --j-line-2: #DDD6EE;
+
+  /* Burnt orange is the marketing accent: one element per section at most. It
+     marks the cost of not acting, and the Behaviour/SEND tool colour. Never a
+     warning or an error. */
+  --j-orange: #C2551F;
+  --j-orange-bg: #FDF1EA;
+  --j-orange-ink: #8A3C12;
+  --j-paper: #FFFDF7;  /* slide previews, deck thumbnails */
+
+  --j-r: 14px;
+  --j-r-lg: 20px;
+  --j-r-xl: 28px;
+  --j-pill: 999px;
+
+  /* Tile sizes are tokens, not per-call values. A tile's glyph is sized by a
+     percentage on the tile itself, never by a utility class on the SVG. */
+  --j-tile-md: 42px;   /* tool cards, list rows, quick tiles */
+  --j-tile-sm: 38px;   /* option rows, secondary lists */
+  --j-tile-lg: 58px;   /* tool page header */
+
+  --j-ease: cubic-bezier(.22, .61, .36, 1);
+  --j-shell: 1200px;
+}

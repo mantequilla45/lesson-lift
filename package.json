@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint",
+    "lint": "eslint && node scripts/check-language.mjs",
     "db:start": "supabase start",
     "db:stop": "supabase stop",
     "db:status": "supabase status",
@@ -15,6 +15,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.80.0",
     "@imgly/background-removal": "^1.7.0",
+    "@phosphor-icons/react": "^2.1.10",
     "@sendgrid/mail": "^8.1.6",
     "@sentry/nextjs": "^10.70.0",
     "@supabase/ssr": "^0.10.3",

@@ -1,0 +1,153 @@
+.comp {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 260px;
+  gap: 18px;
+}
+
+.reading {
+  background: var(--j-card);
+  border: 1px solid var(--j-line);
+  border-radius: var(--j-r);
+  padding: 24px 26px;
+  min-width: 0;
+}
+
+.reading h4 {
+  font-size: 1.2rem;
+  margin-bottom: 4px;
+}
+
+.source {
+  font-size: 0.78rem;
+  color: var(--j-faint);
+  font-weight: 600;
+  margin-bottom: 14px;
+}
+
+.para {
+  font-size: 0.97rem;
+  line-height: 1.72;
+  color: var(--j-body);
+}
+
+.para + .para {
+  margin-top: 12px;
+}
+
+.questions {
+  margin-top: 18px;
+  border-top: 1px solid var(--j-line);
+  padding-top: 16px;
+}
+
+.questions b {
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--j-purple);
+  display: block;
+  margin-bottom: 10px;
+}
+
+.questions ol {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.questions li {
+  font-size: 0.92rem;
+  padding: 4px 0;
+}
+
+.control {
+  background: var(--j-card);
+  border: 1px solid var(--j-line);
+  border-radius: var(--j-r);
+  padding: 20px;
+  min-width: 0;
+}
+
+.control h4 {
+  font-size: 0.95rem;
+  margin-bottom: 14px;
+}
+
+.label {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: var(--j-muted);
+  margin-bottom: 9px;
+}
+
+.ages {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin-bottom: 18px;
+}
+
+.age {
+  background: var(--j-bg);
+  border: 1px solid transparent;
+  border-radius: 10px;
+  padding: 11px 13px;
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--j-body);
+  transition:
+    background 0.15s,
+    border-color 0.15s;
+}
+
+.age span {
+  display: block;
+  font-size: 0.76rem;
+  font-weight: 400;
+  color: var(--j-faint);
+  margin-top: 1px;
+}
+
+.ageOn {
+  background: var(--j-tint);
+  border-color: var(--j-lilac);
+  color: var(--j-deep);
+}
+
+.hint {
+  font-size: 0.79rem;
+  color: var(--j-faint);
+  border-top: 1px solid var(--j-line);
+  padding-top: 14px;
+}
+
+@media (max-width: 1000px) {
+  .comp {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* The switcher is the point of this pane, so on a phone it goes above the
+     passage rather than below a long text nobody scrolls past. */
+  .control {
+    order: -1;
+  }
+
+  .ages {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .age {
+    flex: 1 1 150px;
+  }
+}
+
+@media (max-width: 620px) {
+  .reading {
+    padding: 18px;
+  }
+}

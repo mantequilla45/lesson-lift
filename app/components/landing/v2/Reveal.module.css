@@ -1,0 +1,22 @@
+.rv {
+  opacity: 0;
+  transform: translateY(20px);
+  transition:
+    opacity 0.7s var(--j-ease),
+    transform 0.7s var(--j-ease);
+}
+
+.in {
+  opacity: 1;
+  transform: none;
+}
+
+/* Reduced motion still reveals the content, it just arrives already in place.
+   Without the opacity reset the section would stay invisible. */
+@media (prefers-reduced-motion: reduce) {
+  .rv {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}

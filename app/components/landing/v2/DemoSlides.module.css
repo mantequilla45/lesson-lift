@@ -1,0 +1,204 @@
+/* minmax(0, 1fr) rather than 1fr: a grid column defaults to min-content, so
+   without this the thumbnail strip refuses to shrink and widens the whole page
+   on a phone. This is half of the fix; the page's own overflow-x is the other. */
+.deck {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 190px;
+  gap: 16px;
+}
+
+.main {
+  min-width: 0;
+}
+
+/* Warm paper, deliberately not the purple UI. This is the artefact the teacher
+   walks out with, so it should look like a document, not like the app. */
+.slide {
+  background: var(--j-paper);
+  border: 1px solid var(--j-line);
+  border-radius: var(--j-r);
+  padding: 26px 30px;
+  min-height: 300px;
+  position: relative;
+  overflow: hidden;
+}
+
+.rule {
+  display: block;
+  width: 52px;
+  height: 5px;
+  border-radius: 3px;
+  background: #c2551f;
+  margin-bottom: 14px;
+}
+
+.slide h4 {
+  font-size: 1.6rem;
+  color: #b5651d;
+  letter-spacing: -0.03em;
+  font-weight: 800;
+  margin-bottom: 12px;
+  line-height: 1.1;
+}
+
+.slide p {
+  font-size: 0.95rem;
+  color: #4a4032;
+  max-width: 44ch;
+}
+
+.slide ul {
+  margin: 12px 0 0;
+  padding-left: 18px;
+}
+
+.slide li {
+  font-size: 0.93rem;
+  color: #4a4032;
+  padding: 2px 0;
+}
+
+.activity {
+  margin-top: 16px;
+  background: #fbeedc;
+  border-radius: 10px;
+  padding: 13px 15px;
+  max-width: 42ch;
+  position: relative;
+  z-index: 1;
+}
+
+.activity b {
+  display: block;
+  font-size: 0.85rem;
+  color: #8a3c12;
+  margin-bottom: 3px;
+}
+
+.activity span {
+  font-size: 0.87rem;
+  color: #6b4a2e;
+}
+
+.art {
+  position: absolute;
+  right: -18px;
+  bottom: -18px;
+  width: 180px;
+  height: 180px;
+  opacity: 0.9;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+
+.action {
+  background: var(--j-card);
+  border: 1px solid var(--j-line-2);
+  border-radius: var(--j-pill);
+  padding: 8px 15px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--j-ink);
+}
+
+.actionPrimary {
+  background: var(--j-purple);
+  border-color: var(--j-purple);
+  color: #fff;
+}
+
+.thumbs {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 300px;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.thumb {
+  background: var(--j-paper);
+  border: 1px solid var(--j-line);
+  border-radius: 9px;
+  height: 52px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  position: relative;
+  flex: none;
+}
+
+.thumbOn {
+  border-color: var(--j-purple);
+  box-shadow: 0 0 0 2px var(--j-tint);
+}
+
+.thumb i {
+  display: block;
+  height: 4px;
+  border-radius: 2px;
+  background: #eadfcb;
+}
+
+.thumb i:first-child {
+  background: #d8863f;
+  width: 56%;
+  height: 6px;
+}
+
+.thumb span {
+  position: absolute;
+  right: 7px;
+  bottom: 5px;
+  font-size: 0.62rem;
+  font-weight: 800;
+  color: var(--j-faint);
+}
+
+@media (max-width: 1000px) {
+  .deck {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* Below the slide the strip reads better horizontally, and scrolls inside
+     its own box rather than widening the page. */
+  .thumbs {
+    flex-direction: row;
+    max-height: none;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .thumb {
+    min-width: 96px;
+  }
+}
+
+@media (max-width: 620px) {
+  .slide {
+    padding: 20px;
+    min-height: auto;
+  }
+
+  .slide h4 {
+    font-size: 1.25rem;
+  }
+
+  .art {
+    width: 120px;
+    height: 120px;
+    right: -14px;
+    bottom: -14px;
+  }
+
+  .thumb {
+    min-width: 78px;
+  }
+}

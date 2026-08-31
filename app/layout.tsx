@@ -6,6 +6,7 @@ import {
   Playfair_Display,
   Inter,
   Archivo_Black,
+  Plus_Jakarta_Sans,
 } from "next/font/google";
 import NextTopLoader from "nextjs-toploader";
 import { Analytics } from "@vercel/analytics/next";
@@ -20,6 +21,17 @@ const bricolage = Bricolage_Grotesque({
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+});
+
+// The Jooma V2 brand face, used by the marketing landing page. Three weights
+// only — 400, 600, 800 — per the brand bible; there is no 500 or 700 and no
+// italic outside a pull quote. `next/font` self-hosts it at build time, which
+// is what the handover asks for (speed, and no Google Fonts CDN request from a
+// visitor's browser).
+const jakarta = Plus_Jakarta_Sans({
+  variable: "--font-jakarta",
+  subsets: ["latin"],
+  weight: ["400", "600", "800"],
 });
 
 // Slideshow theme fonts — referenced by name in the slide renderers
@@ -76,7 +88,7 @@ export default function RootLayout({
     <html
       lang="en"
       data-scroll-behavior="smooth"
-      className={`${bricolage.variable} ${geistMono.variable} ${lora.variable} ${playfair.variable} ${inter.variable} ${archivoBlack.variable} h-full antialiased scroll-smooth`}
+      className={`${bricolage.variable} ${geistMono.variable} ${lora.variable} ${playfair.variable} ${inter.variable} ${archivoBlack.variable} ${jakarta.variable} h-full antialiased scroll-smooth`}
     >
       <body className="min-h-full flex flex-col" style={{ backgroundColor: "#F1EFE3" }} suppressHydrationWarning>
         <NextTopLoader color="#1a1a1a" showSpinner={false} />

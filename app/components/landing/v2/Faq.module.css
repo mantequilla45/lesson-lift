@@ -1,0 +1,52 @@
+.faq {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.faq details {
+  border-bottom: 1px solid var(--j-line);
+  padding: 22px 0;
+}
+
+.faq summary {
+  list-style: none;
+  cursor: pointer;
+  font-weight: 800;
+  color: var(--j-ink);
+  font-size: 1.04rem;
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  align-items: center;
+  letter-spacing: -0.015em;
+}
+
+.faq summary::-webkit-details-marker {
+  display: none;
+}
+
+/* A plus that rotates into a cross. Cheaper than an icon and it animates. */
+.faq summary::after {
+  content: "+";
+  color: var(--j-purple);
+  font-size: 1.5rem;
+  line-height: 1;
+  transition: transform 0.22s;
+}
+
+.faq details[open] summary::after {
+  transform: rotate(45deg);
+}
+
+.faq p {
+  margin-top: 13px;
+  font-size: 0.97rem;
+  color: var(--j-muted);
+  max-width: 66ch;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .faq summary::after {
+    transition: none;
+  }
+}
