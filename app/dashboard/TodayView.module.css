@@ -415,3 +415,120 @@
     transform: none;
   }
 }
+
+/* ── This week ───────────────────────────────────────────────────────────────
+ *
+ * The prototype's week strip on Today, fed by the timetable. One row per day
+ * that still has a lesson on it, headed by that day's first lesson.
+ *
+ * Each element carries its own class rather than being selected by tag. The
+ * prototype's `.day p` and `.day span` are exactly the shape the handover warns
+ * about: a bare tag selector reaching content it did not mean to.
+ */
+
+.week {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.day {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 12px;
+  border-radius: var(--j-r);
+  background: var(--j-bg);
+  border: 1px solid transparent;
+}
+
+.dayNow {
+  background: var(--j-tint);
+  border-color: var(--j-lilac);
+}
+
+/* A lesson with nothing attached. Dashed rather than orange: the orange is
+   spent on the "Make it" chip and the cell in the grid, and a whole row of it
+   would make a normal unplanned week look like a screen full of problems. */
+.dayEmpty {
+  border: 1px dashed var(--j-line-2);
+}
+
+.dayD {
+  width: 38px;
+  text-align: center;
+  flex: none;
+  font-size: 0.67rem;
+  font-weight: 800;
+  color: var(--j-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  line-height: 1.25;
+}
+
+.dayNow .dayD {
+  color: var(--j-purple);
+}
+
+.dayDate {
+  display: block;
+  font-size: 1rem;
+  color: var(--j-ink);
+  letter-spacing: -0.02em;
+}
+
+.dayNow .dayDate {
+  color: var(--j-purple);
+}
+
+.dayInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.dayTitle {
+  font-size: 0.83rem;
+  font-weight: 600;
+  color: var(--j-body);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dayMeta {
+  font-size: 0.75rem;
+  color: var(--j-faint);
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gap {
+  font-size: 0.71rem;
+  font-weight: 800;
+  color: var(--j-purple);
+  background: var(--j-card);
+  border: 1px solid var(--j-line);
+  padding: 5px 10px;
+  border-radius: var(--j-pill);
+  flex: none;
+}
+
+.gap:hover {
+  border-color: var(--j-lilac-2);
+  color: var(--j-deep);
+}
+
+/* The way in from the empty state. A link rather than a plain sentence: the
+   panel is telling the teacher to go and do something, so it should take them. */
+.weekSetUp {
+  margin-top: 10px;
+  font-size: 0.84rem;
+  font-weight: 800;
+  color: var(--j-purple);
+}
+
+.weekSetUp:hover {
+  text-decoration: underline;
+}

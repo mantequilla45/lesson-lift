@@ -20,6 +20,15 @@ import { createChat, saveMessage } from "@/app/lib/assistantChats";
 import { createClient } from "@/app/lib/auth/client";
 import { useBadgeProgress } from "@/app/lib/useBadgeProgress";
 import { BADGE_LEVELS } from "@/app/lib/badges";
+import {
+  listWeek,
+  mondayOf,
+  nextUnplanned,
+  upcomingDays,
+  dayName,
+  makeItHref,
+  type LessonWithResource,
+} from "@/app/lib/timetable";
 import EarnedBadgesCard from "./EarnedBadgesCard";
 import BadgeMedallion from "@/app/components/v2/BadgeMedallion";
 import type { CopyMap } from "@/app/lib/copy";
@@ -96,6 +105,22 @@ export default function TodayView({
   const [askError, setAskError] = useState<string | null>(null);
 
   /*
+   * This week's lessons, for the week panel and the greeting.
+   *
+   * `listWeek`, never `openWeek`. Opening a week WRITES: it materialises the
+   * lessons from the pattern or the week before. A teacher who has not been to
+   * the Timetable yet must not quietly acquire a week of them by looking at the
+   * dashboard, so materialising stays on the screen that owns it.
+   *
+   * A failure here leaves the array empty and the panel keeps its empty state.
+   * The week is a prompt to go and plan, not something worth an error on a
+   * screen that has six other things on it.
+   */
+  const [lessons, setLessons] = useState<LessonWithResource[]>([]);
+  const [weekLoading, setWeekLoading] = useState(true);
+  const [weekStart, setWeekStart] = useState<string | null>(null);
+
+  /*
    * One fetch for the whole screen, shared with the sidebar and the profile.
    *
    * The run history used to be fetched here and again in ProfileHeader; the
@@ -120,6 +145,29 @@ export default function TodayView({
         .eq("id", uid)
         .maybeSingle();
       if (!cancelled) setFirstName(data?.first_name ?? null);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // The week. Resolved from the browser's clock in an effect for the same
+  // reason as the greeting: the server's Monday can differ from the teacher's.
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const week = mondayOf(new Date());
+      try {
+        const rows = await listWeek(week);
+        if (!cancelled) {
+          setLessons(rows);
+          setWeekStart(week);
+        }
+      } catch {
+        // Left empty on purpose. See the state declaration above.
+      } finally {
+        if (!cancelled) setWeekLoading(false);
+      }
     })();
     return () => {
       cancelled = true;
@@ -199,11 +247,33 @@ export default function TodayView({
   const currentLevel = BADGE_LEVELS[progress.level - 1] ?? BADGE_LEVELS[0]!;
   const showStrip = progress.available && !loading;
 
-  // The line under the greeting. With no timetable there is no "next unplanned
-  // lesson" to name, so it reports the most recent thing made instead, which is
-  // the other half of what the prototype's line does.
+  /* The four rows of the week panel, and the lesson the greeting names.
+     Both from the one fetch above. */
+  const week = useMemo(
+    () => (weekStart && now ? upcomingDays(lessons, weekStart, now) : []),
+    [lessons, weekStart, now],
+  );
+  const nextGap = useMemo(
+    () => (weekStart && now ? nextUnplanned(lessons, weekStart, now) : null),
+    [lessons, weekStart, now],
+  );
+
+  /*
+   * The line under the greeting.
+   *
+   * The handover asks for the next unplanned lesson here, which is the most
+   * useful thing this screen can say: it names the work rather than reporting
+   * on it. When the timetable has nothing to offer, either because it is empty
+   * or because the week is fully planned, it falls back to the most recent
+   * thing made, which is what this line said before the timetable existed.
+   */
   const subline = (() => {
-    if (loading) return "Getting your week together.";
+    if (loading || weekLoading) return "Getting your week together.";
+    if (nextGap) {
+      const what = nextGap.topic ? `${nextGap.subject}, ${nextGap.topic}` : nextGap.subject;
+      return `${dayName(nextGap.day)}'s ${what} has nothing made for it yet.`;
+    }
+    if (lessons.length > 0) return "Every lesson left this week has something ready.";
     if (runs.length === 0) return "Nothing made yet. Pick a tool and see what it does.";
     const latest = v2ToolForSlug(runs[0]!.tool_slug);
     const title = runs[0]!.title?.trim();
@@ -442,19 +512,80 @@ export default function TodayView({
             <div className={app.shTitle}>
               <h2>This week</h2>
             </div>
+            {week.length > 0 && (
+              <Link href="/timetable" className={app.shLink}>
+                Timetable
+              </Link>
+            )}
           </div>
-          {/* The timetable is the source for this panel and does not exist yet.
-              Showing fabricated lessons would be worse than showing none. */}
-          <div className={app.empty}>
-            <span className={app.emptyIcon}>
-              <CalendarBlank weight="fill" />
-            </span>
-            <p className={app.emptyTitle}>Your week goes here</p>
-            <p className={app.emptyBody}>
-              Once you tell Jooma what you teach and when, this shows the lessons
-              coming up and what still needs making.
-            </p>
-          </div>
+
+          {/* No rows keeps the empty state rather than printing a zero. It is
+              true for a teacher who has not set a timetable up and for one whose
+              week is behind them, and it points at the thing to do next. */}
+          {week.length === 0 ? (
+            <div className={app.empty}>
+              <span className={app.emptyIcon}>
+                <CalendarBlank weight="fill" />
+              </span>
+              <p className={app.emptyTitle}>Your week goes here</p>
+              <p className={app.emptyBody}>
+                Tell Jooma what you teach and when, and this shows the lessons coming up
+                and what still needs making.
+              </p>
+              <Link href="/timetable" className={styles.weekSetUp}>
+                Set up your timetable
+              </Link>
+            </div>
+          ) : (
+            <div className={styles.week}>
+              {week.map((d) => {
+                const { lesson } = d;
+                const tool = lesson.resource
+                  ? v2ToolForSlug(lesson.resource.tool_slug)
+                  : undefined;
+                const href = makeItHref(lesson);
+                return (
+                  <div
+                    key={d.day}
+                    className={`${styles.day} ${d.isToday ? styles.dayNow : ""} ${
+                      lesson.resource ? "" : styles.dayEmpty
+                    }`}
+                  >
+                    <span className={styles.dayD}>
+                      {d.date.toLocaleDateString("en-GB", { weekday: "short" })}
+                      <b className={styles.dayDate}>{d.date.getDate()}</b>
+                    </span>
+                    <div className={styles.dayInfo}>
+                      <p className={styles.dayTitle}>
+                        {[lesson.year_group, lesson.subject].filter(Boolean).join(" ")}
+                        {lesson.topic ? `, ${lesson.topic}` : ""}
+                      </p>
+                      <span className={styles.dayMeta}>
+                        {lesson.resource
+                          ? `${tool?.name ?? "Something"} ready`
+                          : "Nothing made yet"}
+                        {d.others > 0 ? `, and ${d.others} more` : ""}
+                      </span>
+                    </div>
+
+                    {/* Make it needs a topic to fill the tool's required
+                        fields. Without one the honest offer is the topic, not a
+                        link that opens a form claiming to be prefilled. */}
+                    {!lesson.resource &&
+                      (href ? (
+                        <Link href={href} className={styles.gap}>
+                          Make it
+                        </Link>
+                      ) : (
+                        <Link href="/timetable" className={styles.gap}>
+                          Add a topic
+                        </Link>
+                      ))}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </section>
       </div>
 
