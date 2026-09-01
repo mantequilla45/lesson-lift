@@ -179,6 +179,40 @@
   white-space: nowrap;
 }
 
+/* ── Level box ───────────────────────────────────────────────────────────────
+ *
+ * Sits above the credit meter and borrows its track, so the two read as a pair
+ * of gauges rather than as unrelated widgets. Tinted rather than bordered: the
+ * meter below is the plain one, and giving this the brand tint is what stops
+ * two stacked progress bars looking like a settings panel. */
+.levelBox {
+  display: block;
+  background: var(--j-tint);
+  border-radius: var(--j-r);
+  padding: 12px 13px;
+  margin-bottom: 12px;
+  text-decoration: none;
+  transition: background 0.2s var(--j-ease);
+}
+
+.levelBox:hover {
+  background: var(--j-tint-2);
+}
+
+.levelBox .meterName {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--j-deep);
+}
+
+.levelIcon {
+  width: 14px;
+  height: 14px;
+  color: var(--j-purple);
+  flex: none;
+}
+
 /* ── Credit meter ────────────────────────────────────────────────────────── */
 
 .meterTop {

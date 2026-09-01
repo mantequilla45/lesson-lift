@@ -5,7 +5,7 @@ import Link from "next/link";
 import Avatar from "@/app/components/ui/Avatar";
 import { createClient } from "@/app/lib/auth/client";
 import { useProfileIdentity } from "@/app/lib/useProfileIdentity";
-import { listRecentRuns } from "@/app/lib/toolRuns";
+import { useBadgeProgress } from "@/app/lib/useBadgeProgress";
 import { minutesSavedFor } from "@/app/lib/tools";
 import { asPlanId, PLANS } from "@/app/lib/plans";
 import styles from "./ProfileHeader.module.css";
@@ -17,16 +17,19 @@ import styles from "./ProfileHeader.module.css";
  * their own, so this and the top bar can never disagree about which photo is
  * current — the profile form publishes to that store when it saves.
  *
- * Two of the mockup's four stats have no data behind them: there is no level and
- * no badge earning yet. They are rendered as "not yet" rather than as a zero,
- * which is the same rule Today follows. A zero here would read as a judgement on
- * the teacher rather than on the feature.
+ * All four stats are real now. The run history and the badges come from the
+ * shared badge store, which Today and the sidebar also read, so opening this
+ * page does not re-fetch what the app already has.
+ *
+ * The no-zero rule still holds: a teacher who has earned nothing reads "None
+ * yet" rather than "0 of 100", because a zero as the first thing you see reads
+ * as a judgement on the teacher rather than a description of a new account.
  */
 export default function ProfileHeader() {
   const identity = useProfileIdentity();
+  const progress = useBadgeProgress();
   const [plan, setPlan] = useState<string | null>(null);
   const [joined, setJoined] = useState<string | null>(null);
-  const [stats, setStats] = useState<{ resources: number; hours: number } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -52,21 +55,16 @@ export default function ProfileHeader() {
     };
   }, []);
 
-  useEffect(() => {
-    let cancelled = false;
-    listRecentRuns(1000)
-      .then((runs) => {
-        if (cancelled) return;
-        const minutes = runs.reduce((sum, r) => sum + minutesSavedFor(r.tool_slug), 0);
-        setStats({ resources: runs.length, hours: Math.round(minutes / 60) });
-      })
-      .catch(() => {
-        if (!cancelled) setStats({ resources: 0, hours: 0 });
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  // Derived from the runs the badge store already holds, rather than a second
+  // fetch of the same thousand rows.
+  const stats = progress.loading
+    ? null
+    : {
+        resources: progress.runs.length,
+        hours: Math.round(
+          progress.runs.reduce((sum, r) => sum + minutesSavedFor(r.tool_slug), 0) / 60,
+        ),
+      };
 
   const name = identity?.name?.trim();
 
@@ -118,13 +116,30 @@ export default function ProfileHeader() {
                   : `${stats.hours}h`}
           </dd>
         </div>
-        <div className={`${styles.stat} ${styles.statSoon}`}>
+        {/* Both fall back to the old "not yet" while the badges table is not
+            there, which is the honest reading of a feature that has not been
+            switched on rather than of a teacher who has not done anything. */}
+        <div className={`${styles.stat} ${!progress.available ? styles.statSoon : ""}`}>
           <dt>Level</dt>
-          <dd>Not yet</dd>
+          <dd>
+            {progress.loading
+              ? "—"
+              : !progress.available
+                ? "Not yet"
+                : `Level ${progress.level}`}
+          </dd>
         </div>
-        <div className={`${styles.stat} ${styles.statSoon}`}>
+        <div className={`${styles.stat} ${!progress.available ? styles.statSoon : ""}`}>
           <dt>Badges</dt>
-          <dd>Not yet</dd>
+          <dd>
+            {progress.loading
+              ? "—"
+              : !progress.available
+                ? "Not yet"
+                : progress.earnedCount === 0
+                  ? "None yet"
+                  : `${progress.earnedCount} of ${progress.total}`}
+          </dd>
         </div>
       </dl>
     </header>

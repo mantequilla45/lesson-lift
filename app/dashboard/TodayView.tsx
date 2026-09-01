@@ -16,9 +16,12 @@ import AppShellV2 from "@/app/components/v2/AppShellV2";
 import UpgradeGate from "@/app/components/UpgradeGate";
 import { ToolTile } from "@/app/components/v2/Squircle";
 import { minutesSavedFor, V2_TOOLS, v2ToolForSlug, toolSolid } from "@/app/lib/tools";
-import { listRecentRuns, type ToolRun } from "@/app/lib/toolRuns";
 import { createChat, saveMessage } from "@/app/lib/assistantChats";
 import { createClient } from "@/app/lib/auth/client";
+import { useBadgeProgress } from "@/app/lib/useBadgeProgress";
+import { BADGE_LEVELS } from "@/app/lib/badges";
+import EarnedBadgesCard from "./EarnedBadgesCard";
+import BadgeMedallion from "@/app/components/v2/BadgeMedallion";
 import type { CopyMap } from "@/app/lib/copy";
 import app from "@/app/components/v2/app.module.css";
 import styles from "./TodayView.module.css";
@@ -30,11 +33,15 @@ import styles from "./TodayView.module.css";
  * starts work rather than reporting on it. Ask Mo and the tools come before the
  * numbers.
  *
- * Three of the prototype's panels have no data behind them yet — day streak,
- * badges and the week from the timetable. They keep their place in the layout
- * and say plainly that they are not set up, rather than rendering a zero. A
- * zero reads as "you have achieved nothing", which is both discouraging and, in
- * the case of a feature that does not exist, untrue.
+ * The week panel is the last one with no data behind it: the timetable does not
+ * exist, so it says so rather than rendering a zero. A zero reads as "you have
+ * achieved nothing", which is discouraging and, for a feature that has not been
+ * built, untrue.
+ *
+ * The same rule survives into the metrics now that they are real. A teacher with
+ * no streak yet reads "Starts today", not "0", because making one thing in the
+ * next hour genuinely does start one. The streak rule itself (weekdays,
+ * weekends skipped, one weekday of grace) lives in badgeCriteria.ts.
  */
 
 /** Six sensible starting tools for a teacher with no history yet. */
@@ -43,7 +50,9 @@ const STARTER_SLUGS = [
   "worksheet-generator",
   "comprehension-generator",
   "quiz-generator",
-  "lesson-slideshow",
+  // "slideshow", not "lesson-slideshow": the latter is not a route, so
+  // v2ToolForSlug dropped it and this row only ever topped up to five.
+  "slideshow",
   "cover-lesson",
 ];
 
@@ -81,21 +90,22 @@ export default function TodayView({
   copy: Pick<CopyMap, "dash.empty.title" | "dash.empty.body">;
 }) {
   const router = useRouter();
-  const [runs, setRuns] = useState<ToolRun[]>([]);
-  const [loading, setLoading] = useState(true);
   const [firstName, setFirstName] = useState<string | null>(null);
   const [ask, setAsk] = useState("");
   const [asking, setAsking] = useState(false);
   const [askError, setAskError] = useState<string | null>(null);
 
-  // One fetch, every derivation below computed from it. 1,000 is the same
-  // ceiling /analytics uses, and covers the ranking window comfortably.
-  useEffect(() => {
-    listRecentRuns(1000)
-      .then(setRuns)
-      .catch(() => setRuns([]))
-      .finally(() => setLoading(false));
-  }, []);
+  /*
+   * One fetch for the whole screen, shared with the sidebar and the profile.
+   *
+   * The run history used to be fetched here and again in ProfileHeader; the
+   * badge store owns it now (1,000 rows, the same ceiling /analytics uses,
+   * which covers both the 30 day ranking window and every volume badge). So
+   * the streak and the badges arrive without a second query rather than a third.
+   */
+  const progress = useBadgeProgress();
+  const { runs, earned, earnedCount } = progress;
+  const loading = progress.loading;
 
   useEffect(() => {
     let cancelled = false;
@@ -182,6 +192,12 @@ export default function TodayView({
   }, [runs, now]);
 
   const recent = runs.slice(0, 5);
+
+  // The strip shows the level being worked on. Level 1 with everything locked
+  // is still worth showing: it is what there is to collect, which is the
+  // question a teacher who has just arrived is actually asking.
+  const currentLevel = BADGE_LEVELS[progress.level - 1] ?? BADGE_LEVELS[0]!;
+  const showStrip = progress.available && !loading;
 
   // The line under the greeting. With no timetable there is no "next unplanned
   // lesson" to name, so it reports the most recent thing made instead, which is
@@ -313,24 +329,34 @@ export default function TodayView({
           </div>
         </div>
 
-        {/* No streak data: there is no table for it, and it cannot be inferred
-            honestly from runs alone without deciding what breaks a streak. */}
-        <div className={`${styles.metric} ${styles.metricSoon}`}>
+        <div className={styles.metric}>
           <span className={styles.metricIcon} data-tone="orange">
             <Fire weight="fill" />
           </span>
           <div>
-            <b className={styles.metricSoonValue}>Not yet</b>
+            {/* Never a zero. "Starts today" is true rather than consoling: the
+                day is not over, and one resource in the next hour begins one. */}
+            <b>
+              {loading
+                ? "—"
+                : progress.currentStreak === 0
+                  ? "Starts today"
+                  : progress.currentStreak === 1
+                    ? "1 day"
+                    : `${progress.currentStreak} days`}
+            </b>
             <span>Day streak</span>
           </div>
         </div>
 
-        <div className={`${styles.metric} ${styles.metricSoon}`}>
+        <div className={`${styles.metric} ${!progress.available ? styles.metricSoon : ""}`}>
           <span className={styles.metricIcon} data-tone="amber">
             <Medal weight="fill" />
           </span>
           <div>
-            <b className={styles.metricSoonValue}>Not yet</b>
+            <b className={!progress.available ? styles.metricSoonValue : undefined}>
+              {loading ? "—" : !progress.available ? "Not yet" : earnedCount || "None yet"}
+            </b>
             <span>Badges earned</span>
           </div>
         </div>
@@ -432,22 +458,57 @@ export default function TodayView({
         </section>
       </div>
 
+      <EarnedBadgesCard ids={progress.justEarned} />
+
       <div className={app.sh}>
         <div className={app.shTitle}>
           <h2>Badges</h2>
+          {showStrip && (
+            <span className={app.shSub}>
+              Level {progress.level}, {currentLevel.title.toLowerCase()}
+            </span>
+          )}
         </div>
+        {showStrip && (
+          <Link href="/profile?section=badges" className={app.shLink}>
+            See all {progress.total}
+          </Link>
+        )}
       </div>
       <section className={app.panel}>
-        <div className={app.empty}>
-          <span className={app.emptyIcon}>
-            <Medal weight="fill" />
-          </span>
-          <p className={app.emptyTitle}>Badges are on the way</p>
-          <p className={app.emptyBody}>
-            Ten levels of them, earned for the teaching habits worth building.
-            Nothing to collect just yet.
-          </p>
-        </div>
+        {/* Ten grey medallions is the discouraging zero this screen avoids
+            everywhere else, so a teacher with nothing yet gets the invitation
+            instead. Same branch covers the migration not being applied. */}
+        {!showStrip ? (
+          <div className={app.empty}>
+            <span className={app.emptyIcon}>
+              <Medal weight="fill" />
+            </span>
+            <p className={app.emptyTitle}>Badges are on the way</p>
+            <p className={app.emptyBody}>
+              Ten levels of them, earned for the teaching habits worth building.
+              Make something and the first will be along shortly.
+            </p>
+          </div>
+        ) : (
+          <ul className={styles.badgeStrip}>
+            {currentLevel.badges.map((badge) => (
+              <li key={badge.id} className={styles.stripItem}>
+                <BadgeMedallion
+                  icon={badge.icon}
+                  tier={currentLevel.tier}
+                  locked={!earned.has(badge.id)}
+                  /* Unique per medallion: two sharing a uid means the second
+                     inherits the first's gradient. */
+                  uid={`strip-${badge.id}`}
+                />
+                <span className={styles.stripName} data-locked={!earned.has(badge.id)}>
+                  {badge.name}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
     </AppShellV2>
   );

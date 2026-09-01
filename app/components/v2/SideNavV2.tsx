@@ -12,11 +12,13 @@ import {
   ChatTeardropDots,
   Bell,
   Question,
+  Medal,
   X,
 } from "@phosphor-icons/react/dist/ssr";
 import { createClient } from "@/app/lib/auth/client";
 import { TOOLS, V2_TOOLS, toolSolid } from "@/app/lib/tools";
 import { useCreditMeter } from "@/app/lib/useCreditMeter";
+import { useBadgeProgress } from "@/app/lib/useBadgeProgress";
 import { usePinnedTools } from "@/app/lib/usePinnedTools";
 import Wordmark from "@/app/components/v2/Wordmark";
 import TopUpModal from "@/app/components/v2/TopUpModal";
@@ -69,6 +71,7 @@ interface SideNavV2Props {
 export default function SideNavV2({ mobileOpen = false, onMobileClose }: SideNavV2Props) {
   const pathname = usePathname();
   const credits = useCreditMeter();
+  const badges = useBadgeProgress();
   const [topUpOpen, setTopUpOpen] = useState(false);
 
   // Pinned tools — a shared store, kept in sync with the Library page live.
@@ -202,6 +205,43 @@ export default function SideNavV2({ mobileOpen = false, onMobileClose }: SideNav
                 </Link>
               ))}
             </div>
+          )}
+
+          {/* The level box, above credits, per the handover's sidebar order.
+              Shown from level 1 with an empty track, as in the mockup: "9 more
+              badges to reach Level 2" is a goal rather than a judgement, and
+              hiding it until something is earned meant most teachers would
+              never discover the collection exists. Only the migration not being
+              applied hides it. */}
+          {badges.available && !badges.loading && (
+            <Link href="/profile?section=badges" className={styles.levelBox}>
+              <div className={styles.meterTop}>
+                <span className={styles.meterName}>
+                  <Medal weight="fill" className={styles.levelIcon} />
+                  Level {badges.level}
+                </span>
+                <span className={styles.meterVal}>
+                  {/* "None yet" rather than "0 of 100": the count is the one
+                      place a zero would read as a verdict on the teacher. */}
+                  {badges.earnedCount === 0
+                    ? "None yet"
+                    : `${badges.earnedCount} of ${badges.total}`}
+                </span>
+              </div>
+              <div className={styles.track}>
+                <i
+                  className={styles.trackFill}
+                  style={{ width: `${Math.round(badges.levelFraction * 100)}%` }}
+                />
+              </div>
+              <p className={styles.meterNote}>
+                {badges.toNextLevel === 0
+                  ? "The full set. Nothing left to climb."
+                  : `${badges.toNextLevel} more ${
+                      badges.toNextLevel === 1 ? "badge" : "badges"
+                    } to reach Level ${badges.level + 1}`}
+              </p>
+            </Link>
           )}
 
           {/* Credits live HERE and in the account page, nowhere else. No per

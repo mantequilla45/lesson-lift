@@ -346,6 +346,70 @@
   color: var(--j-lilac-2);
 }
 
+/* ── Badge strip ─────────────────────────────────────────────────────────────
+ *
+ * The current level's ten badges. Ten across on a wide screen, matching the
+ * prototype, dropping to five and then four rather than shrinking the medallion
+ * past the point where its glyph is readable. */
+.badgeStrip {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 10px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.stripItem {
+  display: grid;
+  place-items: center;
+  gap: 5px;
+  min-width: 0;
+}
+
+/* The medallion is generated SVG at a fixed viewBox, so it scales to whatever
+   the grid cell allows. 70% keeps the ribbon tails clear of the name.
+   BadgeMedallion draws its locked state in grey already; the drop shadow is
+   what makes an earned one lift off the panel, and it is dropped for locked
+   ones by the rule below. */
+.stripItem svg {
+  width: 70%;
+  height: auto;
+  display: block;
+  filter: drop-shadow(0 4px 7px rgba(29, 23, 48, 0.2));
+}
+
+.stripItem:has(.stripName[data-locked="true"]) svg {
+  filter: none;
+  opacity: 0.55;
+}
+
+.stripName {
+  font-size: 0.63rem;
+  font-weight: 800;
+  color: var(--j-ink);
+  text-align: center;
+  line-height: 1.25;
+}
+
+.stripName[data-locked="true"] {
+  color: var(--j-faint);
+  font-weight: 700;
+}
+
+@media (max-width: 1240px) {
+  .badgeStrip {
+    grid-template-columns: repeat(5, 1fr);
+    gap: 14px;
+  }
+}
+
+@media (max-width: 560px) {
+  .badgeStrip {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .qt:hover {
     transform: none;
