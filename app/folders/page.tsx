@@ -457,17 +457,22 @@ function Library() {
             </div>
           </div>
 
-          <div className={app.panel}>
-            {visible.length === 0 ? (
+          {visible.length === 0 ? (
+            <div className={app.panel}>
               <EmptyState
                 hasRuns={total > 0}
                 searching={query.trim().length > 0}
                 selected={selected}
               />
-            ) : (
-              <div className={styles.rows}>
+            </div>
+          ) : (
+            // Rows sit inside a panel; cards sit on the page and carry their
+            // own borders, so a panel behind them would draw a box around a
+            // box.
+            <div className={view === "list" ? app.panel : undefined}>
+              <div className={view === "list" ? styles.rows : styles.filegrid}>
                 {visible.map((run) => (
-                  <ResourceRow
+                  <ResourceItem
                     key={run.id}
                     run={run}
                     folderLabel={folderName(run.folder_id)}
@@ -485,8 +490,8 @@ function Library() {
                   />
                 ))}
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </>
       )}
 
@@ -640,9 +645,9 @@ function FolderCard({
   );
 }
 
-/* ── Resource row ────────────────────────────────────────────────────────── */
+/* ── Resource, as a row or a card ────────────────────────────────────────── */
 
-function ResourceRow({
+function ResourceItem({
   run,
   folderLabel,
   dragging,
@@ -667,34 +672,28 @@ function ResourceRow({
 }) {
   const tool = v2ToolForSlug(run.tool_slug);
   const label = tool?.name ?? typeLabel(run.tool_slug);
-  // The prototype's second line is "<tool>, <folder>". In list view the date
-  // has its own column; in grid view there is room to fold it in here.
+  const title = run.title?.trim() || "Untitled";
+  // The prototype's second line is "<tool>, <folder>". A card has no date
+  // column, so the date joins the meta line there rather than being dropped.
   const meta =
-    view === "list" ? `${label}, ${folderLabel}` : `${label}, ${folderLabel}`;
+    view === "list"
+      ? `${label}, ${folderLabel}`
+      : `${label}, ${folderLabel}, ${formatDate(run.created_at)}`;
 
-  return (
-    <div
-      className={`${styles.filerow} ${dragging ? styles.filerowDragging : ""}`}
-      draggable
-      onDragStart={(e) => {
-        e.dataTransfer.setData("text/plain", run.id);
-        e.dataTransfer.effectAllowed = "move";
-        onDragStart();
-      }}
-      onDragEnd={onDragEnd}
-    >
-      <ToolTile icon={tool?.icon ?? "folder"} solid={toolSolid(tool)} size="sm" />
+  // Both layouts drag identically, so the handlers are shared rather than
+  // written twice and drifting.
+  const dragProps = {
+    draggable: true,
+    onDragStart: (e: React.DragEvent) => {
+      e.dataTransfer.setData("text/plain", run.id);
+      e.dataTransfer.effectAllowed = "move";
+      onDragStart();
+    },
+    onDragEnd,
+  };
 
-      <button type="button" className={styles.fileMain} onClick={onOpen}>
-        <span className={`${app.rowTitle} ${styles.fileTitle}`}>
-          {run.title?.trim() || "Untitled"}
-        </span>
-        <span className={styles.fileMeta}>{meta}</span>
-      </button>
-
-      <span className={styles.fileWhen}>{formatDate(run.created_at)}</span>
-
-      <Menu label={`${run.title?.trim() || "Resource"} menu`}>
+  const menu = (
+    <Menu label={`${title} menu`}>
         {(close) => (
           <>
             <MenuItem
@@ -742,7 +741,40 @@ function ResourceRow({
             </MenuItem>
           </>
         )}
-      </Menu>
+    </Menu>
+  );
+
+  if (view === "grid") {
+    return (
+      <div
+        className={`${styles.filecard} ${dragging ? styles.filerowDragging : ""}`}
+        {...dragProps}
+      >
+        <span className={styles.filecardMenu}>{menu}</span>
+        <button type="button" className={styles.filecardFace} onClick={onOpen}>
+          <ToolTile icon={tool?.icon ?? "folder"} solid={toolSolid(tool)} size="md" />
+          <span className={`${app.rowTitle} ${styles.filecardTitle}`}>{title}</span>
+          <span className={styles.filecardMeta}>{meta}</span>
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className={`${styles.filerow} ${dragging ? styles.filerowDragging : ""}`}
+      {...dragProps}
+    >
+      <ToolTile icon={tool?.icon ?? "folder"} solid={toolSolid(tool)} size="sm" />
+
+      <button type="button" className={styles.fileMain} onClick={onOpen}>
+        <span className={`${app.rowTitle} ${styles.fileTitle}`}>{title}</span>
+        <span className={styles.fileMeta}>{meta}</span>
+      </button>
+
+      <span className={styles.fileWhen}>{formatDate(run.created_at)}</span>
+
+      {menu}
     </div>
   );
 }

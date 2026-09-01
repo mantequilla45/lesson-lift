@@ -310,6 +310,89 @@
   }
 }
 
+/* ── Resource cards (grid view) ──────────────────────────────────────────── */
+
+.filegrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(210px, 100%), 1fr));
+  gap: 12px;
+}
+
+/* Matches the folder card above deliberately: a resource and a folder are the
+   same kind of object to the eye, and the grid reads as one surface rather than
+   two competing ones. */
+.filecard {
+  position: relative;
+  background: var(--j-card);
+  border: 1px solid var(--j-line);
+  border-radius: var(--j-r-lg);
+  padding: 16px;
+  cursor: grab;
+  transition:
+    transform 0.18s var(--j-ease),
+    border-color 0.18s,
+    box-shadow 0.2s;
+}
+
+.filecard:hover {
+  transform: translateY(-3px);
+  border-color: var(--j-lilac-2);
+  box-shadow: 0 14px 26px -18px rgba(58, 28, 143, 0.5);
+}
+
+.filecardMenu {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 2;
+}
+
+.filecardFace {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.filecardTitle {
+  margin-top: 14px;
+  /* Room for the kebab in the corner. */
+  padding-right: 26px;
+  /* Two lines, then ellipsis: a resource title is the thing you are scanning
+     for, and one truncated line loses too much of it. */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  white-space: normal;
+}
+
+.filecard:hover .filecardTitle {
+  color: var(--j-purple);
+}
+
+.filecardMeta {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.77rem;
+  color: var(--j-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .filecard:hover {
+    transform: none;
+  }
+}
+
 /* ── Kebab menu ──────────────────────────────────────────────────────────── */
 
 .menuCorner {
