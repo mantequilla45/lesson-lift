@@ -1,13 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/app/lib/auth/server";
-import { stripe, priceIdFor } from "@/app/lib/stripe";
+import { stripe, priceIdFor, isPaidPlanId } from "@/app/lib/stripe";
 
-// Creates a Stripe Checkout Session for Pro and returns its URL. The browser
-// redirects to it; payment success is confirmed asynchronously by the webhook,
-// not here — never grant access from this route.
+// Creates a Stripe Checkout Session for a paid plan and returns its URL. The
+// browser redirects to it; payment success is confirmed asynchronously by the
+// webhook, not here — never grant access from this route.
 //
-// There is exactly one thing to buy: Pro, monthly. No plan or interval is read
-// from the request body, so a crafted request can't select anything else.
+// There are two things to buy: Pro and Max, both monthly. The requested plan is
+// checked against that allowlist rather than trusted, so a crafted body cannot
+// name an arbitrary plan (or a price) and cannot reach `school`, which has no
+// working billing. An absent or unrecognised plan falls back to Pro, keeping
+// every existing caller — which sends no body at all — working unchanged.
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
   const {
@@ -17,6 +20,12 @@ export async function POST(req: NextRequest) {
   if (!user) {
     return NextResponse.json({ error: "Not signed in" }, { status: 401 });
   }
+
+  // Existing callers POST with no body at all, so an unparseable body is the
+  // normal case, not an error.
+  const body = await req.json().catch(() => null);
+  const requested = (body as { plan?: unknown } | null)?.plan;
+  const plan = isPaidPlanId(requested) ? requested : "pro";
 
   // Reuse the customer we already linked, so a returning subscriber doesn't get
   // a duplicate Stripe customer.
@@ -33,7 +42,7 @@ export async function POST(req: NextRequest) {
     // Resolved from plan_config (falling back to the env var), so a price
     // changed in the admin console takes effect on the next checkout without a
     // redeploy.
-    const priceId = await priceIdFor("pro");
+    const priceId = await priceIdFor(plan);
 
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",

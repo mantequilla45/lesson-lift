@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { Sparkles, Zap, Clock, X } from "lucide-react";
+// No sparkle glyph: the brand bible bans them alongside wands and gradient
+// shimmer, for the same reason it bans the word "AI" in front of a teacher.
+import { Medal, Zap, Clock, X } from "lucide-react";
 import { PLAN_CREDITS } from "@/app/lib/plans";
 
 // Centralised quota prompt. Rather than editing every tool form, this patches
@@ -99,12 +101,12 @@ export default function UpgradeGate() {
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ backgroundColor: "rgba(26,26,26,0.45)" }}
+      style={{ backgroundColor: "rgba(29,23,48,0.45)" }}
       onClick={close}
     >
       <div
         className="relative w-full max-w-md rounded-2xl p-7 border"
-        style={{ backgroundColor: "#FAF9F5", borderColor: "#DAD8D0" }}
+        style={{ backgroundColor: "var(--j-card)", borderColor: "var(--j-line)" }}
         onClick={(e) => e.stopPropagation()}
       >
         <button
@@ -112,28 +114,37 @@ export default function UpgradeGate() {
           onClick={close}
           aria-label="Close"
           className="absolute top-4 right-4 p-1 rounded-lg transition-colors hover:bg-black/5"
-          style={{ color: "#8a8078" }}
+          style={{ color: "var(--j-faint)" }}
         >
           <X className="w-4 h-4" />
         </button>
 
+        {/* Three tones for three different situations, and the distinction is
+            the point: a rate limit clears on its own, a top-up is a small
+            purchase, an upgrade is a plan change. Slate, amber, purple. */}
         <div
           className="w-11 h-11 rounded-xl flex items-center justify-center mb-4"
-          style={{ backgroundColor: isWait ? "#E8E6DC" : isTopUp ? "#FDE8C8" : "#FAD4C8" }}
+          style={{
+            backgroundColor: isWait
+              ? "var(--j-tint-slate)"
+              : isTopUp
+                ? "var(--j-tint-amber)"
+                : "var(--j-tint)",
+          }}
         >
           {isWait ? (
-            <Clock className="w-5 h-5" style={{ color: "#6b6055" }} />
+            <Clock className="w-5 h-5" style={{ color: "var(--j-muted)" }} />
           ) : isTopUp ? (
             <Zap className="w-5 h-5" style={{ color: "#b07a1e" }} />
           ) : (
-            <Sparkles className="w-5 h-5" style={{ color: "#c25034" }} />
+            <Medal className="w-5 h-5" style={{ color: "var(--j-purple)" }} />
           )}
         </div>
 
-        <h2 className="text-lg font-bold tracking-tight mb-1.5" style={{ color: "#1a1a1a" }}>
+        <h2 className="text-lg font-bold tracking-tight mb-1.5" style={{ color: "var(--j-ink)" }}>
           {title}
         </h2>
-        <p className="text-sm mb-6" style={{ color: "#6b6055" }}>
+        <p className="text-sm mb-6" style={{ color: "var(--j-body)" }}>
           {message}
         </p>
 
@@ -145,7 +156,7 @@ export default function UpgradeGate() {
               type="button"
               onClick={close}
               className="flex-1 text-center py-2.5 rounded-xl text-sm font-semibold transition-opacity hover:opacity-90"
-              style={{ backgroundColor: "#E0463F", color: "#fff" }}
+              style={{ backgroundColor: "var(--j-purple)", color: "#fff" }}
             >
               Got it
             </button>
@@ -155,7 +166,7 @@ export default function UpgradeGate() {
               onClick={handleTopUp}
               disabled={buying}
               className="flex-1 text-center py-2.5 rounded-xl text-sm font-semibold transition-opacity hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
-              style={{ backgroundColor: "#E0463F", color: "#fff" }}
+              style={{ backgroundColor: "var(--j-purple)", color: "#fff" }}
             >
               {buying ? "Starting checkout…" : `Add ${topUpCredits} credits · £1.50`}
             </button>
@@ -164,7 +175,7 @@ export default function UpgradeGate() {
               href="/pricing"
               onClick={close}
               className="flex-1 text-center py-2.5 rounded-xl text-sm font-semibold transition-opacity hover:opacity-90"
-              style={{ backgroundColor: "#E0463F", color: "#fff" }}
+              style={{ backgroundColor: "var(--j-purple)", color: "#fff" }}
             >
               Upgrade to Pro
             </Link>
@@ -174,7 +185,7 @@ export default function UpgradeGate() {
               type="button"
               onClick={close}
               className="py-2.5 px-4 rounded-xl text-sm font-semibold transition-colors hover:bg-black/5"
-              style={{ color: "#6b6055" }}
+              style={{ color: "var(--j-muted)" }}
             >
               Maybe later
             </button>

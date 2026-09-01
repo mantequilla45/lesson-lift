@@ -1,5 +1,6 @@
 "use client";
 
+import StickyMask from "@/app/components/ui/StickyMask";
 import { useState } from "react";
 import { CURRICULA } from "@/app/lib/formOptions";
 import { Minus, Plus } from "lucide-react";
@@ -251,7 +252,7 @@ export default function EYFSPlannerForm({
       )}
 
       {result !== null && (
-        <div className="sticky top-0 z-20 h-0 lg:h-8 -mx-4 sm:-mx-6 lg:-mx-10" style={{ backgroundColor: "#F1EFE3" }} />
+        <StickyMask />
       )}
 
       <div className={result !== null ? "flex flex-col lg:flex-row gap-4 lg:gap-8" : ""}>

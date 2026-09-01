@@ -17,7 +17,7 @@ export default async function LearningWalkReportPage({
       sidebar={
         <ToolInfoPanel
           icon={<Footprints className="w-5 h-5 text-rose-600" />}
-          heroBg="bg-rose-50"
+
           title="Learning Walk Report"
           description="This tool can be used to draft a report from a learning walk. Simply enter the focus of the walk, the strengths and areas for development you observed, and the AI will draft the report."
           steps={[

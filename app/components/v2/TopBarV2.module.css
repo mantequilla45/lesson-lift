@@ -1,0 +1,183 @@
+.top {
+  height: 64px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 28px;
+  border-bottom: 1px solid var(--j-line);
+  /* Translucent over the page background, so content scrolling underneath
+     blurs rather than showing through sharply. */
+  background: rgba(247, 245, 252, 0.88);
+  backdrop-filter: blur(12px);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  flex: none;
+}
+
+@media (max-width: 640px) {
+  .top {
+    padding: 0 16px;
+    gap: 10px;
+  }
+}
+
+/* The hamburger. Only below the 900px breakpoint, where the rail is a drawer. */
+.menu {
+  display: none;
+  width: 37px;
+  height: 37px;
+  flex: none;
+  place-items: center;
+  border-radius: 50%;
+  border: 1px solid var(--j-line-2);
+  background: var(--j-card);
+  color: var(--j-body);
+  cursor: pointer;
+}
+
+.menu:hover {
+  border-color: var(--j-lilac-2);
+  color: var(--j-purple);
+}
+
+.menuIcon {
+  width: 19px;
+  height: 19px;
+}
+
+@media (max-width: 900px) {
+  .menu {
+    display: grid;
+  }
+}
+
+.title {
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  color: var(--j-ink);
+  margin: 0;
+  /* Shrink and ellipsise rather than pushing the controls off the side. */
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+}
+
+.search {
+  display: block;
+}
+
+@media (max-width: 900px) {
+  .search {
+    display: none;
+  }
+}
+
+/* ── Account menu ────────────────────────────────────────────────────────── */
+
+.profile {
+  position: relative;
+}
+
+.avatarBtn {
+  width: 37px;
+  height: 37px;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: opacity 0.15s;
+}
+
+.avatarBtn:hover {
+  opacity: 0.85;
+}
+
+.menuPanel {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  margin-top: 8px;
+  width: 244px;
+  background: var(--j-card);
+  border: 1px solid var(--j-line);
+  border-radius: var(--j-r-lg);
+  box-shadow: 0 18px 38px -20px rgba(29, 23, 48, 0.45);
+  z-index: 50;
+  overflow: hidden;
+}
+
+.who {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 13px 15px;
+  border-bottom: 1px solid var(--j-line);
+}
+
+.whoText {
+  min-width: 0;
+}
+
+.whoName {
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: var(--j-ink);
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.whoLabel,
+.whoEmail {
+  font-size: 0.74rem;
+  color: var(--j-faint);
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.menuItem {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 15px;
+  font-size: 0.87rem;
+  font-weight: 600;
+  color: var(--j-body);
+  background: none;
+  border: 0;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+
+.menuItem:hover {
+  background: var(--j-tint);
+  color: var(--j-deep);
+}
+
+.menuIconSm {
+  width: 17px;
+  height: 17px;
+  flex: none;
+}

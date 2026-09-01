@@ -168,7 +168,7 @@ export default function NewConversation({
           setCustomSubject("");
         }}
         className={`${SELECT_CLASS} mb-4`}
-        style={{ borderColor: "#DAD8D0" }}
+        style={{ borderColor: "var(--j-line)" }}
       >
         <option value="">Select a category</option>
         {TICKET_CATEGORIES.map((c) => (
@@ -186,8 +186,8 @@ export default function NewConversation({
         value={subject}
         onChange={(e) => setSubject(e.target.value)}
         disabled={!category}
-        className={`${SELECT_CLASS} mb-4 disabled:bg-[#F1EFE3] disabled:text-[#8a8078] disabled:cursor-not-allowed`}
-        style={{ borderColor: "#DAD8D0" }}
+        className={`${SELECT_CLASS} mb-4 disabled:bg-(--j-tint) disabled:text-(--j-faint) disabled:cursor-not-allowed`}
+        style={{ borderColor: "var(--j-line)" }}
       >
         <option value="">
           {category ? "Select a subject" : "Choose a category first"}
@@ -212,7 +212,7 @@ export default function NewConversation({
           placeholder="Ran out of resources mid-lesson"
           aria-label="Describe your issue in a few words"
           className="w-full px-3.5 py-2.5 border rounded-2xl bg-white text-sm mb-4 focus:outline-none focus:border-gray-400 transition-colors"
-          style={{ borderColor: "#DAD8D0" }}
+          style={{ borderColor: "var(--j-line)" }}
         />
       )}
 
@@ -227,7 +227,7 @@ export default function NewConversation({
         maxLength={5000}
         placeholder="What were you trying to do, and what happened instead?"
         className="w-full px-3.5 py-2.5 border rounded-2xl bg-white text-sm resize-none mb-4 focus:outline-none focus:border-gray-400 transition-colors"
-        style={{ borderColor: "#DAD8D0" }}
+        style={{ borderColor: "var(--j-line)" }}
       />
 
       <button
@@ -235,7 +235,7 @@ export default function NewConversation({
         onClick={() => void submit()}
         disabled={busy || !ready}
         className="px-5 py-2.5 rounded-2xl text-sm font-semibold text-white transition-opacity disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-        style={{ backgroundColor: "#1a1a1a" }}
+        style={{ backgroundColor: "var(--j-purple)" }}
       >
         {busy ? "Sending…" : "Send message"}
       </button>

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Plus } from "lucide-react";
+import { ChatTeardropDots } from "@phosphor-icons/react/dist/ssr";
 import Card from "@/app/components/ui/Card";
 import AssistantComposer, { type Attachment } from "@/app/components/assistant/AssistantComposer";
 import { createChat, saveMessage } from "@/app/lib/assistantChats";
@@ -55,17 +56,25 @@ export default function DashboardAssistantCard() {
   return (
     <Card>
       <div className="flex items-center gap-2 mb-4">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/icons/ai-assistant.svg" alt="" width={20} height={20} style={{ filter: "brightness(0)" }} />
+        {/* A real glyph, not an SVG forced black with a brightness(0) filter.
+            The filter was there to make a coloured asset match the old ink; on
+            the brand it would just have flattened the purple. */}
+        <span
+          aria-hidden="true"
+          className="w-8 h-8 shrink-0 rounded-xl grid place-items-center"
+          style={{ backgroundColor: "var(--j-deep)" }}
+        >
+          <ChatTeardropDots weight="fill" className="w-4 h-4" style={{ color: "#fff" }} />
+        </span>
         <h2 className="text-[22px] font-medium text-dark grow" style={{ letterSpacing: "-0.45px" }}>
-          AI assistant
+          Ask Mo
         </h2>
         <Link
           href="/assistant"
           aria-label="New chat"
           title="New chat"
           className="w-9 h-9 flex items-center justify-center rounded-xl transition-opacity hover:opacity-80"
-          style={{ backgroundColor: "#F1EFE3" }}
+          style={{ backgroundColor: "var(--j-tint)" }}
         >
           <Plus className="w-4 h-4 text-dark" />
         </Link>
@@ -74,7 +83,7 @@ export default function DashboardAssistantCard() {
       {locked ? (
         <div
           className="flex flex-col items-center gap-3 rounded-2xl border border-dashed px-6 py-8 text-center"
-          style={{ borderColor: "#DAD8D0" }}
+          style={{ borderColor: "var(--j-line-2)" }}
         >
           <p className="text-sm text-muted max-w-md">
             Ask anything about your teaching week, and have the assistant set up your
@@ -82,7 +91,7 @@ export default function DashboardAssistantCard() {
           </p>
           <Link
             href="/pricing"
-            className="rounded-xl bg-[#1a1a1a] px-5 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+            className="rounded-xl bg-(--j-purple) px-5 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90"
           >
             Upgrade to Pro
           </Link>

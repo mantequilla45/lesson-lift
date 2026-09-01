@@ -17,7 +17,7 @@ export default async function LessonPlannerPage({
       sidebar={
         <ToolInfoPanel
             icon={<MdCalendarMonth className="w-5 h-5 text-blue-600" />}
-            heroBg="bg-blue-50"
+
             title="Lesson plan"
             description="Use this tool to design effective lesson plans in minutes. Just add the class level, subject, topic, and what you want students to learn. You can also mention a teaching style or curriculum focus, and the tool will adapt the content to match your classroom goals."
             steps={[

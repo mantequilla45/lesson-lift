@@ -17,7 +17,7 @@ export default async function ECTReportWriterPage({
       sidebar={
         <ToolInfoPanel
           icon={<FileEdit className="w-5 h-5 text-rose-600" />}
-          heroBg="bg-rose-50"
+
           title="ECT Report Writer"
           description="This tool can be used to draft evidence for ECT reports. Simply enter a list of the teacher's strengths and areas for development, and the AI will turn these into paragraphs of evidence making links to the Teacher Standards where appropriate."
           steps={[

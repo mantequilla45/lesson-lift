@@ -1,12 +1,59 @@
 @import "tailwindcss";
 
 @theme inline {
-  --color-primary: #FFCC33;
-  --color-secondary: #7D89D8;
-  --color-dark: #1C1B1B;
-  --color-surface: #FFFFFF;
-  --color-muted: #7E7E7E;
-  --color-line: #DAD8D0;
+  /* The semantic tokens now point at the V2 brand rather than carrying their
+     own cream-era hexes, so the `text-muted` / `text-dark` / `border-line`
+     utilities scattered through the app follow the rebrand for free.
+
+     `--color-primary`, `--color-secondary` and `--color-surface` have no
+     consumers anywhere in the app. They are repointed rather than deleted so
+     that anything reaching for them later lands on the brand, not on yellow. */
+  --color-primary: var(--j-purple);
+  --color-secondary: var(--j-mid);
+  --color-dark: var(--j-ink);
+  --color-surface: var(--j-card);
+  --color-muted: var(--j-muted);
+  --color-line: var(--j-line);
+
+  /* ── The neutral ramp ──────────────────────────────────────────────────────
+   *
+   * Tailwind's default `gray-*` and `stone-*` are used ~1,500 times across the
+   * app: ResultPanel, MarkdownResult, RefinePanel, Modal and every skeleton are
+   * built almost entirely from them. They are invisible to a hex search, so
+   * they were never part of the cream palette anyone had catalogued.
+   *
+   * Overriding the scale here retints all of those call sites at once, which is
+   * what lets the tool pages, the editor and the admin console move to the V2
+   * brand without being rewritten. The values are the brand's own ink ramp,
+   * carrying its violet cast, so a `border-gray-200` now sits correctly on
+   * `--j-bg` instead of reading as a cool neutral on a warm ground.
+   *
+   * Both scales are mapped to the same ramp deliberately: `stone-*` appears in
+   * only a handful of places (RefinePanel's CTA), and two subtly different
+   * neutrals is the drift this is meant to end. */
+  --color-gray-50: #FBFAFE;
+  --color-gray-100: var(--j-tint);
+  --color-gray-200: var(--j-line);
+  --color-gray-300: var(--j-line-2);
+  --color-gray-400: var(--j-faint);
+  --color-gray-500: var(--j-muted);
+  --color-gray-600: #574F70;
+  --color-gray-700: var(--j-body);
+  --color-gray-800: #2A2340;
+  --color-gray-900: var(--j-ink);
+  --color-gray-950: #120E1F;
+
+  --color-stone-50: #FBFAFE;
+  --color-stone-100: var(--j-tint);
+  --color-stone-200: var(--j-line);
+  --color-stone-300: var(--j-line-2);
+  --color-stone-400: var(--j-faint);
+  --color-stone-500: var(--j-muted);
+  --color-stone-600: var(--j-mid);
+  --color-stone-700: var(--j-purple);
+  --color-stone-800: var(--j-deep);
+  --color-stone-900: var(--j-ink);
+  --color-stone-950: #120E1F;
 
   --font-sans: var(--font-bricolage), Arial, Helvetica, sans-serif;
   --font-headline: var(--font-bricolage), Arial, Helvetica, sans-serif;
@@ -28,9 +75,11 @@
    named abstraction here bought nothing and hid which padding was in play. */
 
 body {
-  background: #F1EFE3;
-  color: #030303;
-  font-family: var(--font-secondary);
+  background: var(--j-bg);
+  color: var(--j-body);
+  /* Plus Jakarta, so a page that has not been rebuilt on the V2 components
+     still reads as the brand rather than falling back to the old body face. */
+  font-family: var(--font-jakarta), system-ui, sans-serif;
 }
 
 /* Headings use the primary (display) font; everything else inherits the
@@ -57,34 +106,10 @@ summary {
   cursor: pointer;
 }
 
-.bold-border {
-  border: 2px solid #1C1B1B;
-}
-
-.neo-shadow {
-  box-shadow: 6px 6px 0px 0px #1C1B1B;
-}
-
-.neo-shadow-sm {
-  box-shadow: 4px 4px 0px 0px #1C1B1B;
-}
-
-.scribble-highlight {
-  position: relative;
-  z-index: 1;
-}
-
-.scribble-highlight::after {
-  content: "";
-  position: absolute;
-  bottom: 2px;
-  left: -2px;
-  right: -2px;
-  height: 40%;
-  background: rgba(255, 204, 51, 0.4);
-  z-index: -1;
-  border-radius: 2px;
-}
+/* `.bold-border`, `.neo-shadow`, `.neo-shadow-sm` and `.scribble-highlight`
+   were removed here. They were the last of a neo-brutalist look two rebrands
+   ago, carried the old #1C1B1B ink and the yellow highlight, and had zero
+   consumers left anywhere in the app. */
 
 @keyframes loading-slide {
   0% { transform: translateX(-100%); }
@@ -105,9 +130,12 @@ summary {
   background: linear-gradient(
     100deg,
     rgba(255, 255, 255, 0) 0%,
-    rgba(255, 204, 51, 0.25) 45%,
-    rgba(255, 204, 51, 0.35) 50%,
-    rgba(255, 204, 51, 0.25) 55%,
+    /* Brand purple at low alpha. Written as rgba rather than a token because a
+       gradient stop needs an alpha channel, and this is the shimmer that plays
+       over an image while it generates in the editor. */
+    rgba(139, 106, 232, 0.22) 45%,
+    rgba(139, 106, 232, 0.32) 50%,
+    rgba(139, 106, 232, 0.22) 55%,
     rgba(255, 255, 255, 0) 100%
   );
   background-size: 200% 100%;
@@ -275,4 +303,88 @@ summary {
   .tp-line, .tp-fade-up, .tp-correct, .tp-check, .tp-float, .hiw-grow, .hiw-rise, .hs-typing-dot, .hs-caret, .hs-pop, .hs-view-in, .panel-slide-in {
     animation: none;
   }
+}
+
+/* ── Jooma V2 tokens ─────────────────────────────────────────────────────────
+ *
+ * The V2 brand, purple and Plus Jakarta Sans, is now the whole product: the
+ * marketing site, the signed-in app, the tool pages and the admin console. So
+ * these live on `:root` rather than being scoped to a wrapper class.
+ *
+ * They were scoped while the rebrand was half done, because the cream/yellow
+ * theme was still live on most of the app and the two could not both be global.
+ * `.jooma-v2` is kept below as an empty alias so the wrappers that still carry
+ * it (app/page.tsx, AppShellV2, AuthLayout) keep working. It grants nothing now.
+ *
+ * Values are the brand bible, verbatim. Do not type these hexes into
+ * components; reference the variable.
+ */
+:root {
+  --j-bg: #F7F5FC;
+  --j-card: #FFFFFF;
+  --j-tint: #F1ECFC;
+  --j-tint-2: #E9E2FB;
+  --j-lilac: #CDBCF7;
+  --j-lilac-2: #B7A6EC;
+  --j-mid: #8B6AE8;
+  --j-purple: #5B2ED6;
+  --j-deep: #3A1C8F;
+
+  --j-ink: #1D1730;    /* headings */
+  --j-body: #3C3552;   /* paragraphs */
+  --j-muted: #6D6683;  /* supporting */
+  --j-faint: #9A93AD;  /* metadata ONLY, never body copy */
+
+  --j-line: #EAE6F5;
+  --j-line-2: #DDD6EE;
+
+  /* Burnt orange is the marketing accent: one element per section at most. It
+     marks the cost of not acting, and the Behaviour/SEND tool colour. Never a
+     warning or an error. */
+  --j-orange: #C2551F;
+  --j-orange-bg: #FDF1EA;
+  --j-orange-ink: #8A3C12;
+  --j-paper: #FFFDF7;  /* slide previews, deck thumbnails */
+
+  /* Attainment gold, from the dashboard prototype's level pill. Reserved for
+     what a teacher has EARNED: level and badge tier. Not a status colour, not
+     an accent, and never used for a control. The badge medallions carry their
+     own five metal palettes inside BadgeMedallion.tsx, which are artwork
+     gradients rather than interface colour, so they do not read from here. */
+  --j-gold: #B8860B;
+  --j-gold-bg: #FBF3DF;
+
+  --j-r: 14px;
+  --j-r-lg: 20px;
+  --j-r-xl: 28px;
+  --j-pill: 999px;
+
+  /* Tile sizes are tokens, not per-call values. A tile's glyph is sized by a
+     percentage on the tile itself, never by a utility class on the SVG. */
+  --j-tile-md: 42px;   /* tool cards, list rows, quick tiles */
+  --j-tile-sm: 38px;   /* option rows, secondary lists */
+  --j-tile-lg: 58px;   /* tool page header */
+
+  --j-ease: cubic-bezier(.22, .61, .36, 1);
+  --j-shell: 1200px;
+
+  /* The signed-in app's fixed sidebar. */
+  --j-nav: 250px;
+
+  /* Soft tints, paired with the category solids in app/lib/tools.ts. These sit
+     behind an icon or a metric glyph, never behind body copy: they are too low
+     contrast to carry text. The prototype hardcoded each of these at every call
+     site, which is how it ended up with two slightly different lilacs. */
+  --j-tint-violet: #F1ECFC;
+  --j-tint-blue: #E6F1FB;
+  --j-tint-green: #E1F5EE;
+  --j-tint-amber: #FBF3DF;
+  --j-tint-pink: #FBEAF0;
+  --j-tint-slate: #F4F2F8;
+}
+
+/* The tokens above used to be scoped to this class. They are on `:root` now,
+   so this grants nothing and exists only so the wrappers that still carry it
+   keep resolving. Safe to delete once those three are cleaned up. */
+.jooma-v2 {
 }

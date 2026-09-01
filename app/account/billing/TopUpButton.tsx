@@ -39,7 +39,7 @@ export default function TopUpButton() {
         onClick={buy}
         disabled={loading}
         className="inline-block py-2.5 px-5 rounded-xl text-sm font-semibold transition-opacity hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
-        style={{ backgroundColor: "#E0463F", color: "#fff" }}
+        style={{ backgroundColor: "var(--j-purple)", color: "#fff" }}
       >
         {loading
           ? "Starting checkout…"

@@ -3,7 +3,7 @@
 // Local rather than imported from app/admin/ui.tsx: that module is the admin
 // console's design system and pulling it into a teacher page would create a
 // dependency from teacher UI onto admin UI, which is exactly the direction that
-// should never exist. The house convention (animate-pulse with #EEECE4 fill) is
+// should never exist. The house convention (animate-pulse with var(--j-tint) fill) is
 // small enough to restate.
 //
 // Shapes must match the real content's dimensions — a skeleton that's the wrong
@@ -13,7 +13,7 @@ function Bone({ className, style }: { className?: string; style?: React.CSSPrope
   return (
     <div
       className={`rounded ${className ?? ""}`}
-      style={{ backgroundColor: "#EEECE4", ...style }}
+      style={{ backgroundColor: "var(--j-tint)", ...style }}
     />
   );
 }
@@ -22,7 +22,7 @@ function Card({ children }: { children: React.ReactNode }) {
   return (
     <div
       className="rounded-2xl p-6 border animate-pulse"
-      style={{ backgroundColor: "#FAF9F5", borderColor: "#DAD8D0" }}
+      style={{ backgroundColor: "var(--j-card)", borderColor: "var(--j-line)" }}
     >
       {children}
     </div>
@@ -63,9 +63,9 @@ export function TableSkeleton({ rows = 5, cols = 6 }: { rows?: number; cols?: nu
   return (
     <div
       className="rounded-2xl border overflow-hidden animate-pulse"
-      style={{ backgroundColor: "#FAF9F5", borderColor: "#DAD8D0" }}
+      style={{ backgroundColor: "var(--j-card)", borderColor: "var(--j-line)" }}
     >
-      <div className="px-4 py-3 flex gap-4 border-b" style={{ borderColor: "#EEECE4" }}>
+      <div className="px-4 py-3 flex gap-4 border-b" style={{ borderColor: "var(--j-tint)" }}>
         {Array.from({ length: cols }).map((_, i) => (
           <Bone key={i} className={`h-4 ${i === 0 ? "w-32" : "grow"}`} />
         ))}
@@ -74,7 +74,7 @@ export function TableSkeleton({ rows = 5, cols = 6 }: { rows?: number; cols?: nu
         <div
           key={r}
           className="px-4 py-3 flex gap-4 border-t"
-          style={{ borderColor: "#EEECE4" }}
+          style={{ borderColor: "var(--j-tint)" }}
         >
           {Array.from({ length: cols }).map((_, i) => (
             <Bone key={i} className={`h-4 ${i === 0 ? "w-32" : "grow"}`} />

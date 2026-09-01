@@ -1,18 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
-import ToolIcon from "@/app/components/ToolIcon";
+import { ArrowRight } from "@phosphor-icons/react/dist/ssr";
+import { ToolTile } from "@/app/components/v2/Squircle";
 import { assistantToolFor } from "@/app/lib/assistant-tools";
+import { v2ToolForSlug, toolSolid } from "@/app/lib/tools";
 import { prefillHref, type ToolPrefill } from "@/app/lib/toolPrefill";
 
 /**
- * The card beneath an assistant reply that opens a tool, prefilled.
+ * The card beneath a Mo reply that opens a tool, prefilled.
  *
- * Styled to match the same card in the landing page demo
- * (app/components/landing/HeroShowcase.tsx → ToolLinkCard), so what a visitor
- * is shown before signing up is what they get after. The colours are the
- * literals that component uses.
+ * This is the moment the assistant hands back to the rest of the product, so it
+ * uses the same squircle tile and the same tool name as Make and Library. A
+ * teacher should recognise the tile before they read the label.
  */
 export default function ToolLinkCard({ prefill }: { prefill: ToolPrefill }) {
   const tool = assistantToolFor(prefill.slug);
@@ -20,24 +20,31 @@ export default function ToolLinkCard({ prefill }: { prefill: ToolPrefill }) {
   // card is ever built — but rendering nothing beats rendering a broken link.
   if (!tool) return null;
 
+  // The V2 join carries the short name and the Phosphor icon. Falls back to the
+  // assistant's own label if a tool has no V2 entry yet.
+  const v2 = v2ToolForSlug(prefill.slug);
+
   return (
     <Link
       href={prefillHref(prefill)}
-      className="mt-2.5 flex items-center gap-2.5 rounded-lg border px-3 py-2 transition-all hover:shadow-sm"
-      style={{ borderColor: "#EDEAE0", backgroundColor: "#FFFFFF" }}
+      className="mt-2.5 flex items-center gap-2.5 rounded-xl border px-3 py-2 transition-all hover:shadow-sm"
+      style={{ borderColor: "var(--j-line)", backgroundColor: "var(--j-card)" }}
     >
-      <ToolIcon name={tool.icon} className="w-7 h-7 shrink-0" />
+      <ToolTile icon={v2?.icon ?? "file-text"} solid={toolSolid(v2)} size="xs" />
       <div className="min-w-0 flex-1">
-        <p className="text-[12px] font-semibold leading-tight" style={{ color: "#1a1a1a" }}>
-          {tool.label}
+        <p
+          className="text-[12px] font-bold leading-tight truncate"
+          style={{ color: "var(--j-ink)" }}
+        >
+          {v2?.name ?? tool.label}
         </p>
-        <p className="text-[10px]" style={{ color: "#8a8078" }}>
-          Opens the tool, prefilled for you
+        <p className="text-[10px]" style={{ color: "var(--j-faint)" }}>
+          Opens the tool, filled in for you
         </p>
       </div>
       <span
-        className="flex items-center gap-1 text-[11px] font-semibold shrink-0"
-        style={{ color: "#c25034" }}
+        className="flex items-center gap-1 text-[11px] font-bold shrink-0"
+        style={{ color: "var(--j-purple)" }}
       >
         Open <ArrowRight className="w-3 h-3" />
       </span>

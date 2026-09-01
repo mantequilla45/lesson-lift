@@ -17,7 +17,7 @@ export default async function MediumTermPlannerPage({
       sidebar={
         <ToolInfoPanel
           icon={<LayoutList className="w-5 h-5 text-blue-600" />}
-          heroBg="bg-blue-50"
+
           title="Medium Term Topic Planner"
           description="This tool generates a medium term plan for a sequence of lessons on a given topic. Provide the subject, topic and number of lessons and the AI will create a structured plan showing learning objectives, lesson summaries and key knowledge for each lesson."
           steps={[

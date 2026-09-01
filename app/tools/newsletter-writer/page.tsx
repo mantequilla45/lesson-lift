@@ -17,7 +17,7 @@ export default async function NewsletterWriterPage({
       sidebar={
         <ToolInfoPanel
           icon={<Newspaper className="w-5 h-5 text-rose-600" />}
-          heroBg="bg-rose-50"
+
           title="Newsletter Writer"
           description="This tool will allow you to write a newsletter with the tone of your choice, including multiple different sections."
           steps={[

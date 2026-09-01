@@ -17,7 +17,7 @@ export default async function ReportWriterPage({
       sidebar={
         <ToolInfoPanel
           icon={<FileText className="w-5 h-5 text-violet-600" />}
-          heroBg="bg-violet-50"
+
           title="Report Writer"
           description="This tool can be used to help write pupil reports. Simply fill out the details required, being careful not to include sensitive information. You can add up to 10 additional subjects or focuses by clicking 'Add another subject'."
           steps={[

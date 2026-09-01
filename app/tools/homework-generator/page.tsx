@@ -17,7 +17,7 @@ export default async function HomeworkGeneratorPage({
       sidebar={
         <ToolInfoPanel
           icon={<BookOpen className="w-5 h-5 text-amber-600" />}
-          heroBg="bg-amber-50"
+
           title="Homework Generator"
           description="Generate a structured, differentiated homework task tailored to your year group, subject, and learning objective — with optional answers and a self-assessment checklist."
           steps={[

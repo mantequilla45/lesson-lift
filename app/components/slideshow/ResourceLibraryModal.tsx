@@ -8,6 +8,19 @@ import { TOOLS } from "@/app/lib/tools";
 
 const SLIDESHOW_SLUG = "__slideshows__";
 
+/*
+ * NOTE: the "folders" here are NOT the Library's folders.
+ *
+ * This groups tool_runs by tool_slug to give the editor a way to pick an
+ * existing resource, which is what /folders used to do before folders became
+ * real rows (app/lib/folders.ts, and tool_runs.folder_id). It is a picker over
+ * tools, not a view of how the teacher has actually filed anything, and it
+ * stays that way deliberately: reaching for a past slideshow by the tool that
+ * made it is the right shape for this modal.
+ *
+ * If this ever needs to show the teacher's own folders, read them from
+ * listFolders() rather than extending the grouping below.
+ */
 interface FolderItem {
   slug: string;
   label: string;
@@ -98,10 +111,10 @@ export default function ResourceLibraryModal({
   return (
       <div
         className="panel-slide-in relative shrink-0 w-80 max-w-[80vw] bg-white rounded-2xl flex flex-col shadow-2xl border overflow-hidden"
-        style={{ maxHeight: "90vh", borderColor: "#DAD8D0" }}
+        style={{ maxHeight: "90vh", borderColor: "var(--j-line)" }}
       >
         {/* Header */}
-        <div className="flex items-center gap-2 px-5 py-4 border-b" style={{ borderColor: "#DAD8D0" }}>
+        <div className="flex items-center gap-2 px-5 py-4 border-b" style={{ borderColor: "var(--j-line)" }}>
           {folder && (
             <button
               type="button"
@@ -113,7 +126,7 @@ export default function ResourceLibraryModal({
             </button>
           )}
           <div className="flex-1 min-w-0">
-            <h2 className="text-base font-semibold truncate" style={{ color: "#1a1a1a" }}>
+            <h2 className="text-base font-semibold truncate" style={{ color: "var(--j-purple)" }}>
               {folder ? folder.label : "Use an existing resource"}
             </h2>
             <p className="text-xs text-gray-500 truncate">
@@ -152,7 +165,7 @@ export default function ResourceLibraryModal({
                     type="button"
                     onClick={() => setFolder(f)}
                     className="flex items-center gap-3 p-3 rounded-xl border text-left hover:bg-gray-50 transition-colors"
-                    style={{ borderColor: "#DAD8D0" }}
+                    style={{ borderColor: "var(--j-line)" }}
                   >
                     <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: "#F4F2EA" }}>
                       {f.slug === SLIDESHOW_SLUG
@@ -160,7 +173,7 @@ export default function ResourceLibraryModal({
                         : <Folder className="w-4.5 h-4.5" style={{ color: "#c25034" }} />}
                     </div>
                     <div className="min-w-0">
-                      <p className="text-sm font-medium truncate" style={{ color: "#1a1a1a" }}>{f.label}</p>
+                      <p className="text-sm font-medium truncate" style={{ color: "var(--j-purple)" }}>{f.label}</p>
                       <p className="text-[11px] text-gray-400">{f.count} item{f.count === 1 ? "" : "s"}</p>
                     </div>
                   </button>

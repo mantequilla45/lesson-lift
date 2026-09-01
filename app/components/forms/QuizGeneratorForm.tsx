@@ -284,7 +284,7 @@ function QuizCard({
         <button
           type="button"
           onClick={onRemove}
-          className="flex items-center gap-1.5 text-xs font-medium text-white bg-[#1a1a1a] hover:bg-gray-800 px-2.5 py-1.5 rounded transition-colors shrink-0"
+          className="flex items-center gap-1.5 text-xs font-medium text-white bg-(--j-purple) hover:bg-(--j-deep) px-2.5 py-1.5 rounded transition-colors shrink-0"
         >
           <Trash2 className="w-3.5 h-3.5" />
           Remove

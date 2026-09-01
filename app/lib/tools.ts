@@ -6,6 +6,303 @@ export interface Tool {
   tag: string;
 }
 
+// ── Jooma V2 naming ──────────────────────────────────────────────────────────
+//
+// V2 renames every tool to the shortest thing a teacher would actually say:
+// "Slideshow Generator" becomes "Slides", "Worksheet Generator" becomes
+// "Worksheets". The old names are NOT deleted — they stay on `Tool.label`
+// (which the signed-in app still renders) and are repeated in `synonyms` so
+// search keeps matching them. Someone arriving from Google on "worksheet
+// generator" has to land on Worksheets, and that is expected to stay true for
+// at least a year.
+//
+// This lives beside TOOLS rather than inside it so the 35 entries above keep
+// exactly the shape the dashboard already reads.
+
+/** The seven V2 tool categories. Colour tells you the kind of job. */
+export const V2_CATEGORIES = [
+  { id: "slides", name: "Slides", solid: "#5B2ED6" },
+  { id: "planning", name: "Planning", solid: "#1D6FD0" },
+  { id: "resources", name: "Classroom resources", solid: "#0F8A63" },
+  { id: "assessment", name: "Assessment", solid: "#0E7490" },
+  { id: "send", name: "Behaviour and SEND", solid: "#C2551F" },
+  { id: "communication", name: "Communication", solid: "#C43D6B" },
+  { id: "leadership", name: "Leadership", solid: "#4A4458" },
+] as const;
+
+export type V2CategoryId = (typeof V2_CATEGORIES)[number]["id"];
+
+export interface V2Meta {
+  /** Short display name, e.g. "Slides". */
+  name: string;
+  /** One line, sentence case, no trailing detail. */
+  description: string;
+  category: V2CategoryId;
+  /** Phosphor icon name, rendered fill-weight inside a squircle tile. */
+  icon: string;
+}
+
+/**
+ * V2 metadata by `href`, so it cannot drift from the routes that actually
+ * exist. Keyed rather than positional: adding or reordering TOOLS above will
+ * not silently shift a name onto the wrong tool.
+ */
+export const V2_META: Record<string, V2Meta> = {
+  // Slides
+  "/tools/slideshow": {
+    name: "Slides",
+    description: "A full teaching deck you can edit, present and export.",
+    category: "slides",
+    icon: "presentation-chart",
+  },
+  "/tools/cpd-slideshow": {
+    name: "Staff Slides",
+    description: "A training deck for staff, with speaker notes.",
+    category: "slides",
+    icon: "projector-screen",
+  },
+
+  // Planning
+  "/tools/lesson-planner": {
+    name: "Lesson Plan",
+    description: "A full lesson from a topic and objective.",
+    category: "planning",
+    icon: "notebook",
+  },
+  "/tools/medium-term-planner": {
+    name: "Term Plan",
+    description: "Lesson by lesson across a whole topic.",
+    category: "planning",
+    icon: "calendar-blank",
+  },
+  "/tools/topic-overview": {
+    name: "Topic Map",
+    description: "The shape of a topic, with lesson summaries.",
+    category: "planning",
+    icon: "map-trifold",
+  },
+  "/tools/eyfs-planner": {
+    name: "Early Years Plan",
+    description: "All seven areas, indoors and out.",
+    category: "planning",
+    icon: "blueprint",
+  },
+  "/tools/cover-lesson": {
+    name: "Cover Lesson",
+    description: "Self contained, any non specialist can teach it.",
+    category: "planning",
+    icon: "user-switch",
+  },
+  "/tools/homework-generator": {
+    name: "Homework",
+    description: "A follow up task tied to the objective.",
+    category: "planning",
+    icon: "house-line",
+  },
+
+  // Classroom resources
+  "/tools/worksheet-generator": {
+    name: "Worksheets",
+    description: "Differentiated three ways, with the answers.",
+    category: "resources",
+    icon: "file-text",
+  },
+  "/tools/comprehension-generator": {
+    name: "Comprehension",
+    description: "An original text at any reading age.",
+    category: "resources",
+    icon: "book-open-text",
+  },
+  "/tools/model-text-generator": {
+    name: "Model Texts",
+    description: "Exemplar writing with the features you name.",
+    category: "resources",
+    icon: "pen-nib",
+  },
+  "/tools/phonics-support": {
+    name: "Phonics",
+    description: "Word banks, decodable texts and pseudo words.",
+    category: "resources",
+    icon: "text-aa",
+  },
+  "/tools/sensory-activities": {
+    name: "Sensory Ideas",
+    description: "Five multisensory activities for any topic.",
+    category: "resources",
+    icon: "hand-palm",
+  },
+
+  // Assessment
+  "/tools/quiz-generator": {
+    name: "Quizzes",
+    description: "Retrieval practice, ready to export.",
+    category: "assessment",
+    icon: "check-square-offset",
+  },
+  "/tools/exam-question-generator": {
+    name: "Exam Papers",
+    description: "A full paper for any board and tier.",
+    category: "assessment",
+    icon: "exam",
+  },
+  "/tools/model-answer-generator": {
+    name: "Model Answers",
+    description: "Worked answers at every mark band.",
+    category: "assessment",
+    icon: "certificate",
+  },
+  "/tools/report-writer": {
+    name: "Reports",
+    description: "Pupil reports from a few quick notes.",
+    category: "assessment",
+    icon: "scroll",
+  },
+  "/tools/smart-targets": {
+    name: "Targets",
+    description: "Raw targets turned into a proper table.",
+    category: "assessment",
+    icon: "target",
+  },
+  "/tools/ect-report-writer": {
+    name: "ECT Reports",
+    description: "Evidence against the Teacher Standards.",
+    category: "assessment",
+    icon: "student",
+  },
+
+  // Behaviour and SEND
+  "/tools/behaviour-support-plan": {
+    name: "Behaviour Plan",
+    description: "Triggers, strategies and de escalation steps.",
+    category: "send",
+    icon: "shield-check",
+  },
+  "/tools/one-page-profile": {
+    name: "Pupil Profile",
+    description: "A one page profile in the pupil's own voice.",
+    category: "send",
+    icon: "identification-card",
+  },
+  "/tools/targeted-intervention": {
+    name: "Interventions",
+    description: "Evidence based strategies to close a gap.",
+    category: "send",
+    icon: "chart-line-up",
+  },
+  "/tools/pupil-premium-planner": {
+    name: "Pupil Premium Plan",
+    description: "Tier 1, 2 and 3 strategies with rationale.",
+    category: "send",
+    icon: "coins",
+  },
+  "/tools/risk-assessment": {
+    name: "Risk Assessment",
+    description: "Hazards, likelihood and controls for any trip.",
+    category: "send",
+    icon: "warning",
+  },
+
+  // Communication
+  "/tools/letter-writer": {
+    name: "Letters",
+    description: "Parents, staff or governors, in your tone.",
+    category: "communication",
+    icon: "envelope-simple",
+  },
+  "/tools/newsletter-writer": {
+    name: "Newsletter",
+    description: "A full newsletter, section by section.",
+    category: "communication",
+    icon: "newspaper",
+  },
+  "/tools/assembly-planner": {
+    name: "Assembly",
+    description: "A timed script with reflection points.",
+    category: "communication",
+    icon: "megaphone",
+  },
+  "/tools/meeting-planner": {
+    name: "Meeting Agenda",
+    description: "A timed agenda and facilitation guide.",
+    category: "communication",
+    icon: "users-three",
+  },
+
+  // Leadership
+  "/tools/inspection-prep": {
+    name: "Inspection Prep",
+    description: "The questions you will be asked, and answers.",
+    category: "leadership",
+    icon: "magnifying-glass",
+  },
+  "/tools/school-improvement-plan": {
+    name: "Improvement Plan",
+    description: "Objectives, actions, owners and timelines.",
+    category: "leadership",
+    icon: "chart-bar",
+  },
+  "/tools/learning-walk-report": {
+    name: "Learning Walk",
+    description: "A professional write up from your notes.",
+    category: "leadership",
+    icon: "footprints",
+  },
+  "/tools/lesson-observation-report": {
+    name: "Observation",
+    description: "A formal report with agreed next steps.",
+    category: "leadership",
+    icon: "eye",
+  },
+  "/tools/performance-management": {
+    name: "Appraisal Targets",
+    description: "Structured targets for any staff role.",
+    category: "leadership",
+    icon: "medal",
+  },
+  "/tools/policy-generator": {
+    name: "Policies",
+    description: "A whole policy or a single section.",
+    category: "leadership",
+    icon: "gavel",
+  },
+  "/tools/eyfs-action-plan": {
+    name: "Early Years Actions",
+    description: "A four phase plan for any improvement aim.",
+    category: "leadership",
+    icon: "clipboard-text",
+  },
+};
+
+/** A tool joined to its V2 name, description, category and icon. */
+export interface V2Tool extends Tool, V2Meta {
+  /** Old names, kept matchable so existing search terms still resolve. */
+  synonyms: string[];
+}
+
+/**
+ * The 35 tools grouped into the seven V2 categories, in the order the
+ * categories are declared. A tool with no V2 entry is dropped rather than
+ * rendered half-named, which makes a missing mapping visible immediately
+ * instead of shipping a blank tile.
+ */
+export function v2ToolsByCategory(): {
+  id: V2CategoryId;
+  name: string;
+  solid: string;
+  tools: V2Tool[];
+}[] {
+  return V2_CATEGORIES.map((category) => ({
+    id: category.id,
+    name: category.name,
+    solid: category.solid,
+    tools: V2_TOOLS.filter((t) => t.category === category.id),
+  }));
+}
+
+// V2_TOOLS and the lookups derived from it are declared BELOW the TOOLS array
+// they read, because `const` is not hoisted: evaluating them here would throw
+// on import.
+
 export const TOOLS: Tool[] = [
   {
     href: "/tools/comprehension-generator",
@@ -253,6 +550,53 @@ export const TOOLS: Tool[] = [
     tag: "Leadership",
   },
 ];
+
+/**
+ * The joined tools as one flat list, in TOOLS order.
+ *
+ * Computed once at module scope rather than per call: several screens resolve a
+ * tool by slug on every row they render, and rebuilding the join inside a loop
+ * is how the same 35-entry array ends up allocated hundreds of times on one
+ * page.
+ *
+ * A tool with no V2 entry is dropped rather than rendered half-named, which
+ * makes a missing mapping visible immediately instead of shipping a blank tile.
+ */
+export const V2_TOOLS: V2Tool[] = TOOLS.flatMap((tool) => {
+  const meta = V2_META[tool.href];
+  if (!meta) return [];
+  return [{ ...tool, ...meta, synonyms: [tool.label] }];
+});
+
+/** Slug ("worksheet-generator") to its joined V2 tool. */
+const V2_BY_SLUG: Record<string, V2Tool> = Object.fromEntries(
+  V2_TOOLS.map((tool) => [tool.href.replace("/tools/", ""), tool]),
+);
+
+/** The category's solid colour, for the tile a tool's glyph sits on. */
+const CATEGORY_SOLID: Record<string, string> = Object.fromEntries(
+  V2_CATEGORIES.map((c) => [c.id, c.solid]),
+);
+
+/** A neutral tile for a run whose tool no longer exists. --j-muted. */
+const FALLBACK_SOLID = "#6D6683";
+
+/**
+ * Resolve a tool_runs.tool_slug to its V2 metadata.
+ *
+ * Returns undefined for a slug with no matching tool — a run saved by a tool
+ * that has since been renamed or removed. Callers render those with a neutral
+ * fallback rather than dropping the row, because it is still the teacher's
+ * resource and they must be able to open and delete it.
+ */
+export function v2ToolForSlug(slug: string): V2Tool | undefined {
+  return V2_BY_SLUG[slug];
+}
+
+/** The tile colour for a tool, or a neutral slate for an unrecognised one. */
+export function toolSolid(tool: V2Tool | undefined): string {
+  return tool ? (CATEGORY_SOLID[tool.category] ?? FALLBACK_SOLID) : FALLBACK_SOLID;
+}
 
 export const PINNED_HREFS: string[] = [];
 

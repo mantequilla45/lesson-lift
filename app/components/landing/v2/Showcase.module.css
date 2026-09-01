@@ -1,0 +1,71 @@
+.show {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 56px;
+  align-items: center;
+}
+
+.reverse .copy {
+  order: 2;
+}
+
+.copy {
+  min-width: 0;
+}
+
+.copy h2 {
+  margin-bottom: 20px;
+}
+
+.list {
+  list-style: none;
+  margin: 26px 0 0;
+  padding: 0;
+}
+
+.list li {
+  display: flex;
+  gap: 12px;
+  padding: 9px 0;
+  font-size: 0.98rem;
+}
+
+.cta {
+  margin-top: 28px;
+}
+
+.visual {
+  background: var(--j-card);
+  border: 1px solid var(--j-line);
+  border-radius: var(--j-r-xl);
+  padding: 26px;
+  box-shadow: 0 26px 60px -40px rgba(29, 23, 48, 0.4);
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+}
+
+/* For a visual that brings its own frame, such as the Ask Mo card. */
+.visualBare {
+  min-width: 0;
+}
+
+@media (max-width: 1000px) {
+  .show {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 40px;
+  }
+
+  /* Copy first on a phone, whichever side it sits on at desktop width. */
+  .reverse .copy {
+    order: 0;
+  }
+}
+
+@media (max-width: 620px) {
+  .visual {
+    padding: 18px;
+  }
+}

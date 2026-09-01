@@ -1,6 +1,6 @@
 import AssistantView from "@/app/assistant/AssistantView";
 
-export const metadata = { title: "AI assistant — Jooma" };
+export const metadata = { title: "Ask Mo | Jooma" };
 
 /** An existing conversation. Params are async in Next 16. */
 export default async function AssistantChatPage({

@@ -17,7 +17,7 @@ export default async function TopicOverviewPage({
       sidebar={
         <ToolInfoPanel
           icon={<ListChecks className="w-5 h-5 text-blue-600" />}
-          heroBg="bg-blue-50"
+
           title="Topic Overview"
           description="This tool can be used to generate a topic overview. Simply provide the year group, subject and topic and the AI will generate a structured overview with lesson summaries."
           steps={[

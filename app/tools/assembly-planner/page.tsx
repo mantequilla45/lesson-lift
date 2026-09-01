@@ -17,7 +17,7 @@ export default async function AssemblyPlannerPage({
       sidebar={
         <ToolInfoPanel
           icon={<Users className="w-5 h-5 text-blue-600" />}
-          heroBg="bg-blue-50"
+
           title="Assembly Planner"
           description="This tool can be used to plan an assembly around a particular theme. Simply enter the theme, phase of education and duration. The AI will then provide a plan for an assembly, including an introduction, a story relating to the theme and questions to ask the audience."
           steps={[

@@ -29,8 +29,12 @@ export const TONE: Record<
   MyNotification["type"],
   { bg: string; fg: string; border: string }
 > = {
-  info: { bg: "#EAEFF7", fg: "#2C55C0", border: "#D6DEF2" },
-  warning: { bg: "#FDF1DC", fg: "#8A5A12", border: "#F2E2C0" },
+  // Info is the brand tint: most notifications are ordinary product news, and
+  // they should read as part of Jooma rather than as a system alert.
+  info: { bg: "#F1ECFC", fg: "#3A1C8F", border: "#DDD6EE" },
+  warning: { bg: "#FBF3DF", fg: "#7A5A1E", border: "#EFE2C2" },
+  // Burnt orange is the brand accent and is explicitly never a warning, so
+  // maintenance uses its own clay tone rather than borrowing it.
   maintenance: { bg: "#FAE7E0", fg: "#A33F26", border: "#F0D2C7" },
 };
 

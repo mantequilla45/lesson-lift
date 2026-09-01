@@ -21,9 +21,9 @@ export default function SlideshowListSkeleton({ status }: Props) {
         <div className="flex items-center gap-3">
           <div
             className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-            style={{ backgroundColor: "#FFCC33" }}
+            style={{ backgroundColor: "var(--j-purple)" }}
           >
-            <Monitor className="w-5 h-5" style={{ color: "#1a1a1a" }} />
+            <Monitor className="w-5 h-5" style={{ color: "var(--j-purple)" }} />
           </div>
           <h1 className="text-2xl font-semibold text-gray-900">Slideshows</h1>
         </div>
@@ -32,7 +32,7 @@ export default function SlideshowListSkeleton({ status }: Props) {
             type="button"
             disabled
             className="flex items-center gap-2 text-sm font-semibold px-4 py-2.5 rounded-xl"
-            style={{ backgroundColor: "#FFCC33", color: "#1a1a1a" }}
+            style={{ backgroundColor: "var(--j-purple)", color: "var(--j-purple)" }}
           >
             <Sparkles className="w-4 h-4" />
             Generate with AI
@@ -41,7 +41,7 @@ export default function SlideshowListSkeleton({ status }: Props) {
             type="button"
             disabled
             className="flex items-center gap-2 text-sm font-semibold px-4 py-2.5 rounded-xl"
-            style={{ backgroundColor: "#1a1a1a", color: "#fff" }}
+            style={{ backgroundColor: "var(--j-purple)", color: "#fff" }}
           >
             <Plus className="w-4 h-4" />
             New Slideshow
@@ -56,7 +56,7 @@ export default function SlideshowListSkeleton({ status }: Props) {
           placeholder="Search slideshows..."
           disabled
           className="w-full rounded-xl pl-11 pr-4 py-3 text-sm bg-white border focus:outline-none"
-          style={{ borderColor: "#DAD8D0" }}
+          style={{ borderColor: "var(--j-line)" }}
         />
       </div>
 
@@ -66,7 +66,7 @@ export default function SlideshowListSkeleton({ status }: Props) {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
         {Array.from({ length: 8 }).map((_, i) => (
-          <div key={i} className="bg-[#FAF9F5] rounded-2xl overflow-hidden border animate-pulse" style={{ borderColor: "#EDEAE0" }}>
+          <div key={i} className="bg-(--j-card) rounded-2xl overflow-hidden border animate-pulse" style={{ borderColor: "#EDEAE0" }}>
             <div className="aspect-video" style={{ backgroundColor: "#ECE8DE" }} />
             <div className="p-4 space-y-2.5">
               <div className="h-4 rounded-full w-3/4" style={{ backgroundColor: "#E7E2D5" }} />

@@ -17,7 +17,7 @@ export default async function ExamQuestionGeneratorPage({
       sidebar={
         <ToolInfoPanel
           icon={<MdSchool className="w-5 h-5 text-violet-600" />}
-          heroBg="bg-violet-50"
+
           title="Exam Question Generator"
           description="Generate a complete examination paper for any subject, topic, and exam type — with questions scaled by marks and an optional mark scheme."
           steps={[

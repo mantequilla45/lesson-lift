@@ -1,4 +1,4 @@
-import AppShell from "@/app/components/layout/AppShell";
+import AppShellV2 from "@/app/components/v2/AppShellV2";
 import { PersonalInfoSkeleton } from "./Skeletons";
 import { SECTIONS } from "./sections-shared";
 
@@ -13,7 +13,7 @@ import { SECTIONS } from "./sections-shared";
 // cannot do.
 export default function Loading() {
   return (
-    <AppShell title="Profile" contentClassName="px-4 sm:px-6 lg:px-10 pb-16">
+    <AppShellV2 title="Profile" contentClassName="px-4 sm:px-6 lg:px-10 pb-16">
       <div className="grid gap-6 lg:grid-cols-[200px_minmax(0,1fr)] items-start">
         {/* Settings menu placeholder — same rhythm as the real links, so the
             column doesn't jump when they land. */}
@@ -22,7 +22,7 @@ export default function Loading() {
             <div
               key={id}
               className="h-10 rounded-2xl shrink-0"
-              style={{ backgroundColor: "#EEECE4", width: `${label.length * 7 + 32}px` }}
+              style={{ backgroundColor: "var(--j-tint)", width: `${label.length * 7 + 32}px` }}
             />
           ))}
         </div>
@@ -30,6 +30,6 @@ export default function Loading() {
           <PersonalInfoSkeleton />
         </div>
       </div>
-    </AppShell>
+    </AppShellV2>
   );
 }

@@ -1,0 +1,183 @@
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.card {
+  background: var(--j-card);
+  border: 1px solid var(--j-line);
+  border-radius: var(--j-r-xl);
+  padding: 26px;
+  min-width: 0;
+}
+
+.card h3 {
+  font-size: 1.1rem;
+  margin-bottom: 9px;
+}
+
+.body {
+  font-size: 0.94rem;
+  color: var(--j-muted);
+  line-height: 1.55;
+}
+
+.visual {
+  margin-top: 20px;
+}
+
+/* ── Colleagues ──────────────────────────────────────────────────────────── */
+
+.colleague {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--j-line);
+}
+
+.colleague:last-child {
+  border-bottom: 0;
+}
+
+.avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--j-tint);
+  color: var(--j-deep);
+  display: grid;
+  place-items: center;
+  font-size: 0.74rem;
+  font-weight: 800;
+  flex: none;
+}
+
+.meta {
+  flex: 1;
+  min-width: 0;
+}
+
+.meta b {
+  display: block;
+  font-size: 0.88rem;
+  color: var(--j-ink);
+  font-weight: 600;
+}
+
+.meta span {
+  font-size: 0.76rem;
+  color: var(--j-faint);
+}
+
+.level {
+  background: #fbf3df;
+  color: #b8860b;
+  font-size: 0.68rem;
+  font-weight: 800;
+  padding: 4px 9px;
+  border-radius: var(--j-pill);
+  flex: none;
+}
+
+/* ── Badges ──────────────────────────────────────────────────────────────── */
+
+.badges {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 0;
+}
+
+.badge svg {
+  width: 74%;
+  height: auto;
+  display: block;
+  filter: drop-shadow(0 4px 7px rgba(29, 23, 48, 0.2));
+}
+
+.badgeLocked svg {
+  filter: none;
+  opacity: 0.55;
+}
+
+.badge span {
+  font-size: 0.62rem;
+  font-weight: 800;
+  color: var(--j-ink);
+  text-align: center;
+  margin-top: 5px;
+  line-height: 1.25;
+}
+
+.badgeLocked span {
+  color: var(--j-faint);
+}
+
+/* ── Week ────────────────────────────────────────────────────────────────── */
+
+.week {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.weekRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--j-bg);
+  border-radius: 10px;
+  padding: 10px 11px;
+}
+
+.day {
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: var(--j-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  width: 34px;
+  flex: none;
+}
+
+.lesson {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--j-body);
+}
+
+.state {
+  font-size: 0.7rem;
+  font-weight: 800;
+  padding: 4px 9px;
+  border-radius: var(--j-pill);
+  flex: none;
+}
+
+.ready {
+  background: var(--j-tint);
+  color: var(--j-deep);
+}
+
+/* Orange marks the lesson with nothing attached: the cost of not acting, not
+   an error the teacher has made. */
+.missing {
+  background: var(--j-orange-bg);
+  color: var(--j-orange-ink);
+}
+
+@media (max-width: 1000px) {
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

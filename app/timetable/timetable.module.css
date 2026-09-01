@@ -1,0 +1,774 @@
+/* The week grid, ported from the prototype's #timetable section with the
+   hardcoded hexes swapped for --j-* tokens.
+
+   Everything is a CSS Module, so the prototype's trap where `.lesson span`
+   matched more than it meant cannot happen here. Even so the elements carry
+   their own classes rather than being selected by tag, because the cell content
+   is nested three deep and a bare `span` rule would still reach further than
+   intended within this file. */
+
+/* ── The bar ─────────────────────────────────────────────────────────────── */
+
+.ttbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+
+/* Pushes Add a lesson to the right of the week controls. The prototype has an
+   Import timetable button beside it; that is a separate piece of work with its
+   own parsing and mapping questions, and it is deliberately not here. */
+.ttbarEnd {
+  margin-left: auto;
+}
+
+/* ── The grid ────────────────────────────────────────────────────────────── */
+
+.ttgrid {
+  display: grid;
+  grid-template-columns: 70px repeat(5, minmax(0, 1fr));
+  gap: 8px;
+}
+
+/* minmax(0, 1fr) rather than 1fr: a long topic in a cell would otherwise set
+   the track's minimum to its own width and push the grid wider than the page.
+   This is the handover's overflow note, and it applies per column here. */
+
+.tthead {
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--j-faint);
+  padding: 8px 4px;
+  text-align: center;
+}
+
+.ttheadDate {
+  display: block;
+  font-size: 1rem;
+  color: var(--j-ink);
+  letter-spacing: -0.02em;
+  margin-top: 2px;
+}
+
+.ttheadToday,
+.ttheadToday .ttheadDate {
+  color: var(--j-purple);
+}
+
+.ttslot {
+  font-size: 0.73rem;
+  font-weight: 700;
+  color: var(--j-faint);
+  padding: 14px 6px 0;
+  text-align: right;
+}
+
+/* ── Cells ───────────────────────────────────────────────────────────────── */
+
+.ttcell {
+  background: var(--j-card);
+  border: 1px solid var(--j-line);
+  border-radius: var(--j-r);
+  min-height: 78px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: all 0.16s;
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.ttcell:hover {
+  border-color: var(--j-lilac-2);
+}
+
+/* A live drop target with a row over it. Distinct from :hover, which fires on
+   a plain mouse-over carrying nothing. Matches .folderDrop in the Library, so
+   the two screens teach the same thing. */
+.ttcellDrop,
+.ttcellDrop:hover {
+  border-color: var(--j-purple);
+  background: var(--j-tint);
+}
+
+.ttcellEmpty {
+  border-style: dashed;
+  display: grid;
+  place-items: center;
+  color: var(--j-line-2);
+}
+
+.ttcellEmpty:hover {
+  border-color: var(--j-lilac-2);
+  color: var(--j-purple);
+}
+
+.ttcellEmpty svg {
+  width: 22px;
+  height: 22px;
+}
+
+/* ── Cell content ────────────────────────────────────────────────────────── */
+
+/* The cell's edit action. The cell itself is a div carrying the drop handlers,
+   so this is what a click on the lesson lands on. */
+.lessonBtn {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-family: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.lesson {
+  display: block;
+  background: var(--j-tint);
+  border-radius: 9px;
+  padding: 8px 9px;
+}
+
+.lessonSubject {
+  display: block;
+  font-size: 0.79rem;
+  color: var(--j-deep);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.lessonTopic {
+  font-size: 0.71rem;
+  color: var(--j-muted);
+  display: block;
+  margin-top: 1px;
+}
+
+.attach {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--j-card);
+  border: 1px solid var(--j-line);
+  border-radius: 6px;
+  padding: 4px 7px;
+  font-size: 0.69rem;
+  font-weight: 700;
+  color: var(--j-body);
+  min-width: 0;
+}
+
+.attachName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* "Nothing made" is a GAP, not an error.
+   globals.css is explicit that burnt orange marks the cost of not acting and is
+   never a warning, which is exactly the job here: this is an invitation to make
+   something, in the same tone the accent carries on the landing page. A genuine
+   failure uses the error style below instead, and must not borrow this. */
+.needs {
+  display: block;
+  width: 100%;
+  background: var(--j-orange-bg);
+  border: 1px solid transparent;
+  border-radius: 9px;
+  padding: 8px 9px;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.needs:hover {
+  border-color: var(--j-orange);
+}
+
+.needsTitle {
+  display: block;
+  font-size: 0.79rem;
+  color: var(--j-orange-ink);
+  font-weight: 800;
+}
+
+.needsHint {
+  font-size: 0.71rem;
+  color: var(--j-orange-ink);
+  opacity: 0.8;
+}
+
+/* ── The resources strip ─────────────────────────────────────────────────── */
+
+/* The drag source. A browser cannot drag between routes, so the resources have
+   to be on this page for the header's promise to be true at all. */
+.strip {
+  display: flex;
+  flex-direction: column;
+}
+
+.stripRow {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--j-line);
+}
+
+.stripRow:last-child {
+  border-bottom: 0;
+}
+
+.stripRow[draggable="true"] {
+  cursor: grab;
+}
+
+.stripDragging {
+  opacity: 0.45;
+}
+
+.stripMain {
+  flex: 1;
+  min-width: 0;
+}
+
+.stripTitle {
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: var(--j-ink);
+  letter-spacing: -0.015em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stripMeta {
+  font-size: 0.76rem;
+  color: var(--j-faint);
+  display: block;
+  margin-top: 1px;
+}
+
+/* ── Status line ─────────────────────────────────────────────────────────── */
+
+/* One live region for both outcomes. An attach that only changes a chip is
+   invisible to a screen reader otherwise, and an error that only appears in a
+   toast is invisible to everyone who has looked away. */
+.status {
+  margin-top: 14px;
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: var(--j-muted);
+  min-height: 1.2em;
+}
+
+.statusError {
+  color: var(--j-orange-ink);
+}
+
+/* ── Mobile ──────────────────────────────────────────────────────────────── */
+
+/* Stacked day cards, as the handover specifies: a five column grid is
+   unreadable on a phone.
+
+   This is a reflow of the SAME DOM, not a second component tree. One set of
+   drop handlers, one set of buttons, one accessibility story. The day headings
+   become full-width bars and each cell carries its period label inline, which
+   is what .ttslotInline is for. */
+.ttslotInline {
+  display: none;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--j-faint);
+}
+
+@media (max-width: 900px) {
+  .ttgrid {
+    display: block;
+  }
+
+  /* The desktop left-hand period column has nothing to label once the grid is
+     linear, and its inline twin takes over inside each cell. */
+  .ttslot {
+    display: none;
+  }
+
+  .ttslotInline {
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  .tthead {
+    text-align: left;
+    padding: 18px 2px 8px;
+    border-bottom: 1px solid var(--j-line);
+    margin-bottom: 8px;
+  }
+
+  .ttheadDate {
+    display: inline;
+    margin-left: 6px;
+    font-size: 0.95rem;
+  }
+
+  .ttcell {
+    margin-bottom: 8px;
+    min-height: 0;
+  }
+
+  /* An empty slot is worth a tap target on a phone but not a tall dashed box
+     stacked forty times down the page. Laid out in a row so the period label
+     reads beside the plus rather than being centred on top of it. */
+  .ttcellEmpty {
+    min-height: 52px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .ttcellEmpty .ttslotInline {
+    margin-bottom: 0;
+  }
+}
+
+/* ── Modal ───────────────────────────────────────────────────────────────────
+ *
+ * Same shell as the Library's (app/folders/folders.module.css): scrim, card,
+ * fields, two-button foot. Repeated rather than shared because the two are CSS
+ * Modules in different features and a shared modal component is a refactor of
+ * both, not a change to this one. If a third appears, extract it.
+ */
+
+.modalScrim {
+  position: fixed;
+  inset: 0;
+  background: rgba(29, 23, 48, 0.45);
+  display: grid;
+  place-items: center;
+  z-index: 80;
+  padding: 20px;
+}
+
+.modalCard {
+  background: var(--j-card);
+  border-radius: var(--j-r-xl);
+  padding: 28px;
+  width: 100%;
+  max-width: 460px;
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+}
+
+.modalCardWide {
+  max-width: 760px;
+}
+
+.modalTitle {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--j-ink);
+  letter-spacing: -0.025em;
+  margin: 0 0 6px;
+}
+
+.modalSub {
+  font-size: 0.88rem;
+  color: var(--j-muted);
+  margin: 0 0 20px;
+}
+
+.field {
+  margin-bottom: 16px;
+}
+
+.fieldLabel {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: var(--j-ink);
+  margin-bottom: 7px;
+}
+
+.fieldHint {
+  font-size: 0.78rem;
+  color: var(--j-faint);
+  font-weight: 500;
+  margin-top: 6px;
+  display: block;
+}
+
+.fieldInput,
+.fieldSelect {
+  width: 100%;
+  background: var(--j-bg);
+  border: 1px solid var(--j-line-2);
+  border-radius: var(--j-r);
+  padding: 12px 14px;
+  font-family: inherit;
+  font-size: 0.92rem;
+  color: var(--j-ink);
+  outline: none;
+}
+
+.fieldInput:focus,
+.fieldSelect:focus {
+  border-color: var(--j-lilac-2);
+}
+
+.fieldInput::placeholder {
+  color: var(--j-faint);
+}
+
+.fieldRow {
+  display: flex;
+  gap: 10px;
+}
+
+.fieldRow > * {
+  flex: 1;
+  min-width: 0;
+}
+
+.modalFoot {
+  display: flex;
+  gap: 10px;
+  margin-top: 22px;
+}
+
+.modalFoot button {
+  flex: 1;
+  border-radius: var(--j-pill);
+  padding: 12px;
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 800;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+.modalCancel {
+  background: var(--j-bg);
+  color: var(--j-body);
+  border-color: var(--j-line-2);
+}
+
+.modalCancel:hover {
+  border-color: var(--j-lilac-2);
+  color: var(--j-deep);
+}
+
+.modalSave {
+  background: var(--j-purple);
+  color: #fff;
+}
+
+.modalSave:hover {
+  background: var(--j-deep);
+}
+
+.modalSave:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.modalSave:disabled:hover {
+  background: var(--j-purple);
+}
+
+/* Delete sits apart from Cancel and Save: it is not the other half of a
+   two-way choice, so it does not take an equal share of the foot. */
+.modalDelete {
+  flex: none !important;
+  background: none;
+  color: var(--j-orange-ink);
+  border-color: var(--j-line-2) !important;
+  padding: 12px 16px !important;
+}
+
+.modalDelete:hover {
+  border-color: var(--j-orange) !important;
+}
+
+/* ── Setup wizard ────────────────────────────────────────────────────────────
+ *
+ * Shown in place of the grid, inside the same page and header, so finishing it
+ * feels like the grid filling in rather than a different screen handing over.
+ */
+
+.wizard {
+  background: var(--j-card);
+  border: 1px solid var(--j-line);
+  border-radius: var(--j-r-lg);
+  padding: 26px 28px;
+  max-width: 820px;
+}
+
+.wizardSteps {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 22px;
+}
+
+.wizardStep {
+  height: 4px;
+  flex: 1;
+  border-radius: var(--j-pill);
+  background: var(--j-line);
+}
+
+.wizardStepOn {
+  background: var(--j-purple);
+}
+
+.wizardTitle {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: var(--j-ink);
+  letter-spacing: -0.025em;
+  margin: 0 0 6px;
+}
+
+.wizardSub {
+  font-size: 0.9rem;
+  color: var(--j-muted);
+  margin: 0 0 22px;
+}
+
+.wizardFoot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 26px;
+}
+
+/* Skip sits on the left, away from the forward path, and is a real route
+   through rather than a way of dismissing the question: it writes a pattern
+   with no lessons, so the grid opens empty and Add a lesson works. The wizard
+   must never be the only way in. */
+.wizardSkip {
+  margin-right: auto;
+  background: none;
+  border: 0;
+  padding: 0;
+  font-family: inherit;
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: var(--j-muted);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.wizardSkip:hover {
+  color: var(--j-deep);
+}
+
+/* ── Step 1, subjects ────────────────────────────────────────────────────── */
+
+.subjectAdd {
+  display: flex;
+  gap: 10px;
+}
+
+.subjectAdd .fieldInput {
+  flex: 1;
+  min-width: 0;
+}
+
+.subjectList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.subjectChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: var(--j-tint);
+  border: 1px solid var(--j-line-2);
+  border-radius: var(--j-pill);
+  padding: 7px 8px 7px 14px;
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: var(--j-deep);
+}
+
+.subjectRemove {
+  background: none;
+  border: 0;
+  padding: 2px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  color: var(--j-muted);
+  border-radius: var(--j-pill);
+}
+
+.subjectRemove:hover {
+  color: var(--j-orange-ink);
+}
+
+.subjectRemove svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* ── Step 2, periods ─────────────────────────────────────────────────────── */
+
+.periodRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 9px;
+}
+
+.periodNum {
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: var(--j-faint);
+  width: 74px;
+  flex: none;
+}
+
+.periodRow .fieldInput {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ── Step 3, the grid of selects ─────────────────────────────────────────── */
+
+/* Deliberately the real .ttgrid, so the teacher is filling in the grid they are
+   about to get rather than an abstraction of it. */
+.wizardCell {
+  background: var(--j-bg);
+  border: 1px solid var(--j-line-2);
+  border-radius: var(--j-r);
+  padding: 7px;
+  font-family: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--j-ink);
+  outline: none;
+  min-width: 0;
+  width: 100%;
+}
+
+.wizardCell:focus {
+  border-color: var(--j-lilac-2);
+}
+
+/* A slot with a subject chosen reads as filled at a glance, which is the only
+   way to see progress across twenty selects. */
+.wizardCellOn {
+  background: var(--j-tint);
+  border-color: var(--j-lilac);
+  color: var(--j-deep);
+}
+
+.wizardScroll {
+  overflow-x: auto;
+}
+
+@media (max-width: 900px) {
+  .wizard {
+    padding: 20px 18px;
+  }
+
+  /* The step 3 grid keeps its five columns and scrolls sideways instead of
+     stacking. Stacked, a subject select loses the day heading it belongs to,
+     which is the one thing this step is asking about. */
+  .wizardScroll > .ttgrid {
+    display: grid;
+    min-width: 620px;
+  }
+
+  .wizardScroll .ttslot {
+    display: block;
+  }
+
+  .wizardScroll .ttslotInline {
+    display: none;
+  }
+
+  .wizardScroll .tthead {
+    text-align: center;
+    padding: 8px 4px;
+    border-bottom: 0;
+    margin-bottom: 0;
+  }
+
+  .wizardScroll .ttheadDate {
+    display: block;
+    margin-left: 0;
+  }
+}
+
+/* ── Folder filter ───────────────────────────────────────────────────────────
+ *
+ * The Library's folders, as chips rather than cards. Cards below the week would
+ * compete with the grid for attention, and this strip is somewhere to pick a
+ * resource up from rather than somewhere to file into.
+ */
+
+.folderBar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+/* The folder's colour, so a chip is recognisable as the same folder the
+   Library shows. Turns to currentColor when the chip is selected, since the
+   solid would otherwise sit on purple and lose all contrast. */
+.folderDot {
+  width: 9px;
+  height: 9px;
+  border-radius: 3px;
+  flex: none;
+  display: inline-block;
+  margin-right: 7px;
+  vertical-align: baseline;
+}
+
+.folderCount {
+  margin-left: 7px;
+  font-size: 0.76rem;
+  font-weight: 800;
+  opacity: 0.6;
+}
+
+/* ── Show all ────────────────────────────────────────────────────────────── */
+
+.stripMore {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+  padding: 11px;
+  background: none;
+  border: 0;
+  border-top: 1px solid var(--j-line);
+  font-family: inherit;
+  font-size: 0.84rem;
+  font-weight: 800;
+  color: var(--j-purple);
+  cursor: pointer;
+}
+
+.stripMore:hover {
+  color: var(--j-deep);
+}

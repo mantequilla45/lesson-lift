@@ -1,5 +1,6 @@
 "use client";
 
+import StickyMask from "@/app/components/ui/StickyMask";
 import { useState, useRef, useEffect } from "react";
 import CurriculumYearFields, { useCurriculumYear } from "@/app/components/CurriculumYearFields";
 import { WordCountField, DifferentiationField } from "@/app/components/fields";
@@ -436,7 +437,7 @@ export default function ComprehensionForm({
       )}
 
       {result !== null && (
-        <div className="sticky top-0 z-20 h-0 lg:h-8 -mx-4 sm:-mx-6 lg:-mx-10" style={{ backgroundColor: "#F1EFE3" }} />
+        <StickyMask />
       )}
 
 

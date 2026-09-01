@@ -32,7 +32,14 @@ export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 /** The only plan that is self-serve via Stripe Checkout. `free` needs no
  *  payment; `max` is withdrawn from sale; `school` is custom/contact-sales
  *  (per-seat, invoiced, not a self-serve Checkout price). */
-export type PaidPlanId = Extract<PlanId, "pro">;
+export type PaidPlanId = Extract<PlanId, "pro" | "max">;
+
+/** The plans checkout will sell. Anything else is rejected before Stripe. */
+export const PAID_PLAN_IDS: PaidPlanId[] = ["pro", "max"];
+
+export function isPaidPlanId(value: unknown): value is PaidPlanId {
+  return typeof value === "string" && (PAID_PLAN_IDS as string[]).includes(value);
+}
 
 /**
  * Resolve the configured Stripe Price ID for a paid plan. Billing is monthly
@@ -43,7 +50,10 @@ export type PaidPlanId = Extract<PlanId, "pro">;
  * checkout: a database blip should not stop someone paying us.
  */
 export async function priceIdFor(plan: PaidPlanId): Promise<string> {
-  const envPriceId = { pro: process.env.STRIPE_PRICE_PRO_MONTHLY }[plan];
+  const envPriceId = {
+    pro: process.env.STRIPE_PRICE_PRO_MONTHLY,
+    max: process.env.STRIPE_PRICE_MAX_MONTHLY,
+  }[plan];
 
   const { data, error } = await supabaseAdmin
     .from("plan_config")
@@ -112,8 +122,9 @@ export async function planForPriceId(
 ): Promise<PlanId | null> {
   if (!priceId) return null;
 
-  // Cheap path: the price currently configured in the environment.
+  // Cheap path: the prices currently configured in the environment.
   if (priceId === process.env.STRIPE_PRICE_PRO_MONTHLY) return "pro";
+  if (priceId === process.env.STRIPE_PRICE_MAX_MONTHLY) return "max";
 
   const { data: historic, error: historyErr } = await supabaseAdmin
     .from("plan_price_history")

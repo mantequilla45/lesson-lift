@@ -121,7 +121,7 @@ export default async function HistoryTab() {
 
   return (
     <>
-      <p className="text-sm mb-4" style={{ color: "#8a8078" }}>
+      <p className="text-sm mb-4" style={{ color: "var(--j-faint)" }}>
         {rows.length >= ROW_LIMIT
           ? `Your last ${ROW_LIMIT} payments.`
           : "Every payment on your account."}

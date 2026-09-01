@@ -1,5 +1,6 @@
 "use client";
 
+import StickyMask from "@/app/components/ui/StickyMask";
 import { useState } from "react";
 import { CURRICULA } from "@/app/lib/formOptions";
 import { useLocalStorage } from "@/app/lib/useLocalStorage";
@@ -253,7 +254,7 @@ export default function PhonicsForm({
                 type="button"
                 onClick={handleGenerate}
                 disabled={!canGenerate || isGenerating || unchangedSinceGeneration}
-                className="flex-1 bg-[#1a1a1a] text-white py-3 px-6 rounded-xl text-sm font-semibold hover:bg-gray-800 active:bg-gray-900 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                className="flex-1 bg-(--j-purple) text-white py-3 px-6 rounded-xl text-sm font-semibold hover:bg-(--j-deep) active:bg-(--j-deep) transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {isGenerating
                   ? <><Loader2 className="w-4 h-4 animate-spin" />Generating...</>
@@ -269,7 +270,7 @@ export default function PhonicsForm({
       )}
 
       {result !== null && (
-        <div className="sticky top-0 z-20 h-0 lg:h-8 -mx-4 sm:-mx-6 lg:-mx-10" style={{ backgroundColor: "#F1EFE3" }} />
+        <StickyMask />
       )}
 
       <div className={result !== null ? "flex flex-col lg:flex-row gap-4 lg:gap-8" : ""}>

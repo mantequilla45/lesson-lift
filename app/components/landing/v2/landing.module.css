@@ -1,0 +1,206 @@
+/* Shared landing-page furniture: the page shell, typography, buttons and the
+   generic section rhythm. Component-specific rules live with their component.
+
+   Everything is a CSS Module, so a class here cannot collide with one
+   elsewhere. That is deliberate: in the prototype `.mo` (the Ask Mo card) also
+   matched `.msg.mo` in the chat and styled every message as a purple card, and
+   `.row span` captured `<span class="tile">` and pushed every tool icon into
+   the corner of its tile. Scoping removes that whole class of bug. */
+
+.page {
+  background: var(--j-bg);
+  color: var(--j-body);
+  font-family: var(--font-jakarta), system-ui, sans-serif;
+  font-size: 17px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  /* Paired with minmax(0, 1fr) on every grid below. Both are needed: without
+     the minmax the slide thumbnail strip refuses to shrink and pushes the page
+     wider than a phone viewport; without this, that overflow scrolls. */
+  overflow-x: hidden;
+}
+
+.page h1,
+.page h2,
+.page h3,
+.page h4 {
+  color: var(--j-ink);
+  font-weight: 800;
+  letter-spacing: -0.032em;
+  line-height: 1.05;
+  margin: 0;
+}
+
+.page h1 {
+  font-size: clamp(2.4rem, 5vw, 4rem);
+}
+
+.page h2 {
+  font-size: clamp(1.9rem, 3.6vw, 2.9rem);
+}
+
+.page h3 {
+  font-size: 1.1rem;
+  letter-spacing: -0.02em;
+  line-height: 1.28;
+}
+
+.page p {
+  margin: 0;
+}
+
+/* The app's globals.css sets `body { color: #030303 }`, so a link that merely
+   inherits picks up that dark ink rather than this page's own body colour.
+   `:where()` carries ZERO specificity, so this sets a default that any
+   component rule beats with a single class. Without that, at two classes it
+   outweighed `.btnP` / `.btnW` and `.brand`, which is what painted
+   white-on-purple buttons black and dulled the wordmark out of brand purple. */
+:where(.page) a {
+  color: var(--j-body);
+  text-decoration: none;
+}
+
+.page :focus-visible {
+  outline: 3px solid var(--j-mid);
+  outline-offset: 3px;
+  border-radius: 8px;
+}
+
+.shell {
+  max-width: var(--j-shell);
+  margin: 0 auto;
+  padding: 0 28px;
+}
+
+.eyebrow {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--j-purple);
+  display: block;
+  margin-bottom: 16px;
+}
+
+.lede {
+  font-size: clamp(1.04rem, 1.5vw, 1.2rem);
+  color: var(--j-muted);
+  max-width: 54ch;
+}
+
+/* ── Buttons ─────────────────────────────────────────────────────────────── */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  font-size: 0.98rem;
+  font-weight: 800;
+  padding: 15px 28px;
+  border-radius: var(--j-pill);
+  border: 0;
+  cursor: pointer;
+  font-family: inherit;
+  transition:
+    transform 0.18s var(--j-ease),
+    background 0.18s,
+    box-shadow 0.22s;
+}
+
+.btnP {
+  background: var(--j-purple);
+  color: #fff;
+  box-shadow: 0 8px 22px -10px rgba(91, 46, 214, 0.8);
+}
+
+.btnP:hover {
+  background: #4d24bd;
+  transform: translateY(-2px);
+}
+
+.btnG {
+  background: var(--j-card);
+  color: var(--j-ink);
+  border: 1px solid var(--j-line-2);
+}
+
+.btnG:hover {
+  border-color: var(--j-lilac-2);
+  transform: translateY(-2px);
+}
+
+/* On a deep purple ground. */
+.btnW {
+  background: #fff;
+  color: var(--j-deep);
+}
+
+.btnO {
+  background: transparent;
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+/* ── Sections ────────────────────────────────────────────────────────────── */
+
+.sec {
+  padding: 104px 0;
+}
+
+/* One accent band between two page-coloured sections, so a long page reads as
+   chapters rather than one scroll. */
+.secAlt {
+  background: linear-gradient(180deg, var(--j-bg), #f3effb 42%, var(--j-bg));
+}
+
+.secHead {
+  max-width: 640px;
+  margin-bottom: 52px;
+}
+
+.secHeadCentre {
+  margin: 0 auto 52px;
+  text-align: center;
+}
+
+.secHeadCentre .lede {
+  margin: 20px auto 0;
+}
+
+.secHead .lede {
+  margin-top: 20px;
+}
+
+/* A tick in a feature list. Not an icon: it carries no meaning the adjacent
+   text does not already state. */
+.tick {
+  color: var(--j-purple);
+  font-weight: 800;
+  flex: none;
+}
+
+@media (max-width: 1000px) {
+  .sec {
+    padding: 88px 0;
+  }
+}
+
+@media (max-width: 620px) {
+  .page {
+    font-size: 16px;
+  }
+
+  .shell {
+    padding: 0 18px;
+  }
+
+  .sec {
+    padding: 72px 0;
+  }
+
+  .secHead,
+  .secHeadCentre {
+    margin-bottom: 40px;
+  }
+}

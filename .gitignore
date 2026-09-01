@@ -13,6 +13,13 @@
 # testing
 /coverage
 
+# playwright — run output only. playwright.config.ts and tests/ are committed:
+# the browsers themselves live in ~/AppData/Local/ms-playwright, outside the repo.
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+
 # next.js
 /.next/
 /out/

@@ -43,12 +43,12 @@ const STATUS_TONE: Record<string, { bg: string; fg: string }> = {
   draft: { bg: "#FDF0D5", fg: "#8a6d1f" },
   overdue: { bg: "#FBE3E1", fg: "#c2342b" },
   failed: { bg: "#FBE3E1", fg: "#c2342b" },
-  refunded: { bg: "#EEECE4", fg: "#8a8078" },
-  void: { bg: "#EEECE4", fg: "#8a8078" },
+  refunded: { bg: "var(--j-tint)", fg: "var(--j-faint)" },
+  void: { bg: "var(--j-tint)", fg: "var(--j-faint)" },
 };
 
 function StatusPill({ status }: { status: string }) {
-  const tone = STATUS_TONE[status] ?? { bg: "#EEECE4", fg: "#8a8078" };
+  const tone = STATUS_TONE[status] ?? { bg: "var(--j-tint)", fg: "var(--j-faint)" };
   return (
     <span
       className="text-xs font-semibold px-3 py-1 rounded-full capitalize"
@@ -70,7 +70,7 @@ export default function TransactionsTable({
     return (
       <div
         className="rounded-2xl p-6 border text-sm"
-        style={{ backgroundColor: "#FAF9F5", borderColor: "#DAD8D0", color: "#6b6055" }}
+        style={{ backgroundColor: "var(--j-card)", borderColor: "var(--j-line)", color: "var(--j-body)" }}
       >
         No transactions yet.
       </div>
@@ -81,12 +81,12 @@ export default function TransactionsTable({
     <>
       <div
         className="rounded-2xl border overflow-hidden"
-        style={{ backgroundColor: "#FAF9F5", borderColor: "#DAD8D0" }}
+        style={{ backgroundColor: "var(--j-card)", borderColor: "var(--j-line)" }}
       >
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr style={{ color: "#8a8078" }} className="text-left">
+              <tr style={{ color: "var(--j-faint)" }} className="text-left">
                 <th className="font-semibold px-4 py-3">Date</th>
                 <th className="font-semibold px-4 py-3">Description</th>
                 <th className="font-semibold px-4 py-3 text-right">Amount</th>
@@ -96,16 +96,16 @@ export default function TransactionsTable({
             </thead>
             <tbody>
               {rows.map((r) => (
-                <tr key={r.id} className="border-t" style={{ borderColor: "#EEECE4" }}>
-                  <td className="px-4 py-3 whitespace-nowrap" style={{ color: "#6b6055" }}>
+                <tr key={r.id} className="border-t" style={{ borderColor: "var(--j-tint)" }}>
+                  <td className="px-4 py-3 whitespace-nowrap" style={{ color: "var(--j-body)" }}>
                     {fmtDate(r.date)}
                   </td>
-                  <td className="px-4 py-3 font-medium" style={{ color: "#1a1a1a" }}>
+                  <td className="px-4 py-3 font-medium" style={{ color: "var(--j-ink)" }}>
                     {r.description}
                   </td>
                   <td
                     className="px-4 py-3 text-right font-semibold whitespace-nowrap"
-                    style={{ color: "#1a1a1a" }}
+                    style={{ color: "var(--j-ink)" }}
                   >
                     {gbp(r.amountGbp)}
                   </td>
@@ -114,7 +114,7 @@ export default function TransactionsTable({
                   </td>
                   {/* A label, not a link. The download lives behind the single
                       portal button below — see the note there. */}
-                  <td className="px-4 py-3 text-right text-xs" style={{ color: "#8a8078" }}>
+                  <td className="px-4 py-3 text-right text-xs" style={{ color: "var(--j-faint)" }}>
                     {r.stripeInvoiceId ? "In Stripe" : "—"}
                   </td>
                 </tr>

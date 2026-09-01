@@ -1,0 +1,309 @@
+/* Fields, buttons and message banners shared by the five auth pages.
+
+   Kept separate from AuthLayout.module.css so a page can compose its own form
+   without going through the layout's children slot for every element. */
+
+.field {
+  margin-bottom: 16px;
+}
+
+.label {
+  display: block;
+  font-size: 0.83rem;
+  font-weight: 700;
+  color: var(--j-ink);
+  margin-bottom: 7px;
+}
+
+.input {
+  width: 100%;
+  background: var(--j-bg);
+  border: 1px solid var(--j-line-2);
+  border-radius: var(--j-r);
+  padding: 12px 14px;
+  font-family: inherit;
+  font-size: 0.93rem;
+  color: var(--j-ink);
+  outline: none;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
+}
+
+.input::placeholder {
+  color: var(--j-faint);
+}
+
+.input:focus {
+  border-color: var(--j-mid);
+  background: var(--j-card);
+}
+
+/* A field the teacher must not change — the address an invitation was sent to,
+   which is what acceptance matches on. */
+.inputLocked {
+  color: var(--j-muted);
+  cursor: not-allowed;
+}
+
+/* Wraps an input that has a button sitting inside it (the password reveal). */
+.inputWrap {
+  position: relative;
+}
+
+.inputWrap .input {
+  padding-right: 46px;
+}
+
+.reveal {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: none;
+  border-radius: 50%;
+  color: var(--j-faint);
+  cursor: pointer;
+}
+
+.reveal:hover {
+  color: var(--j-purple);
+  background: var(--j-tint);
+}
+
+.revealIcon {
+  width: 18px;
+  height: 18px;
+}
+
+/* ── Buttons ─────────────────────────────────────────────────────────────── */
+
+.submit {
+  width: 100%;
+  margin-top: 8px;
+  background: var(--j-purple);
+  color: #fff;
+  border: 0;
+  border-radius: var(--j-pill);
+  padding: 13px;
+  font-family: inherit;
+  font-size: 0.92rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.submit:hover:not(:disabled) {
+  background: var(--j-deep);
+}
+
+.submit:disabled {
+  background: var(--j-tint-2);
+  color: var(--j-faint);
+  cursor: default;
+}
+
+.google {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: var(--j-card);
+  border: 1px solid var(--j-line-2);
+  border-radius: var(--j-pill);
+  padding: 12px;
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--j-body);
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    color 0.15s;
+}
+
+.google:hover {
+  border-color: var(--j-lilac-2);
+  color: var(--j-deep);
+}
+
+.googleIcon {
+  width: 19px;
+  height: 19px;
+}
+
+.or {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 20px 0;
+}
+
+.orLine {
+  height: 1px;
+  background: var(--j-line);
+  flex: 1;
+}
+
+.orText {
+  font-size: 0.78rem;
+  color: var(--j-faint);
+  font-weight: 600;
+}
+
+/* ── Checkbox row ────────────────────────────────────────────────────────── */
+
+.check {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  font-size: 0.86rem;
+  color: var(--j-muted);
+  margin-top: 4px;
+  margin-bottom: 20px;
+  cursor: pointer;
+}
+
+.checkBox {
+  margin-top: 2px;
+  width: 16px;
+  height: 16px;
+  flex: none;
+  accent-color: var(--j-purple);
+  cursor: pointer;
+}
+
+.check a {
+  color: var(--j-purple);
+  font-weight: 700;
+}
+
+.check a:hover {
+  text-decoration: underline;
+}
+
+/* ── Messages ────────────────────────────────────────────────────────────── */
+
+/* A one-line failure the teacher can act on by retrying. */
+.error {
+  margin-top: 12px;
+  font-size: 0.86rem;
+  color: #b3261e;
+}
+
+/* A state retrying will not fix — a suspension, a dead invitation, closed
+   signups. It gets a banner rather than the same one-line hint as a typo,
+   because the response required is different.
+
+   The burnt orange in the brand is a marketing accent and explicitly never a
+   warning or an error, so these use their own tones. */
+.banner {
+  margin-bottom: 20px;
+  border-radius: var(--j-r);
+  border: 1px solid;
+  padding: 13px 15px;
+}
+
+.bannerTitle {
+  font-size: 0.87rem;
+  font-weight: 800;
+}
+
+.bannerBody {
+  font-size: 0.86rem;
+  margin-top: 2px;
+}
+
+.bannerBad {
+  background: #fbeceb;
+  border-color: #edd3d1;
+}
+
+.bannerBad .bannerTitle {
+  color: #b3261e;
+}
+
+.bannerBad .bannerBody {
+  color: #8a3b34;
+}
+
+.bannerWarn {
+  background: #fbf3e6;
+  border-color: #e8d9bc;
+}
+
+.bannerWarn .bannerTitle {
+  color: #7a5a1e;
+}
+
+.bannerWarn .bannerBody {
+  color: #8a6e36;
+}
+
+.bannerGood {
+  background: #eef4ec;
+  border-color: #cfe0ca;
+}
+
+.bannerGood .bannerTitle {
+  color: #2f5228;
+}
+
+.bannerGood .bannerBody {
+  color: #4a6b44;
+}
+
+/* ── Reassurance strip ───────────────────────────────────────────────────── */
+
+.trust {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin-top: 26px;
+  border: 1px solid var(--j-line);
+  border-radius: var(--j-r);
+  padding: 13px 15px;
+}
+
+.trustIcon {
+  width: 34px;
+  height: 34px;
+  flex: none;
+  border-radius: 11px;
+  background: var(--j-tint-green);
+  color: #0f6e56;
+  display: grid;
+  place-items: center;
+}
+
+.trustIcon svg {
+  width: 17px;
+  height: 17px;
+}
+
+.trustTitle {
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: var(--j-ink);
+}
+
+.trustBody {
+  font-size: 0.79rem;
+  color: var(--j-faint);
+}
+
+/* ── Focus ───────────────────────────────────────────────────────────────── */
+
+.field :focus-visible,
+.submit:focus-visible,
+.google:focus-visible,
+.reveal:focus-visible {
+  outline: 2.5px solid var(--j-mid);
+  outline-offset: 2px;
+}

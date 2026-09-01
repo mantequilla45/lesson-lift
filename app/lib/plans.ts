@@ -162,12 +162,14 @@ export const PLANS: Record<PlanId, Plan> = {
   max: {
     id: "max",
     name: "Max Teacher",
-    // WITHDRAWN FROM SALE. There is no Stripe price for Max any more and no
-    // checkout path can reach it. The entry survives so that an account still
-    // holding plan='max' resolves real limits instead of falling back to Free,
-    // and so admin MRR keeps counting its £14.99. Same treatment in the
-    // plan_config table (status='retired').
-    retired: true,
+    // BACK ON SALE. Max was withdrawn (retired: true, plan_config
+    // status='retired') and is being reinstated as the step up from Pro:
+    // 2,500 credits against Pro's 1,000, for £14.99.
+    //
+    // Selling it needs STRIPE_PRICE_MAX_MONTHLY set in the environment and the
+    // plan_config row returned to status='live' — see the accompanying
+    // migration. Until the price exists, checkout for Max throws rather than
+    // silently charging the wrong thing.
     priceMonthly: 14.99,
     priceYearlyPerMonth: 12.42,
     priceYearly: 149.0,
@@ -242,12 +244,11 @@ export const DEFAULT_PLAN: PlanId = "free";
 /**
  * The plans an admin may actually put someone on, in display order.
  *
- * Excludes `max` (withdrawn from sale — no Stripe price exists) and `school`
- * (not built — no seats, no pooled allowances, no central billing). Offering
- * either in a dropdown would let an admin move a teacher onto a plan that
- * cannot be billed and, for `school`, does not function.
+ * Excludes `school` (not built: no seats, no pooled allowances, no central
+ * billing). Offering it in a dropdown would let an admin move a teacher onto a
+ * plan that does not function.
  *
- * Both plans stay fully defined in PLANS: an account already holding one still
+ * `school` stays fully defined in PLANS: an account already holding it still
  * resolves real limits and still renders the right badge. This is a
  * presentation filter, not a removal.
  */
@@ -271,9 +272,10 @@ export const SELECTABLE_PLANS: Plan[] = Object.values(PLANS).filter(
 export const AI_SPEND_CEILING_PENCE: Record<PlanId, number | null> = {
   free: null,
   pro: 150,
-  // Withdrawn from sale, but anyone still on it gets Pro's guard rather than
-  // an unmetered account.
-  max: 150,
+  // £3.75 against £14.99 of revenue. This is what makes Max's 2,500 credits
+  // real: while Max was withdrawn it sat at Pro's 150p, so a Max subscriber
+  // paying nearly twice as much got exactly Pro's allowance.
+  max: 375,
   // Pooled at the school level; not modelled yet.
   school: null,
 };
@@ -303,6 +305,20 @@ const PENCE_PER_CREDIT = 0.15;
  *   £1.50 top-up   → 1,000 credits
  */
 export const PLAN_CREDITS = 1000;
+
+/**
+ * A plan's monthly allowance in credits, derived from its pence ceiling so the
+ * two can never drift: Pro 150p → 1,000, Max 375p → 2,500.
+ *
+ * `null` for plans with no ceiling (Free, which is gated by generation count
+ * instead, and School, which is not modelled). Callers decide how to present
+ * that — the landing page shows Free's real "5 resources a month" rather than
+ * a credit figure it does not have.
+ */
+export function planCredits(plan: PlanId): number | null {
+  const pence = AI_SPEND_CEILING_PENCE[plan];
+  return pence === null ? null : toCredits(pence);
+}
 
 /** Convert internal pence of AI spend into teacher-facing credits. */
 export function toCredits(pence: number): number {

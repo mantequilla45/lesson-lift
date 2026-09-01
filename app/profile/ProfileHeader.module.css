@@ -1,0 +1,112 @@
+.head {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  background: var(--j-card);
+  border: 1px solid var(--j-line);
+  border-radius: var(--j-r-xl);
+  padding: 22px 24px;
+  margin-bottom: 20px;
+}
+
+.avatar {
+  flex: none;
+  display: block;
+  border-radius: 50%;
+  transition: opacity 0.15s;
+}
+
+.avatar:hover {
+  opacity: 0.85;
+}
+
+.who {
+  min-width: 0;
+  flex: 1;
+}
+
+.name {
+  font-size: 1.45rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  color: var(--j-ink);
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.meta {
+  font-size: 0.88rem;
+  color: var(--j-muted);
+  margin: 5px 0 0;
+}
+
+/* ── Stats ───────────────────────────────────────────────────────────────── */
+
+.stats {
+  display: flex;
+  gap: 26px;
+  margin: 0;
+  flex: none;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 2px;
+}
+
+.stat dd {
+  font-size: 1.3rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1.1;
+  color: var(--j-ink);
+  margin: 0;
+}
+
+.stat dt {
+  font-size: 0.75rem;
+  color: var(--j-faint);
+}
+
+/* A figure with no data behind it. Muted and smaller, so it does not read as a
+   real number sitting beside the two that are. */
+.statSoon dd {
+  font-size: 0.95rem;
+  color: var(--j-faint);
+  letter-spacing: -0.01em;
+  /* Holds the baseline of the real figures beside it. */
+  padding-top: 5px;
+}
+
+@media (max-width: 900px) {
+  .head {
+    flex-wrap: wrap;
+  }
+
+  .stats {
+    flex-basis: 100%;
+    justify-content: space-between;
+    gap: 12px;
+    padding-top: 16px;
+    border-top: 1px solid var(--j-line);
+  }
+}
+
+@media (max-width: 560px) {
+  .head {
+    gap: 14px;
+    padding: 18px;
+  }
+
+  .name {
+    font-size: 1.2rem;
+  }
+
+  .stat dd {
+    font-size: 1.1rem;
+  }
+}

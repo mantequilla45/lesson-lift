@@ -1,0 +1,106 @@
+/* The deck strip under the showcase slide runs horizontally at every width,
+   unlike the hero's, which is a vertical rail beside the slide. */
+.strip {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.stripCell {
+  flex: 1;
+  min-width: 0;
+}
+
+.reading {
+  border: 0;
+  padding: 0;
+}
+
+.reading h4 {
+  font-size: 1.2rem;
+  margin-bottom: 4px;
+}
+
+/* ── Ask Mo ──────────────────────────────────────────────────────────────── */
+
+/* Namespaced. In the prototype this component's class also matched the chat
+   message class and styled every message as a purple card. */
+.chat {
+  background: var(--j-card);
+  border: 1px solid var(--j-line);
+  border-radius: var(--j-r-xl);
+  padding: 26px;
+  box-shadow: 0 26px 60px -40px rgba(29, 23, 48, 0.4);
+}
+
+.line {
+  display: flex;
+  gap: 13px;
+  margin-bottom: 20px;
+}
+
+.line:last-child {
+  margin-bottom: 0;
+}
+
+.who {
+  width: 32px;
+  height: 32px;
+  border-radius: 11px;
+  display: grid;
+  place-items: center;
+  flex: none;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.you {
+  background: var(--j-tint);
+  color: var(--j-deep);
+}
+
+.bot {
+  background: var(--j-purple);
+  color: #fff;
+}
+
+.whoGlyph {
+  width: 16px;
+  height: 16px;
+  fill: #fff;
+}
+
+.text {
+  font-size: 0.95rem;
+  line-height: 1.65;
+  color: var(--j-body);
+  padding-top: 4px;
+  min-width: 0;
+}
+
+.text b {
+  color: var(--j-ink);
+}
+
+.options {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 13px;
+}
+
+.options span {
+  background: var(--j-tint);
+  color: var(--j-deep);
+  border-radius: var(--j-pill);
+  padding: 8px 14px;
+  font-size: 0.83rem;
+  font-weight: 600;
+}
+
+@media (max-width: 620px) {
+  .chat {
+    padding: 20px;
+  }
+}

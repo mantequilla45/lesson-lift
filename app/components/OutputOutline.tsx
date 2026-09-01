@@ -130,7 +130,7 @@ export default function OutputOutline({ markdown, title = "Jump to section" }: P
               title={h.text}
               className={`w-full text-left text-sm px-3 py-2 rounded-lg transition-colors cursor-pointer truncate ${
                 active
-                  ? "bg-[#1a1a1a] text-white font-medium"
+                  ? "bg-(--j-purple) text-white font-medium"
                   : "text-gray-700 hover:bg-gray-100"
               }`}
               style={{ paddingLeft: `${12 + (h.level - minLevel) * 14}px` }}

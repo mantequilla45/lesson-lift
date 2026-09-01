@@ -113,27 +113,27 @@ export default async function OverviewTab({
 
       <div
         className="rounded-2xl p-6 border"
-        style={{ backgroundColor: "#FAF9F5", borderColor: "#DAD8D0" }}
+        style={{ backgroundColor: "var(--j-card)", borderColor: "var(--j-line)" }}
       >
         <div className="flex items-center justify-between mb-4">
           <div>
-            <p className="text-xs font-semibold mb-1" style={{ color: "#8a8078" }}>
+            <p className="text-xs font-semibold mb-1" style={{ color: "var(--j-faint)" }}>
               Current plan
             </p>
-            <p className="text-xl font-bold" style={{ color: "#1a1a1a" }}>
+            <p className="text-xl font-bold" style={{ color: "var(--j-ink)" }}>
               {planName}
             </p>
           </div>
           <span
             className="text-xs font-semibold px-3 py-1 rounded-full"
-            style={{ backgroundColor: "#EEECE4", color: "#8a8078" }}
+            style={{ backgroundColor: "var(--j-tint)", color: "var(--j-faint)" }}
           >
             {profile?.subscription_status ?? (plan === "free" ? "free" : "—")}
           </span>
         </div>
 
         {renews && (
-          <p className="text-sm mb-5" style={{ color: "#6b6055" }}>
+          <p className="text-sm mb-5" style={{ color: "var(--j-body)" }}>
             {ending || ended
               ? `Access ends on ${renews}.`
               : `Renews on ${renews}.`}
@@ -169,7 +169,7 @@ export default async function OverviewTab({
           <Link
             href="/pricing"
             className="inline-block py-2.5 px-5 rounded-xl text-sm font-semibold transition-opacity hover:opacity-90"
-            style={{ backgroundColor: "#E0463F", color: "#fff" }}
+            style={{ backgroundColor: "var(--j-purple)", color: "#fff" }}
           >
             Upgrade to Pro
           </Link>
@@ -181,14 +181,14 @@ export default async function OverviewTab({
             them to buy a second subscription they don't need. Once ENDED, that
             really is the only route back. */}
         {ending && (
-          <p className="text-sm mt-4" style={{ color: "#8a8078" }}>
+          <p className="text-sm mt-4" style={{ color: "var(--j-faint)" }}>
             Your plan is set to end. Renew to keep it — you won&apos;t be charged
             until {renews ?? "the next billing date"}.
           </p>
         )}
 
         {ended && (
-          <p className="text-sm mt-4" style={{ color: "#8a8078" }}>
+          <p className="text-sm mt-4" style={{ color: "var(--j-faint)" }}>
             You can resubscribe any time from the pricing page.
           </p>
         )}

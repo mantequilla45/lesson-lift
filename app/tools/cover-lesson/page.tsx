@@ -17,7 +17,7 @@ export default async function CoverLessonPage({
       sidebar={
         <ToolInfoPanel
           icon={<ClipboardList className="w-5 h-5 text-teal-600" />}
-          heroBg="bg-teal-50"
+
           title="Cover Lesson Generator"
           description="Generate a fully self-contained cover lesson that any non-specialist teacher can pick up and deliver confidently — no preparation, no subject knowledge required."
           steps={[

@@ -15,7 +15,7 @@ export type PortalFlow = "payment_method_update" | "subscription_cancel";
 /**
  * `dark` is the primary action. `outline` is available-but-secondary.
  *
- * `danger` is deliberately an OUTLINE, not a filled #E0463F: that red is this
+ * `danger` is deliberately an OUTLINE, not a filled var(--j-purple): that red is this
  * palette's primary-action colour (it's on "Upgrade to Pro" and "Add credits"),
  * so a filled red Cancel button would be the loudest thing on the page and read
  * as the thing we want you to press.
@@ -23,9 +23,9 @@ export type PortalFlow = "payment_method_update" | "subscription_cancel";
 type Variant = "dark" | "outline" | "danger";
 
 const VARIANTS: Record<Variant, React.CSSProperties> = {
-  dark: { backgroundColor: "#1a1a1a", color: "#fff" },
-  outline: { backgroundColor: "transparent", color: "#1a1a1a", border: "1px solid #DAD8D0" },
-  danger: { backgroundColor: "transparent", color: "#E0463F", border: "1px solid #E0463F" },
+  dark: { backgroundColor: "var(--j-purple)", color: "#fff" },
+  outline: { backgroundColor: "transparent", color: "var(--j-ink)", border: "1px solid var(--j-line)" },
+  danger: { backgroundColor: "transparent", color: "var(--j-purple)", border: "1px solid var(--j-purple)" },
 };
 
 export default function ManageButton({

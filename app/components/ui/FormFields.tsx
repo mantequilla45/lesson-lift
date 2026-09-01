@@ -9,9 +9,8 @@
 // the country list to drift — so they were promoted here and complete-profile
 // now imports them like everyone else.
 //
-// Teacher palette only (#FAF9F5 card, border-line, #A5A5A5 placeholder). The
-// admin console has its own field kit in app/admin/ui.tsx; the two must not
-// meet.
+// Teacher palette only, on the V2 tokens. The admin console has its own field
+// kit in app/admin/ui.tsx; the two must not meet.
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown } from "lucide-react";
@@ -20,7 +19,7 @@ import { COUNTRIES, Flag, useClickOutside } from "@/app/components/DialCodeSelec
 /** The input styling, exported so a one-off field (a textarea, a native select)
  *  can match without restating the class string. */
 export const INPUT_CLASS =
-  "w-full px-4 py-3 border border-line rounded-xl bg-white text-sm leading-tight tracking-tight font-medium placeholder-[#A5A5A5] placeholder:font-light focus:outline-none focus:border-dark transition-colors";
+  "w-full px-4 py-3 border border-(--j-line-2) rounded-xl bg-(--j-bg) text-sm leading-tight tracking-tight font-medium text-(--j-ink) placeholder-(--j-faint) placeholder:font-light focus:outline-none focus:border-(--j-mid) focus:bg-(--j-card) transition-colors";
 
 export function Field({
   label,
@@ -70,7 +69,7 @@ export function TextInput({
       placeholder={placeholder}
       disabled={disabled}
       autoComplete={autoComplete}
-      className={`${INPUT_CLASS} disabled:bg-[#F1EFE3] disabled:text-[#8a8078] disabled:cursor-not-allowed`}
+      className={`${INPUT_CLASS} disabled:bg-(--j-tint) disabled:text-(--j-faint) disabled:cursor-not-allowed`}
     />
   );
 }
@@ -115,8 +114,8 @@ export function CountrySelect({
           setOpen(true);
           inputRef.current?.focus();
         }}
-        className={`w-full flex items-center gap-3 pl-4 pr-10 py-3 border rounded-xl bg-white text-sm leading-tight tracking-tight font-medium transition-colors cursor-text ${
-          open ? "border-dark" : "border-line hover:border-dark"
+        className={`w-full flex items-center gap-3 pl-4 pr-10 py-3 border rounded-xl bg-(--j-bg) text-sm leading-tight tracking-tight font-medium transition-colors cursor-text ${
+          open ? "border-(--j-mid)" : "border-(--j-line-2) hover:border-(--j-lilac-2)"
         }`}
       >
         {selected && !open && <Flag code={selected.code} className="w-6 h-4" />}
@@ -133,12 +132,12 @@ export function CountrySelect({
           placeholder="Search or select a country"
           aria-haspopup="listbox"
           aria-expanded={open}
-          className="flex-1 min-w-0 bg-transparent text-left placeholder-[#A5A5A5] placeholder:font-light focus:outline-none"
+          className="flex-1 min-w-0 bg-transparent text-left placeholder-(--j-faint) placeholder:font-light focus:outline-none"
         />
         <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted pointer-events-none" />
       </div>
       {open && (
-        <div className="absolute z-10 mt-1 w-full max-h-72 overflow-y-auto rounded-xl border border-line bg-white shadow-lg">
+        <div className="absolute z-10 mt-1 w-full max-h-72 overflow-y-auto rounded-xl border border-(--j-line) bg-(--j-card) shadow-lg">
           {filtered.length === 0 ? (
             <p className="px-4 py-3 text-sm text-muted">No matches</p>
           ) : (
@@ -151,7 +150,7 @@ export function CountrySelect({
                       onChange(c.code);
                       setOpen(false);
                     }}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-[#F1EFE3] transition-colors"
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-(--j-tint) transition-colors"
                   >
                     <Flag code={c.code} className="w-6 h-4" />
                     <span className="text-left">{c.name}</span>

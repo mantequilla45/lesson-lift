@@ -1,0 +1,104 @@
+/* Rendered through a portal to document.body, so it sits outside the
+   .jooma-v2 wrapper and cannot inherit the tokens. Every value here is
+   therefore literal rather than a var(--j-*). */
+
+.scrim {
+  position: fixed;
+  inset: 0;
+  background: rgba(29, 23, 48, 0.45);
+  display: grid;
+  place-items: center;
+  z-index: 80;
+  padding: 20px;
+}
+
+.modal {
+  background: #fff;
+  border-radius: 28px;
+  padding: 28px;
+  width: 100%;
+  max-width: 460px;
+  font-family: var(--font-jakarta), system-ui, sans-serif;
+}
+
+.title {
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+  color: #1d1730;
+  margin: 0 0 6px;
+}
+
+.sub {
+  font-size: 0.88rem;
+  color: #6d6683;
+  margin: 0 0 20px;
+}
+
+.pack {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f1ecfc;
+  border: 1px solid #5b2ed6;
+  border-radius: 14px;
+  padding: 14px 16px;
+}
+
+.packName,
+.packPrice {
+  color: #3a1c8f;
+  font-weight: 800;
+  font-size: 0.95rem;
+}
+
+.note {
+  font-size: 0.78rem;
+  color: #9a93ad;
+  margin: 12px 0 0;
+}
+
+.foot {
+  display: flex;
+  gap: 10px;
+  margin-top: 22px;
+}
+
+.cancel,
+.save {
+  flex: 1;
+  border-radius: 999px;
+  padding: 12px;
+  font-size: 0.9rem;
+  font-weight: 800;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.cancel {
+  background: #f7f5fc;
+  color: #3c3552;
+  border: 1px solid #ddd6ee;
+}
+
+.cancel:hover {
+  border-color: #b7a6ec;
+}
+
+.save {
+  background: #5b2ed6;
+  color: #fff;
+  border: 1px solid #5b2ed6;
+}
+
+.save:hover {
+  background: #3a1c8f;
+  border-color: #3a1c8f;
+}
+
+.modal :focus-visible {
+  outline: 2.5px solid #8b6ae8;
+  outline-offset: 2px;
+  border-radius: 8px;
+}

@@ -1,0 +1,406 @@
+/* Shared furniture for the signed-in V2 app: the content well, typography,
+   buttons, section headers, panels, rows and the generic search box.
+   Component-specific rules live with their component.
+
+   This is the app-side twin of app/components/landing/v2/landing.module.css.
+   Everything is a CSS Module, so a class here cannot collide with one
+   elsewhere. That is deliberate, and it is what removes three of the four
+   traps in the developer handover: in the prototype `.row span` also matched
+   `<span class="tile">` and pushed every tool icon into the corner of its
+   tile, and `.mo` (the Ask Mo card) matched `.msg.mo` in the chat and painted
+   every message as a purple card.
+
+   The fourth trap, duplicate rules drifting, is why tile sizes live in
+   --j-tile-* and are set in exactly one place (Squircle.module.css). Do not
+   size a tile here. */
+
+/* The content well. Sits inside AppShellV2's <main>, which owns the page
+   background, so this only handles rhythm and width. */
+.wrap {
+  padding: 28px 28px 52px;
+  max-width: 1340px;
+  width: 100%;
+}
+
+@media (max-width: 640px) {
+  .wrap {
+    padding: 20px 16px 44px;
+  }
+}
+
+/* ── Typography ──────────────────────────────────────────────────────────── */
+
+/* Scoped to .wrap rather than set on bare tags, so nothing here reaches a page
+   still rendering on the cream theme. */
+.wrap h1,
+.wrap h2,
+.wrap h3,
+.wrap h4 {
+  color: var(--j-ink);
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.wrap h1 {
+  font-size: 1.72rem;
+}
+
+.wrap h2 {
+  font-size: 1.1rem;
+}
+
+.wrap h3 {
+  font-size: 0.97rem;
+  letter-spacing: -0.015em;
+}
+
+.wrap p {
+  margin: 0;
+}
+
+/* globals.css sets `body { color: #030303 }` — the cream theme's ink — so a
+   link that merely inherits picks that up rather than this page's body colour.
+   `:where()` carries ZERO specificity, so this is a default that any component
+   rule beats with a single class. Without it, at two classes it outweighed the
+   button rules and painted white-on-purple buttons near-black. */
+:where(.wrap) a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* ── Page heading block ──────────────────────────────────────────────────── */
+
+.hello {
+  margin-bottom: 22px;
+}
+
+/* The small uppercase line above the title. */
+.helloWhen {
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--j-purple);
+  margin-bottom: 8px;
+}
+
+.helloSub {
+  color: var(--j-muted);
+  margin-top: 7px;
+  font-size: 0.98rem;
+}
+
+/* ── Section header ──────────────────────────────────────────────────────── */
+
+.sh {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 26px 0 13px;
+}
+
+.shTitle {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  min-width: 0;
+}
+
+/* Supporting text beside a section title. Faint is metadata only, which this
+   is: it never carries meaning the teacher needs. */
+.shSub {
+  font-size: 0.84rem;
+  color: var(--j-faint);
+  font-weight: 500;
+}
+
+.shLink {
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: var(--j-purple);
+  flex: none;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.shLink:hover {
+  text-decoration: underline;
+}
+
+/* ── Panel ───────────────────────────────────────────────────────────────── */
+
+.panel {
+  background: var(--j-card);
+  border: 1px solid var(--j-line);
+  border-radius: var(--j-r-lg);
+  padding: 20px 22px;
+}
+
+/* A panel whose children are rows: the rows supply their own padding, so the
+   panel drops its vertical padding to avoid doubling it. */
+.panelFlush {
+  padding: 6px 22px;
+}
+
+/* ── Rows ────────────────────────────────────────────────────────────────── */
+
+.rows {
+  display: flex;
+  flex-direction: column;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--j-line);
+  width: 100%;
+  text-align: left;
+  background: none;
+  border-left: 0;
+  border-right: 0;
+  border-top: 0;
+  font-family: inherit;
+  cursor: pointer;
+  color: inherit;
+}
+
+.row:last-child {
+  border-bottom: 0;
+}
+
+.row:hover .rowTitle {
+  color: var(--j-purple);
+}
+
+/* The row's text column. `min-width: 0` is what lets a long title ellipsise
+   instead of forcing the row wider than its panel. */
+.rowMain {
+  flex: 1;
+  min-width: 0;
+}
+
+.rowTitle {
+  font-size: 0.97rem;
+  font-weight: 800;
+  color: var(--j-ink);
+  letter-spacing: -0.015em;
+  line-height: 1.2;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: color 0.15s;
+}
+
+.rowMeta {
+  font-size: 0.78rem;
+  color: var(--j-faint);
+  display: block;
+  margin-top: 1px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rowWhen {
+  font-size: 0.77rem;
+  color: var(--j-faint);
+  font-weight: 700;
+  flex: none;
+}
+
+/* ── Buttons ─────────────────────────────────────────────────────────────── */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--j-card);
+  border: 1px solid var(--j-line-2);
+  border-radius: var(--j-pill);
+  padding: 9px 16px;
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: var(--j-body);
+  font-family: inherit;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    color 0.15s,
+    background 0.15s;
+}
+
+.btn:hover {
+  border-color: var(--j-lilac-2);
+  color: var(--j-deep);
+}
+
+.btnP {
+  background: var(--j-purple);
+  border-color: var(--j-purple);
+  color: #fff;
+}
+
+.btnP:hover {
+  background: var(--j-deep);
+  border-color: var(--j-deep);
+  color: #fff;
+}
+
+.btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.btn:disabled:hover {
+  border-color: var(--j-line-2);
+  color: var(--j-body);
+}
+
+/* Icon inside a button. Sized here rather than by a class on the SVG, so a
+   size utility can never beat it. */
+.btnIcon {
+  width: 17px;
+  height: 17px;
+  flex: none;
+}
+
+/* ── Search box ──────────────────────────────────────────────────────────── */
+
+.search {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--j-card);
+  border: 1px solid var(--j-line-2);
+  border-radius: var(--j-pill);
+  padding: 10px 17px;
+  min-width: 0;
+}
+
+.search:focus-within {
+  border-color: var(--j-lilac-2);
+}
+
+.searchIcon {
+  width: 18px;
+  height: 18px;
+  color: var(--j-faint);
+  flex: none;
+}
+
+.searchInput {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: none;
+  font-family: inherit;
+  font-size: 0.9rem;
+  color: var(--j-ink);
+  outline: none;
+}
+
+.searchInput::placeholder {
+  color: var(--j-faint);
+}
+
+/* ── Chips ───────────────────────────────────────────────────────────────── */
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip {
+  background: var(--j-card);
+  border: 1px solid var(--j-line-2);
+  border-radius: var(--j-pill);
+  padding: 8px 15px;
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: var(--j-body);
+  font-family: inherit;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    border-color 0.15s,
+    color 0.15s;
+}
+
+.chip:hover {
+  border-color: var(--j-lilac-2);
+  color: var(--j-deep);
+}
+
+.chipOn {
+  background: var(--j-purple);
+  border-color: var(--j-purple);
+  color: #fff;
+}
+
+.chipOn:hover {
+  background: var(--j-deep);
+  border-color: var(--j-deep);
+  color: #fff;
+}
+
+/* ── Empty states ────────────────────────────────────────────────────────── */
+
+/* Used wherever a feature has no data yet. The handover is explicit that a
+   zero must never be a headline, so these say what is missing in words rather
+   than rendering a 0. */
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 6px;
+  padding: 30px 20px;
+}
+
+.emptyIcon {
+  width: 38px;
+  height: 38px;
+  border-radius: 13px;
+  background: var(--j-tint);
+  color: var(--j-mid);
+  display: grid;
+  place-items: center;
+  margin-bottom: 4px;
+}
+
+.emptyIcon svg {
+  width: 19px;
+  height: 19px;
+}
+
+.emptyTitle {
+  font-size: 0.94rem;
+  font-weight: 800;
+  color: var(--j-ink);
+  letter-spacing: -0.015em;
+}
+
+.emptyBody {
+  font-size: 0.86rem;
+  color: var(--j-muted);
+  max-width: 42ch;
+}
+
+/* ── Focus ───────────────────────────────────────────────────────────────── */
+
+.wrap :focus-visible {
+  outline: 2.5px solid var(--j-mid);
+  outline-offset: 2px;
+  border-radius: 8px;
+}

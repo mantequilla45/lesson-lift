@@ -138,9 +138,9 @@ export default function SlideshowListPage() {
         <div className="flex items-center gap-3 min-w-0">
           <div
             className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-            style={{ backgroundColor: "#FFCC33" }}
+            style={{ backgroundColor: "var(--j-purple)" }}
           >
-            <Monitor className="w-5 h-5" style={{ color: "#1a1a1a" }} />
+            <Monitor className="w-5 h-5" style={{ color: "var(--j-purple)" }} />
           </div>
           <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 truncate">Slideshows</h1>
         </div>
@@ -148,7 +148,7 @@ export default function SlideshowListPage() {
           <button
             onClick={() => setGenerateOpen(true)}
             className="flex items-center gap-2 text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors"
-            style={{ backgroundColor: "#FFCC33", color: "#1a1a1a" }}
+            style={{ backgroundColor: "var(--j-purple)", color: "var(--j-purple)" }}
           >
             <Sparkles className="w-4 h-4" />
             Generate with AI
@@ -158,7 +158,7 @@ export default function SlideshowListPage() {
             onClick={handleCreate}
             disabled={creating}
             className="flex items-center gap-2 text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors disabled:opacity-70 disabled:cursor-wait"
-            style={{ backgroundColor: "#1a1a1a", color: "#fff" }}
+            style={{ backgroundColor: "var(--j-purple)", color: "#fff" }}
           >
             {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
             {creating ? "Creating…" : "New Slideshow"}
@@ -174,7 +174,7 @@ export default function SlideshowListPage() {
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search slideshows..."
           className="w-full rounded-xl pl-11 pr-4 py-3 text-sm bg-white border focus:outline-none transition-all"
-          style={{ borderColor: "#DAD8D0" }}
+          style={{ borderColor: "var(--j-line)" }}
         />
       </div>
 
@@ -191,7 +191,7 @@ export default function SlideshowListPage() {
           <div className="-mt-4 h-5 w-32 rounded-full animate-pulse" style={{ backgroundColor: "#E7E2D5" }} />
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
             {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="bg-[#FAF9F5] rounded-2xl overflow-hidden border animate-pulse" style={{ borderColor: "#EDEAE0" }}>
+              <div key={i} className="bg-(--j-card) rounded-2xl overflow-hidden border animate-pulse" style={{ borderColor: "#EDEAE0" }}>
                 <div className="aspect-video" style={{ backgroundColor: "#ECE8DE" }} />
                 <div className="p-4 space-y-2.5">
                   <div className="h-4 rounded-full w-3/4" style={{ backgroundColor: "#E7E2D5" }} />
@@ -205,9 +205,9 @@ export default function SlideshowListPage() {
         <div className="flex flex-col items-center justify-center py-24 text-center">
           <div
             className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4"
-            style={{ backgroundColor: "#F1EFE3" }}
+            style={{ backgroundColor: "var(--j-tint)" }}
           >
-            <LayoutGrid className="w-7 h-7" style={{ color: "#1a1a1a" }} />
+            <LayoutGrid className="w-7 h-7" style={{ color: "var(--j-purple)" }} />
           </div>
           {search ? (
             <>
@@ -223,7 +223,7 @@ export default function SlideshowListPage() {
                 onClick={handleCreate}
                 disabled={creating}
                 className="mt-5 flex items-center gap-2 text-sm font-semibold px-5 py-2.5 rounded-xl transition-colors disabled:opacity-70 disabled:cursor-wait"
-                style={{ backgroundColor: "#1a1a1a", color: "#fff" }}
+                style={{ backgroundColor: "var(--j-purple)", color: "#fff" }}
               >
                 {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
                 {creating ? "Creating…" : "New Slideshow"}
@@ -242,7 +242,7 @@ export default function SlideshowListPage() {
             {filtered.map((p) => (
               <div
                 key={p.id}
-                className="group bg-[#FAF9F5] rounded-2xl overflow-hidden hover:shadow-md transition-shadow cursor-pointer relative"
+                className="group bg-(--j-card) rounded-2xl overflow-hidden hover:shadow-md transition-shadow cursor-pointer relative"
               >
                 <Link
                   href={`/editor/${p.id}`}
@@ -255,9 +255,9 @@ export default function SlideshowListPage() {
                   ) : (
                     <div
                       className="aspect-video flex items-center justify-center"
-                      style={{ backgroundColor: "#F1EFE3" }}
+                      style={{ backgroundColor: "var(--j-tint)" }}
                     >
-                      <Monitor className="w-8 h-8" style={{ color: "#1a1a1a", opacity: 0.4 }} />
+                      <Monitor className="w-8 h-8" style={{ color: "var(--j-purple)", opacity: 0.4 }} />
                     </div>
                   )}
                   <div className="p-4">
@@ -295,7 +295,7 @@ export default function SlideshowListPage() {
           />
           <div
             className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-6"
-            style={{ borderColor: "#DAD8D0" }}
+            style={{ borderColor: "var(--j-line)" }}
           >
             <div className="flex items-start gap-4">
               <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center shrink-0">

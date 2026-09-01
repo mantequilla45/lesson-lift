@@ -1,0 +1,131 @@
+.plans {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  align-items: stretch;
+}
+
+.plan {
+  background: var(--j-card);
+  border: 1px solid var(--j-line);
+  border-radius: var(--j-r-xl);
+  padding: 30px 26px;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.featured {
+  background: var(--j-purple);
+  border-color: var(--j-purple);
+  box-shadow: 0 30px 60px -34px rgba(91, 46, 214, 0.8);
+}
+
+.featured h3,
+.featured .price {
+  color: #fff;
+}
+
+.featured .features li {
+  color: #ede7fb;
+}
+
+.featured .per {
+  color: var(--j-lilac);
+}
+
+/* The tick is purple on white, which would vanish on the purple card. */
+.featured .features li > span {
+  color: var(--j-lilac);
+}
+
+.badge {
+  align-self: flex-start;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  padding: 5px 11px;
+  border-radius: var(--j-pill);
+  margin-bottom: 14px;
+}
+
+.plan h3 {
+  font-size: 1rem;
+  letter-spacing: 0.02em;
+  margin-bottom: 12px;
+}
+
+.price {
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: var(--j-ink);
+  letter-spacing: -0.045em;
+  line-height: 1;
+}
+
+/* Reserved height so the four cards' feature lists start on the same line
+   whether or not a plan has a second pricing line. */
+.per {
+  font-size: 0.85rem;
+  color: var(--j-muted);
+  margin-top: 7px;
+  min-height: 22px;
+}
+
+.features {
+  list-style: none;
+  margin: 22px 0 24px;
+  padding: 0;
+}
+
+.features li {
+  font-size: 0.92rem;
+  display: flex;
+  gap: 10px;
+  padding: 6px 0;
+}
+
+/* margin-top:auto pins every button to the bottom, so cards with different
+   numbers of features still line up. */
+.action {
+  width: 100%;
+  margin-top: auto;
+  padding: 13px;
+  font-size: 0.92rem;
+}
+
+.action:disabled {
+  opacity: 0.65;
+  cursor: default;
+  transform: none;
+}
+
+.note {
+  text-align: center;
+  margin-top: 24px;
+  font-size: 0.9rem;
+  color: var(--j-faint);
+}
+
+.error {
+  text-align: center;
+  margin-top: 20px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--j-orange-ink);
+}
+
+@media (max-width: 1000px) {
+  .plans {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 620px) {
+  .plans {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

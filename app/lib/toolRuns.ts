@@ -12,6 +12,47 @@ export interface ToolRun {
   input: Record<string, unknown>;
   output: string;
   created_at: string;
+  /** The Library folder this resource is filed in. Null is "Unfiled", which is
+   *  a real state rather than a missing one: see app/lib/folders.ts. */
+  folder_id: string | null;
+}
+
+/*
+ * Called after a run is saved, so badge earning can re-check.
+ *
+ * A callback rather than a direct import: this module is imported by the badge
+ * store (for listRecentRuns), and importing the store back from here would be a
+ * cycle. The store registers itself on load instead.
+ */
+type RunSavedListener = () => void;
+const runSavedListeners = new Set<RunSavedListener>();
+
+export function onToolRunSaved(listener: RunSavedListener): () => void {
+  runSavedListeners.add(listener);
+  return () => {
+    runSavedListeners.delete(listener);
+  };
+}
+
+/**
+ * Tell the listeners a resource landed.
+ *
+ * Exported because saveToolRun is no longer the only way a row reaches
+ * tool_runs: accepting a colleague's share inserts one too (see
+ * saveSharedToLibrary in app/lib/colleagues.ts), and that resource has to count
+ * toward badges and the streak exactly as a generated one does.
+ *
+ * A listener must never be able to fail its caller. The resource is the thing
+ * the teacher cares about; a badge is not.
+ */
+export function fireToolRunSaved(): void {
+  for (const listener of runSavedListeners) {
+    try {
+      listener();
+    } catch {
+      // Deliberately ignored.
+    }
+  }
 }
 
 export async function saveToolRun(run: {
@@ -37,6 +78,11 @@ export async function saveToolRun(run: {
     .select()
     .single();
   if (error) throw error;
+
+  // Every tool that saves a run comes through here, which makes this the one
+  // place badge earning can hook without touching all five call sites.
+  fireToolRunSaved();
+
   return data as ToolRun;
 }
 
@@ -81,6 +127,26 @@ export async function getToolRun(id: string): Promise<ToolRun | null> {
     .maybeSingle();
   if (error) throw error;
   return (data as ToolRun | null) ?? null;
+}
+
+/**
+ * File a resource into a folder, or out of one with `null`.
+ *
+ * The only UPDATE this codebase makes to tool_runs, and the reason the table
+ * gained an update policy in 20260902000000_folders. A generation is otherwise
+ * a historical fact; where the teacher decided to put it afterwards is not part
+ * of that.
+ *
+ * Lives here rather than in folders.ts because it writes tool_runs, and this
+ * module is that table's only gateway.
+ */
+export async function moveRunToFolder(runId: string, folderId: string | null): Promise<void> {
+  const supabase = createClient();
+  const { error } = await supabase
+    .from("tool_runs")
+    .update({ folder_id: folderId })
+    .eq("id", runId);
+  if (error) throw error;
 }
 
 export async function deleteToolRun(id: string): Promise<void> {

@@ -17,7 +17,7 @@ export default async function MeetingPlannerPage({
       sidebar={
         <ToolInfoPanel
           icon={<CalendarDays className="w-5 h-5 text-rose-600" />}
-          heroBg="bg-rose-50"
+
           title="Meeting Planner"
           description="This tool will help you to plan a meeting with a theme of your choice. Simply identify the purpose, attendees, duration, and any topics to cover, and the AI will make a plan."
           steps={[

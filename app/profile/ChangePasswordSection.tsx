@@ -117,19 +117,19 @@ export default function ChangePasswordSection() {
   return (
     <div
       className="rounded-3xl p-6 sm:p-8 border"
-      style={{ backgroundColor: "#FAF9F5", borderColor: "#DAD8D0" }}
+      style={{ backgroundColor: "var(--j-card)", borderColor: "var(--j-line)" }}
     >
-      <h2 className="text-lg font-bold mb-6" style={{ color: "#1a1a1a" }}>
+      <h2 className="text-lg font-bold mb-6" style={{ color: "var(--j-ink)" }}>
         Change password
       </h2>
 
       {!hasPassword ? (
         <div className="max-w-lg">
-          <p className="text-sm" style={{ color: "#1a1a1a" }}>
+          <p className="text-sm" style={{ color: "var(--j-ink)" }}>
             You sign in with Google, so there&apos;s no password on this account
             to change.
           </p>
-          <p className="text-sm mt-2" style={{ color: "#8a8078" }}>
+          <p className="text-sm mt-2" style={{ color: "var(--j-faint)" }}>
             Your Google account controls how you sign in. To add a password
             instead, get in touch through Submit ticket.
           </p>
@@ -217,7 +217,7 @@ export default function ChangePasswordSection() {
             <button
               type="submit"
               disabled={!canSubmit}
-              className="px-8 py-3 rounded-xl text-sm font-medium text-white transition-colors disabled:bg-[#F1EFE3] disabled:text-[#A5A5A5] disabled:cursor-default bg-[#030303] hover:bg-black cursor-pointer"
+              className="px-8 py-3 rounded-xl text-sm font-medium text-white transition-colors disabled:bg-(--j-tint) disabled:text-(--j-faint) disabled:cursor-default bg-(--j-purple) hover:bg-(--j-deep) cursor-pointer"
             >
               {busy ? "Saving…" : "Save"}
             </button>
@@ -282,7 +282,7 @@ function PasswordField({
           autoComplete={autoComplete}
           spellCheck={false}
           aria-invalid={invalid || undefined}
-          className={`w-full pl-4 pr-12 py-3 border rounded-xl bg-white text-sm leading-tight tracking-tight font-medium placeholder-[#A5A5A5] placeholder:font-light focus:outline-none transition-colors ${
+          className={`w-full pl-4 pr-12 py-3 border rounded-xl bg-white text-sm leading-tight tracking-tight font-medium placeholder-(--j-faint) placeholder:font-light focus:outline-none transition-colors ${
             invalid ? "border-red-400 focus:border-red-400" : "border-line focus:border-dark"
           }`}
         />

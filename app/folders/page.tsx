@@ -1,427 +1,1144 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
-  Folder, MoreVertical, ChevronDown, ArrowUpDown, LayoutGrid, List as ListIcon,
-  Search, Pin, Check,
-} from "lucide-react";
-import AppShell from "@/app/components/layout/AppShell";
-import ToolIcon from "@/app/components/ToolIcon";
-import { listRecentRuns, type ToolRun } from "@/app/lib/toolRuns";
-import { toolForSlug, typeLabel, formatDate, catalogIndex } from "@/app/lib/toolRunDisplay";
+  MagnifyingGlass,
+  DotsThree,
+  GridFour,
+  List as ListIcon,
+  Check,
+  Folder as FolderIcon,
+  FolderOpen,
+  FolderPlus,
+  Stack,
+  PencilSimple,
+  ShareNetwork,
+  TrashSimple,
+  CircleNotch,
+} from "@phosphor-icons/react/dist/ssr";
+import AppShellV2 from "@/app/components/v2/AppShellV2";
+import ShareModal from "@/app/components/v2/ShareModal";
+import { ToolTile } from "@/app/components/v2/Squircle";
+import {
+  listRecentRuns,
+  moveRunToFolder,
+  deleteToolRun,
+  type ToolRun,
+} from "@/app/lib/toolRuns";
+import {
+  listFolders,
+  createFolder,
+  renameFolder,
+  recolourFolder,
+  deleteFolder,
+  folderSwatch,
+  FOLDER_COLOURS,
+  DEFAULT_FOLDER_COLOUR,
+  type Folder,
+  type FolderColour,
+} from "@/app/lib/folders";
+import { v2ToolForSlug, toolSolid } from "@/app/lib/tools";
+import { typeLabel, formatDate } from "@/app/lib/toolRunDisplay";
+import app from "@/app/components/v2/app.module.css";
+import styles from "./folders.module.css";
 
-const PIN_STORAGE_KEY = "jooma:pinned-tools";
-const DATE_RANGES = ["Any time", "Last 7 days", "Last 30 days", "This year"] as const;
-const COUNT_BUCKETS = ["Any", "1–5", "6–10", "11+"] as const;
-const SORTS = [
-  { key: "catalog", label: "Tools order" },
-  { key: "recent", label: "Recently updated" },
-  { key: "name", label: "Name (A–Z)" },
-  { key: "count", label: "Most resources" },
-] as const;
+/*
+ * Library.
+ *
+ * Folders are real rows the teacher creates, names and colours (see
+ * app/lib/folders.ts and supabase/migrations/20260902000000_folders.sql). A
+ * resource sits in at most one, and `folder_id IS NULL` is the permanent
+ * Unfiled card rather than an absence of state.
+ *
+ * This replaced a version that derived one folder per tool from
+ * tool_runs.tool_slug. That grouping was not wrong, it was just not a folder:
+ * nothing could be created, renamed or moved, so every affordance the prototype
+ * specifies had to be left out.
+ *
+ * Filing is drag and drop, as the prototype has it, AND a Move to folder item
+ * in the row menu. The menu is not a fallback for a browser that cannot drag:
+ * it is the only route that works with a keyboard, and dragging alone would put
+ * the whole feature out of reach.
+ *
+ * Upload is deliberately absent. The prototype has an Upload button and a drop
+ * zone for Word, PowerPoint, PDF and images; that is file storage, with its own
+ * quota, scanning and retention questions, and it is a separate piece of work.
+ */
 
-interface FolderData {
-  slug: string;
-  label: string;
-  tag: string;
-  /** TOOLS registry icon key; "" when the slug isn't in the catalogue. */
-  icon: string;
-  count: number;
-  subjects: string[];
-  years: string[];
-  latest: number;
-}
+/*
+ * Two views that are not folders.
+ *
+ * The default (no selection) is the unfiled pile: folder_id IS NULL, what still
+ * needs sorting. That is the useful thing to land on, because it is the only
+ * view with anything to do in it, and it empties as the teacher files.
+ *
+ * ALL is a card in the grid rather than the default, so "show me everything"
+ * stays one click away without being what you stare at every visit.
+ *
+ * Neither is a row in `folders`. Both are views over tool_runs.folder_id.
+ */
+const ALL = "all";
 
-const DAY = 86_400_000;
+/** null means unfiled, which is the default view. */
+type Selection = string | null;
 
-function inDateRange(ts: number, range: string) {
-  if (range === "Last 7 days") return ts >= Date.now() - 7 * DAY;
-  if (range === "Last 30 days") return ts >= Date.now() - 30 * DAY;
-  if (range === "This year") return new Date(ts).getFullYear() === new Date().getFullYear();
-  return true;
-}
-
-function inCountBucket(c: number, b: string) {
-  if (b === "1–5") return c >= 1 && c <= 5;
-  if (b === "6–10") return c >= 6 && c <= 10;
-  if (b === "11+") return c >= 11;
-  return true;
+interface Draft {
+  /** The folder being edited, or null when creating a new one. */
+  folder: Folder | null;
+  name: string;
+  colour: FolderColour;
 }
 
 export default function FoldersPage() {
-  const router = useRouter();
-  const [runs, setRuns] = useState<ToolRun[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [pinnedHrefs, setPinnedHrefs] = useState<string[]>([]);
+  // useSearchParams needs a Suspense boundary above it, or the whole route
+  // opts out of static rendering.
+  return (
+    <Suspense fallback={null}>
+      <Library />
+    </Suspense>
+  );
+}
 
-  // Filters
+function Library() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const [runs, setRuns] = useState<ToolRun[]>([]);
+  const [folders, setFolders] = useState<Folder[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
   const [query, setQuery] = useState("");
-  const [type, setType] = useState<string | null>(null);
-  const [subject, setSubject] = useState<string | null>(null);
-  const [toolName, setToolName] = useState<string | null>(null);
-  const [year, setYear] = useState<string | null>(null);
-  const [dateRange, setDateRange] = useState<string>("Any time");
-  const [countBucket, setCountBucket] = useState<string>("Any");
-  const [sort, setSort] = useState<string>("catalog");
   const [view, setView] = useState<"grid" | "list">("grid");
 
+  const [draft, setDraft] = useState<Draft | null>(null);
+  const [moving, setMoving] = useState<ToolRun | null>(null);
+  const [sharing, setSharing] = useState<ToolRun | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [dropTarget, setDropTarget] = useState<Selection | undefined>(undefined);
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+
+  // Selection lives in the URL so a refresh, a back button and a shared link
+  // all land on the same folder. The grid stays on screen either way: it is
+  // what a row is dragged onto, so navigating away from it would break the
+  // interaction the page is built around.
+  const selected: Selection = searchParams.get("folder");
+
+  const select = useCallback(
+    (next: Selection) => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (next) params.set("folder", next);
+      else params.delete("folder");
+      const qs = params.toString();
+      router.replace(qs ? `/folders?${qs}` : "/folders", { scroll: false });
+    },
+    [router, searchParams],
+  );
+
   useEffect(() => {
-    listRecentRuns(1000).then(setRuns).catch(() => setRuns([])).finally(() => setLoading(false));
+    let cancelled = false;
+    Promise.all([listRecentRuns(1000), listFolders()])
+      .then(([r, f]) => {
+        if (cancelled) return;
+        setRuns(r);
+        setFolders(f);
+      })
+      .catch(() => {
+        if (!cancelled) setError("Your library could not be loaded. Refresh to try again.");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const countFor = useCallback(
+    (id: Selection) => {
+      if (id === ALL) return runs.length;
+      if (id === null) return runs.filter((r) => !r.folder_id).length;
+      return runs.filter((r) => r.folder_id === id).length;
+    },
+    [runs],
+  );
+
+  const folderName = useCallback(
+    (id: string | null) => {
+      if (!id) return "No folder";
+      return folders.find((f) => f.id === id)?.name ?? "No folder";
+    },
+    [folders],
+  );
+
+  const visible = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return runs.filter((run) => {
+      // No selection is the unfiled pile, not everything. ALL is the only view
+      // that skips the folder test.
+      if (selected === null && run.folder_id) return false;
+      if (selected && selected !== ALL && run.folder_id !== selected) return false;
+      if (!q) return true;
+      const tool = v2ToolForSlug(run.tool_slug);
+      const haystack = [run.title ?? "", tool?.name ?? typeLabel(run.tool_slug)]
+        .join(" ")
+        .toLowerCase();
+      return haystack.includes(q);
+    });
+  }, [runs, selected, query]);
+
+  /* ── Filing ─────────────────────────────────────────────────────────────
+   *
+   * Optimistic: the row moves the instant it is dropped, and rolls back if the
+   * write fails. A folder is not worth a spinner, but a move that silently did
+   * not happen is worth catching, which is what the rollback and the message
+   * are for. */
+  const file = useCallback(
+    async (runId: string, target: Selection) => {
+      // Dropping on Unfiled clears the folder. ALL is not a drop target, so it
+      // never reaches here.
+      const folderId = target === null ? null : target;
+      const before = runs.find((r) => r.id === runId);
+      if (!before || before.folder_id === folderId) return;
+
+      setRuns((prev) => prev.map((r) => (r.id === runId ? { ...r, folder_id: folderId } : r)));
+      setError(null);
+      try {
+        await moveRunToFolder(runId, folderId);
+      } catch {
+        setRuns((prev) =>
+          prev.map((r) => (r.id === runId ? { ...r, folder_id: before.folder_id } : r)),
+        );
+        setError("That resource could not be moved. Try again.");
+      }
+    },
+    [runs],
+  );
+
+  const remove = useCallback(async (runId: string) => {
+    setDeletingId(runId);
+    setError(null);
     try {
-      const stored = localStorage.getItem(PIN_STORAGE_KEY);
-      setPinnedHrefs(stored ? JSON.parse(stored) : []);
+      await deleteToolRun(runId);
+      setRuns((prev) => prev.filter((r) => r.id !== runId));
     } catch {
-      setPinnedHrefs([]);
+      // Left in place rather than removed optimistically and reappearing on
+      // the next load.
+      setError("That resource could not be deleted. Try again.");
+    } finally {
+      setDeletingId(null);
     }
   }, []);
 
-  const togglePin = (slug: string) => {
-    const href = `/tools/${slug}`;
-    setPinnedHrefs((prev) => {
-      const next = prev.includes(href) ? prev.filter((h) => h !== href) : [...prev, href];
-      try { localStorage.setItem(PIN_STORAGE_KEY, JSON.stringify(next)); } catch {}
-      return next;
-    });
-  };
+  const saveDraft = useCallback(
+    async (name: string, colour: FolderColour) => {
+      const editing = draft?.folder ?? null;
+      if (editing) {
+        const before = editing;
+        setFolders((prev) =>
+          prev.map((f) => (f.id === editing.id ? { ...f, name: name.trim(), colour } : f)),
+        );
+        setDraft(null);
+        try {
+          if (name.trim() !== before.name) await renameFolder(editing.id, name);
+          if (colour !== before.colour) await recolourFolder(editing.id, colour);
+        } catch {
+          setFolders((prev) => prev.map((f) => (f.id === editing.id ? before : f)));
+          setError("That folder could not be updated. Try again.");
+        }
+        return;
+      }
 
-  // Build one folder per tool that has at least one saved run.
-  const folders = useMemo<FolderData[]>(() => {
-    const map = new Map<string, FolderData>();
-    for (const r of runs) {
-      const tool = toolForSlug(r.tool_slug);
-      const input = r.input as Record<string, unknown>;
-      const f = map.get(r.tool_slug) ?? {
-        slug: r.tool_slug,
-        label: tool?.label ?? typeLabel(r.tool_slug),
-        tag: tool?.tag ?? "",
-        icon: tool?.icon ?? "",
-        count: 0,
-        subjects: [],
-        years: [],
-        latest: 0,
-      };
-      f.count++;
-      const subj = input.subject as string | undefined;
-      const yr = input.yearGroup as string | undefined;
-      if (subj && !f.subjects.includes(subj)) f.subjects.push(subj);
-      if (yr && !f.years.includes(yr)) f.years.push(yr);
-      f.latest = Math.max(f.latest, new Date(r.created_at).getTime());
-      map.set(r.tool_slug, f);
-    }
-    return [...map.values()];
-  }, [runs]);
+      setDraft(null);
+      try {
+        const created = await createFolder(name, colour);
+        setFolders((prev) => [...prev, created].sort((a, b) => a.name.localeCompare(b.name)));
+      } catch {
+        setError("That folder could not be created. Try again.");
+      }
+    },
+    [draft],
+  );
 
-  // Filter option lists, derived from the data.
-  const options = useMemo(() => {
-    const subjects = new Set<string>();
-    const years = new Set<string>();
-    for (const r of runs) {
-      const input = r.input as Record<string, unknown>;
-      if (input.subject) subjects.add(input.subject as string);
-      if (input.yearGroup) years.add(input.yearGroup as string);
-    }
-    return {
-      types: [...new Set(folders.map((f) => f.tag).filter(Boolean))].sort(),
-      toolNames: folders.map((f) => f.label).sort(),
-      subjects: [...subjects].sort(),
-      years: [...years].sort(),
-    };
-  }, [runs, folders]);
+  const removeFolder = useCallback(
+    async (folder: Folder) => {
+      const count = countFor(folder.id);
+      const warning =
+        count > 0
+          ? `Delete "${folder.name}"? The ${count} ${
+              count === 1 ? "resource" : "resources"
+            } inside will move to Unfiled, not be deleted.`
+          : `Delete "${folder.name}"?`;
+      if (!window.confirm(warning)) return;
 
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    const out = folders.filter((f) =>
-      (!q || f.label.toLowerCase().includes(q)) &&
-      (!type || f.tag === type) &&
-      (!toolName || f.label === toolName) &&
-      (!subject || f.subjects.includes(subject)) &&
-      (!year || f.years.includes(year)) &&
-      inDateRange(f.latest, dateRange) &&
-      inCountBucket(f.count, countBucket)
-    );
-    out.sort((a, b) => {
-      if (sort === "name") return a.label.localeCompare(b.label);
-      if (sort === "count") return b.count - a.count;
-      if (sort === "recent") return b.latest - a.latest;
-      // "catalog" — mirror the /tools grid so folders stay put between visits
-      // instead of reshuffling every time something is generated. Slugs missing
-      // from the catalogue land together at the end, ordered A–Z.
-      const d = catalogIndex(a.slug) - catalogIndex(b.slug);
-      return d !== 0 ? d : a.label.localeCompare(b.label);
-    });
-    return out;
-  }, [folders, query, type, toolName, subject, year, dateRange, countBucket, sort]);
+      const before = folders;
+      setFolders((prev) => prev.filter((f) => f.id !== folder.id));
+      // Mirrors `on delete set null` on tool_runs.folder_id, so the counts and
+      // the Unfiled card are right without a refetch.
+      setRuns((prev) =>
+        prev.map((r) => (r.folder_id === folder.id ? { ...r, folder_id: null } : r)),
+      );
+      if (selected === folder.id) select(null);
+      setError(null);
+      try {
+        await deleteFolder(folder.id);
+      } catch {
+        setFolders(before);
+        setError("That folder could not be deleted. Try again.");
+      }
+    },
+    [folders, countFor, selected, select],
+  );
 
-  const pinned = filtered.filter((f) => pinnedHrefs.includes(`/tools/${f.slug}`));
-  const rest = filtered.filter((f) => !pinnedHrefs.includes(`/tools/${f.slug}`));
+  const open = useCallback(
+    (run: ToolRun) => {
+      const tool = v2ToolForSlug(run.tool_slug);
+      if (tool) router.push(`${tool.href}?run=${run.id}`);
+    },
+    [router],
+  );
+
+  const total = runs.length;
+  const heading =
+    selected === ALL
+      ? "All resources"
+      : selected
+        ? (folders.find((f) => f.id === selected)?.name ?? "Library")
+        : "Unfiled";
 
   return (
-    <AppShell title="Folders">
-          {/* Search + action */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-            <div className="relative flex-1">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
-              <input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search for a tool"
-                className="w-full pl-11 pr-4 py-3 border border-line rounded-2xl bg-[#FAF9F5] text-base sm:text-sm font-light placeholder-[#A5A5A5] focus:outline-none focus:border-dark transition-colors"
+    <AppShellV2 title="Library">
+      <div className={app.hello}>
+        <p className={app.helloWhen}>
+          {loading ? " " : `${total} ${total === 1 ? "resource" : "resources"}`}
+        </p>
+        <h1>Library</h1>
+        <p className={app.helloSub}>
+          Everything you make is filed here. Drag a resource onto a folder to move it.
+        </p>
+      </div>
+
+      <div className={styles.drivebar}>
+        <button
+          type="button"
+          className={`${app.btn} ${app.btnP}`}
+          onClick={() => setDraft({ folder: null, name: "", colour: DEFAULT_FOLDER_COLOUR })}
+        >
+          <FolderPlus className={app.btnIcon} />
+          New folder
+        </button>
+
+        <div className={`${app.search} ${styles.drivebarSearch}`}>
+          <MagnifyingGlass className={app.searchIcon} />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search your library"
+            aria-label="Search your library"
+            className={app.searchInput}
+          />
+        </div>
+
+        <div className={styles.viewToggle}>
+          <button
+            type="button"
+            onClick={() => setView("list")}
+            aria-label="List view"
+            aria-pressed={view === "list"}
+            className={`${styles.viewBtn} ${view === "list" ? styles.viewBtnOn : ""}`}
+          >
+            <ListIcon className={styles.viewIcon} />
+          </button>
+          <button
+            type="button"
+            onClick={() => setView("grid")}
+            aria-label="Grid view"
+            aria-pressed={view === "grid"}
+            className={`${styles.viewBtn} ${view === "grid" ? styles.viewBtnOn : ""}`}
+          >
+            <GridFour className={styles.viewIcon} />
+          </button>
+        </div>
+      </div>
+
+      {/* The Library crumb is also the way to unfile something. Removing the
+          Unfiled card took the only drop target that clears a folder, and
+          dragging a resource back out has to stay possible without opening a
+          menu. `Move to folder` still offers Unfiled for keyboard users. */}
+      <p className={styles.crumbs}>
+        <button
+          type="button"
+          className={`${styles.crumbLink} ${
+            dropTarget === null && draggingId ? styles.crumbDrop : ""
+          }`}
+          onClick={() => select(null)}
+          onDragOver={(e) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = "move";
+            setDropTarget(null);
+          }}
+          onDragLeave={() => setDropTarget(undefined)}
+          onDrop={(e) => {
+            e.preventDefault();
+            setDropTarget(undefined);
+            const runId = e.dataTransfer.getData("text/plain");
+            if (runId) file(runId, null);
+          }}
+        >
+          Library
+        </button>
+        <span>/</span>
+        <span>{heading}</span>
+      </p>
+
+      {error && (
+        <p className={styles.error} role="status">
+          {error}
+        </p>
+      )}
+
+      {loading ? (
+        <p className={styles.quiet}>Loading…</p>
+      ) : (
+        <>
+          <div className={styles.fgrid}>
+            {/* First, and not a drop target: dropping a row onto "everything"
+                would have no meaning, since every row is already in it. The
+                unfiled pile is the default view instead, so it needs no card. */}
+            <FolderCard
+              id={ALL}
+              name="All resources"
+              count={countFor(ALL)}
+              neutral
+              selected={selected === ALL}
+              dropping={false}
+              onSelect={() => select(selected === ALL ? null : ALL)}
+              onDropTarget={() => {}}
+            />
+
+            {folders.map((folder) => (
+              <FolderCard
+                key={folder.id}
+                id={folder.id}
+                name={folder.name}
+                colour={folder.colour}
+                count={countFor(folder.id)}
+                selected={selected === folder.id}
+                dropping={dropTarget === folder.id}
+                onSelect={() => select(selected === folder.id ? null : folder.id)}
+                onRename={() =>
+                  setDraft({ folder, name: folder.name, colour: folder.colour })
+                }
+                onDelete={() => removeFolder(folder)}
+                onDropRun={(runId) => file(runId, folder.id)}
+                onDropTarget={setDropTarget}
+              />
+            ))}
+
+            <button
+              type="button"
+              className={`${styles.folder} ${styles.folderNew}`}
+              onClick={() => setDraft({ folder: null, name: "", colour: DEFAULT_FOLDER_COLOUR })}
+            >
+              <FolderPlus className={styles.folderNewIcon} />
+              New folder
+            </button>
+          </div>
+
+          <div className={app.sh}>
+            <div className={app.shTitle}>
+              <h2>{heading}</h2>
+              <span className={app.shSub}>
+                {folders.length === 0
+                  ? "Make a folder to start filing"
+                  : selected === null
+                    ? "Drag any row onto a folder above"
+                    : "Drag a row onto Library to unfile it"}
+              </span>
+            </div>
+          </div>
+
+          {visible.length === 0 ? (
+            <div className={app.panel}>
+              <EmptyState
+                hasRuns={total > 0}
+                searching={query.trim().length > 0}
+                selected={selected}
               />
             </div>
-            <button
-              onClick={() => router.push("/tools")}
-              className="flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-[#030303] text-white text-sm font-medium hover:bg-black transition-colors cursor-pointer shrink-0"
-            >
-              Browse tools
-            </button>
-          </div>
-
-          {/* Filter row */}
-          <div className="flex flex-wrap items-center gap-2">
-            <FilterDropdown label="Type" value={type} options={options.types} onChange={setType} />
-            <FilterDropdown label="Subject" value={subject} options={options.subjects} onChange={setSubject} />
-            <FilterDropdown label="Tool name" value={toolName} options={options.toolNames} onChange={setToolName} />
-            <FilterDropdown label="Year" value={year} options={options.years} onChange={setYear} />
-            <FilterDropdown label="Date created" value={dateRange === "Any time" ? null : dateRange}
-              options={[...DATE_RANGES]} onChange={(v) => setDateRange(v ?? "Any time")} allLabel="Any time" />
-            <FilterDropdown label="Number of resources" value={countBucket === "Any" ? null : countBucket}
-              options={[...COUNT_BUCKETS]} onChange={(v) => setCountBucket(v ?? "Any")} allLabel="Any" />
-
-            <SortMenu value={sort} onChange={setSort} />
-
-            {/* sm:ml-auto — with eight controls wrapping on a phone, ml-auto
-                left this stranded alone on a right-pushed line. */}
-            <div className="w-full sm:w-auto sm:ml-auto flex items-center justify-center sm:justify-start gap-1 border border-line rounded-xl p-1 bg-[#FAF9F5]">
-              <button onClick={() => setView("grid")} aria-label="Grid view"
-                className={`w-8 h-8 flex items-center justify-center rounded-lg transition-colors cursor-pointer ${view === "grid" ? "bg-[#1a1a1a] text-white" : "text-muted hover:bg-gray-100"}`}>
-                <LayoutGrid className="w-4 h-4" />
-              </button>
-              <button onClick={() => setView("list")} aria-label="List view"
-                className={`w-8 h-8 flex items-center justify-center rounded-lg transition-colors cursor-pointer ${view === "list" ? "bg-[#1a1a1a] text-white" : "text-muted hover:bg-gray-100"}`}>
-                <ListIcon className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-
-          {loading ? (
-            <p className="text-sm text-muted py-16 text-center">Loading…</p>
-          ) : folders.length === 0 ? (
-            <p className="text-sm text-muted py-16 text-center">
-              No folders yet — generate something with a tool and it&apos;ll be filed here automatically.
-            </p>
-          ) : filtered.length === 0 ? (
-            <p className="text-sm text-muted py-16 text-center">No folders match your filters.</p>
           ) : (
-            <>
-              {pinned.length > 0 && (
-                <Section title="Pinned" folders={pinned} view={view} pinnedHrefs={pinnedHrefs} onTogglePin={togglePin} onOpen={(s) => router.push(`/folders/${s}`)} />
-              )}
-              <Section title="All folders" folders={rest} view={view} pinnedHrefs={pinnedHrefs} onTogglePin={togglePin} onOpen={(s) => router.push(`/folders/${s}`)} />
-            </>
+            // Rows sit inside a panel; cards sit on the page and carry their
+            // own borders, so a panel behind them would draw a box around a
+            // box.
+            <div className={view === "list" ? app.panel : undefined}>
+              <div className={view === "list" ? styles.rows : styles.filegrid}>
+                {visible.map((run) => (
+                  <ResourceItem
+                    key={run.id}
+                    run={run}
+                    folderLabel={folderName(run.folder_id)}
+                    dragging={draggingId === run.id}
+                    deleting={deletingId === run.id}
+                    view={view}
+                    onDragStart={() => setDraggingId(run.id)}
+                    onDragEnd={() => {
+                      setDraggingId(null);
+                      setDropTarget(undefined);
+                    }}
+                    onOpen={() => open(run)}
+                    onMove={() => setMoving(run)}
+                    onShare={() => setSharing(run)}
+                    onDelete={() => remove(run.id)}
+                  />
+                ))}
+              </div>
+            </div>
           )}
-    </AppShell>
+        </>
+      )}
+
+      {draft && (
+        <FolderModal
+          draft={draft}
+          onCancel={() => setDraft(null)}
+          onSave={saveDraft}
+        />
+      )}
+
+      {moving && (
+        <MoveModal
+          run={moving}
+          folders={folders}
+          onCancel={() => setMoving(null)}
+          onPick={(target) => {
+            setMoving(null);
+            file(moving.id, target);
+          }}
+        />
+      )}
+
+      <ShareModal
+        open={sharing !== null}
+        onClose={() => setSharing(null)}
+        runId={sharing?.id}
+        runTitle={sharing?.title?.trim() || "Untitled"}
+      />
+    </AppShellV2>
   );
 }
 
-function Section({
-  title, folders, view, pinnedHrefs, onTogglePin, onOpen,
-}: {
-  title: string; folders: FolderData[]; view: "grid" | "list";
-  pinnedHrefs: string[]; onTogglePin: (slug: string) => void; onOpen: (slug: string) => void;
-}) {
-  if (folders.length === 0) return null;
-  return (
-    <section>
-      <div className="flex items-center gap-4 mb-4 mt-2">
-        <h4 className="text-sm text-muted shrink-0">{title}</h4>
-        <div className="h-px bg-muted/30 w-full" />
-      </div>
-      {view === "grid" ? (
-        <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(min(240px, 100%), 1fr))" }}>
-          {folders.map((f) => (
-            <FolderCard key={f.slug} folder={f} pinned={pinnedHrefs.includes(`/tools/${f.slug}`)} onTogglePin={onTogglePin} onOpen={onOpen} />
-          ))}
-        </div>
-      ) : (
-        <div className="rounded-2xl border border-line overflow-hidden bg-[#FAF9F5]">
-          {folders.map((f) => (
-            <FolderRow key={f.slug} folder={f} pinned={pinnedHrefs.includes(`/tools/${f.slug}`)} onTogglePin={onTogglePin} onOpen={onOpen} />
-          ))}
-        </div>
-      )}
-    </section>
-  );
-}
+/* ── Folder card ─────────────────────────────────────────────────────────── */
 
 function FolderCard({
-  folder, pinned, onTogglePin, onOpen,
+  id,
+  name,
+  colour,
+  count,
+  neutral,
+  selected,
+  dropping,
+  onSelect,
+  onRename,
+  onDelete,
+  onDropRun,
+  onDropTarget,
 }: {
-  folder: FolderData; pinned: boolean; onTogglePin: (slug: string) => void; onOpen: (slug: string) => void;
+  id: string;
+  name: string;
+  colour?: FolderColour;
+  count: number;
+  /** A view rather than a real folder: slate, no menu, no drop target. */
+  neutral?: boolean;
+  selected: boolean;
+  dropping: boolean;
+  onSelect: () => void;
+  onRename?: () => void;
+  onDelete?: () => void;
+  onDropRun?: (runId: string) => void;
+  onDropTarget: (id: Selection | undefined) => void;
 }) {
+  // "All resources" has no colour of its own: it is not a choice the teacher
+  // made, so it takes the neutral slate rather than borrowing a hue that would
+  // read as one more folder among the rest.
+  const swatch = neutral
+    ? { tint: "var(--j-tint-slate)", solid: "#6D6683" }
+    : folderSwatch(colour ?? DEFAULT_FOLDER_COLOUR);
+
+  const droppable = Boolean(onDropRun);
+
   return (
     <div
-      onClick={() => onOpen(folder.slug)}
-      className="group relative rounded-2xl border border-line bg-[#FAF9F5] p-5 cursor-pointer transition-all duration-200 ease-out hover:bg-[#F1EFE3] hover:border-[#F1EFE3] hover:-translate-y-0.5 hover:shadow-[0_6px_16px_-6px_rgba(28,27,27,0.25)]"
+      className={`${styles.folder} ${dropping ? styles.folderDrop : ""} ${
+        selected ? styles.folderOn : ""
+      }`}
+      onDragOver={
+        droppable
+          ? (e) => {
+              // Without preventDefault the drop never fires: the default action
+              // for a dragover is "reject this".
+              e.preventDefault();
+              e.dataTransfer.dropEffect = "move";
+              onDropTarget(id);
+            }
+          : undefined
+      }
+      onDragLeave={droppable ? () => onDropTarget(undefined) : undefined}
+      onDrop={
+        droppable
+          ? (e) => {
+              e.preventDefault();
+              onDropTarget(undefined);
+              const runId = e.dataTransfer.getData("text/plain");
+              if (runId) onDropRun?.(runId);
+            }
+          : undefined
+      }
     >
-      <FolderMenu pinned={pinned} onTogglePin={() => onTogglePin(folder.slug)} onOpen={() => onOpen(folder.slug)} />
-      {folder.icon ? (
-        <ToolIcon
-          name={folder.icon}
-          className="w-11 h-11 mb-4 transition-transform duration-200 ease-out group-hover:scale-110 group-hover:-rotate-3"
-        />
-      ) : (
-        // Slug isn't in the catalogue, so there's no branded icon. ToolIcon
-        // renders null for an unknown key, which would collapse the layout.
-        <span className="w-11 h-11 rounded-xl bg-gray-100 flex items-center justify-center mb-4 transition-transform duration-200 ease-out group-hover:scale-110 group-hover:-rotate-3">
-          <Folder className="w-5 h-5 text-gray-600" />
-        </span>
+      {!neutral && onRename && onDelete && (
+        <Menu label={`${name} menu`} corner>
+          {(close) => (
+            <>
+              <MenuItem
+                icon={<FolderOpen className={styles.menuItemIcon} />}
+                onClick={() => {
+                  close();
+                  onSelect();
+                }}
+              >
+                Open
+              </MenuItem>
+              <MenuItem
+                icon={<PencilSimple className={styles.menuItemIcon} />}
+                onClick={() => {
+                  close();
+                  onRename();
+                }}
+              >
+                Rename and recolour
+              </MenuItem>
+              <span className={styles.menuSep} />
+              <MenuItem
+                icon={<TrashSimple className={styles.menuItemIcon} />}
+                danger
+                onClick={() => {
+                  close();
+                  onDelete();
+                }}
+              >
+                Delete
+              </MenuItem>
+            </>
+          )}
+        </Menu>
       )}
-      <h5 className="font-semibold text-dark truncate pr-6">{folder.label}</h5>
-      <p className="text-sm text-muted mt-0.5">{folder.count} {folder.count === 1 ? "item" : "items"}</p>
+
+      <button
+        type="button"
+        onClick={onSelect}
+        className={styles.folderOpen}
+        aria-pressed={selected}
+      >
+        <span
+          className={styles.folderChip}
+          style={{ background: swatch.tint, color: swatch.solid }}
+          aria-hidden="true"
+        >
+          {neutral ? <Stack weight="fill" /> : <FolderIcon weight="fill" />}
+        </span>
+        <h3 className={styles.folderName}>{name}</h3>
+        <span className={styles.folderCount}>
+          {count} {count === 1 ? "resource" : "resources"}
+        </span>
+      </button>
     </div>
   );
 }
 
-function FolderRow({
-  folder, pinned, onTogglePin, onOpen,
+/* ── Resource, as a row or a card ────────────────────────────────────────── */
+
+function ResourceItem({
+  run,
+  folderLabel,
+  dragging,
+  deleting,
+  view,
+  onDragStart,
+  onDragEnd,
+  onOpen,
+  onMove,
+  onShare,
+  onDelete,
 }: {
-  folder: FolderData; pinned: boolean; onTogglePin: (slug: string) => void; onOpen: (slug: string) => void;
+  run: ToolRun;
+  folderLabel: string;
+  dragging: boolean;
+  deleting: boolean;
+  view: "grid" | "list";
+  onDragStart: () => void;
+  onDragEnd: () => void;
+  onOpen: () => void;
+  onMove: () => void;
+  onShare: () => void;
+  onDelete: () => void;
 }) {
+  const tool = v2ToolForSlug(run.tool_slug);
+  const label = tool?.name ?? typeLabel(run.tool_slug);
+  const title = run.title?.trim() || "Untitled";
+  // The prototype's second line is "<tool>, <folder>". A card has no date
+  // column, so the date joins the meta line there rather than being dropped.
+  const meta =
+    view === "list"
+      ? `${label}, ${folderLabel}`
+      : `${label}, ${folderLabel}, ${formatDate(run.created_at)}`;
+
+  // Both layouts drag identically, so the handlers are shared rather than
+  // written twice and drifting.
+  const dragProps = {
+    draggable: true,
+    onDragStart: (e: React.DragEvent) => {
+      e.dataTransfer.setData("text/plain", run.id);
+      e.dataTransfer.effectAllowed = "move";
+      onDragStart();
+    },
+    onDragEnd,
+  };
+
+  const menu = (
+    <Menu label={`${title} menu`}>
+        {(close) => (
+          <>
+            <MenuItem
+              icon={<PencilSimple className={styles.menuItemIcon} />}
+              onClick={() => {
+                close();
+                onOpen();
+              }}
+            >
+              Edit
+            </MenuItem>
+            <MenuItem
+              icon={<ShareNetwork className={styles.menuItemIcon} />}
+              onClick={() => {
+                close();
+                onShare();
+              }}
+            >
+              Share with colleagues
+            </MenuItem>
+            <MenuItem
+              icon={<FolderIcon className={styles.menuItemIcon} />}
+              onClick={() => {
+                close();
+                onMove();
+              }}
+            >
+              Move to folder
+            </MenuItem>
+            <span className={styles.menuSep} />
+            <MenuItem
+              icon={
+                deleting ? (
+                  <CircleNotch className={`${styles.menuItemIcon} ${styles.spin}`} />
+                ) : (
+                  <TrashSimple className={styles.menuItemIcon} />
+                )
+              }
+              danger
+              disabled={deleting}
+              onClick={() => {
+                close();
+                onDelete();
+              }}
+            >
+              Delete
+            </MenuItem>
+          </>
+        )}
+    </Menu>
+  );
+
+  if (view === "grid") {
+    return (
+      <div
+        className={`${styles.filecard} ${dragging ? styles.filerowDragging : ""}`}
+        {...dragProps}
+      >
+        <span className={styles.filecardMenu}>{menu}</span>
+        <button type="button" className={styles.filecardFace} onClick={onOpen}>
+          <ToolTile icon={tool?.icon ?? "folder"} solid={toolSolid(tool)} size="md" />
+          <span className={`${app.rowTitle} ${styles.filecardTitle}`}>{title}</span>
+          <span className={styles.filecardMeta}>{meta}</span>
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div
-      onClick={() => onOpen(folder.slug)}
-      className="group flex items-center gap-4 px-5 py-3 border-b border-line/60 last:border-0 hover:bg-[#F1EFE3] transition-colors cursor-pointer"
+      className={`${styles.filerow} ${dragging ? styles.filerowDragging : ""}`}
+      {...dragProps}
     >
-      {folder.icon ? (
-        <ToolIcon
-          name={folder.icon}
-          className="w-9 h-9 shrink-0 transition-transform duration-200 ease-out group-hover:scale-110 group-hover:-rotate-3"
-        />
-      ) : (
-        <span className="w-9 h-9 rounded-lg bg-gray-100 flex items-center justify-center shrink-0 transition-transform duration-200 ease-out group-hover:scale-110 group-hover:-rotate-3">
-          <Folder className="w-4 h-4 text-gray-600" />
-        </span>
-      )}
-      <span className="font-medium text-dark flex-1 truncate">{folder.label}</span>
-      {/* 288px of fixed columns in a 343px row. Below `sm` a row is icon +
-          name + menu, which is the right amount of information for a phone. */}
-      <span className="hidden sm:inline text-sm text-muted w-28 shrink-0">{folder.count} items</span>
-      <span className="hidden sm:inline text-sm text-muted w-44 shrink-0 whitespace-nowrap">{formatDate(new Date(folder.latest).toISOString())}</span>
-      <FolderMenu pinned={pinned} onTogglePin={() => onTogglePin(folder.slug)} onOpen={() => onOpen(folder.slug)} inline />
+      <ToolTile icon={tool?.icon ?? "folder"} solid={toolSolid(tool)} size="sm" />
+
+      <button type="button" className={styles.fileMain} onClick={onOpen}>
+        <span className={`${app.rowTitle} ${styles.fileTitle}`}>{title}</span>
+        <span className={styles.fileMeta}>{meta}</span>
+      </button>
+
+      <span className={styles.fileWhen}>{formatDate(run.created_at)}</span>
+
+      {menu}
     </div>
   );
 }
 
-function FolderMenu({
-  pinned, onTogglePin, onOpen, inline,
+/* ── Menu ────────────────────────────────────────────────────────────────── */
+
+function Menu({
+  label,
+  corner,
+  children,
 }: {
-  pinned: boolean; onTogglePin: () => void; onOpen: () => void; inline?: boolean;
+  label: string;
+  corner?: boolean;
+  children: (close: () => void) => React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
-    const h = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
-    document.addEventListener("mousedown", h);
-    return () => document.removeEventListener("mousedown", h);
-  }, []);
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
   return (
-    <div ref={ref} className={inline ? "relative shrink-0" : "absolute top-4 right-4"}>
+    <div ref={ref} className={corner ? styles.menuCorner : styles.menuInline}>
       <button
-        aria-label="Folder menu"
-        onClick={(e) => { e.stopPropagation(); setOpen((v) => !v); }}
-        className="w-7 h-7 flex items-center justify-center rounded-md text-muted hover:bg-white transition-colors cursor-pointer"
+        type="button"
+        aria-label={label}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={(e) => {
+          e.stopPropagation();
+          setOpen((v) => !v);
+        }}
+        className={styles.menuBtn}
       >
-        <MoreVertical className="w-4 h-4" />
+        <DotsThree weight="bold" className={styles.menuIcon} />
       </button>
       {open && (
-        <div className="absolute right-0 top-full mt-1 w-40 bg-white border border-gray-200 rounded-xl shadow-lg z-20 py-1">
-          <button onClick={(e) => { e.stopPropagation(); setOpen(false); onOpen(); }}
-            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer">
-            Open
-          </button>
-          <button onClick={(e) => { e.stopPropagation(); setOpen(false); onTogglePin(); }}
-            className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer">
-            <Pin className={`w-3.5 h-3.5 ${pinned ? "fill-current text-violet-600" : ""}`} />
-            {pinned ? "Unpin" : "Pin"}
-          </button>
+        <div className={styles.menuPanel} role="menu">
+          {children(() => setOpen(false))}
         </div>
       )}
     </div>
   );
 }
 
-function FilterDropdown({
-  label, value, options, onChange, allLabel = "All",
+function MenuItem({
+  icon,
+  children,
+  onClick,
+  danger,
+  soon,
+  disabled,
 }: {
-  label: string; value: string | null; options: string[]; onChange: (v: string | null) => void; allLabel?: string;
+  icon: React.ReactNode;
+  children: React.ReactNode;
+  onClick?: () => void;
+  danger?: boolean;
+  soon?: boolean;
+  disabled?: boolean;
 }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const h = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
-    document.addEventListener("mousedown", h);
-    return () => document.removeEventListener("mousedown", h);
-  }, []);
-  const active = value !== null;
   return (
-    <div ref={ref} className="relative">
-      <button
-        onClick={() => setOpen((v) => !v)}
-        className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-sm transition-colors cursor-pointer ${
-          active ? "border-dark bg-[#1a1a1a] text-white" : "border-line bg-[#FAF9F5] text-gray-700 hover:border-dark"
-        }`}
-      >
-        {value ?? label}
-        <ChevronDown className="w-3.5 h-3.5" />
-      </button>
-      {open && (
-        <div className="absolute left-0 top-full mt-1 w-[min(14rem,calc(100vw-2rem))] max-h-72 overflow-y-auto bg-white border border-gray-200 rounded-xl shadow-lg z-20 py-1">
-          <button onClick={() => { onChange(null); setOpen(false); }}
-            className="w-full flex items-center justify-between px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer">
-            {allLabel}
-            {!active && <Check className="w-3.5 h-3.5" />}
-          </button>
-          {options.length === 0 ? (
-            <p className="px-4 py-2 text-xs text-muted">No options</p>
-          ) : options.map((opt) => (
-            <button key={opt} onClick={() => { onChange(opt); setOpen(false); }}
-              className="w-full flex items-center justify-between px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer">
-              <span className="truncate">{opt}</span>
-              {value === opt && <Check className="w-3.5 h-3.5 shrink-0" />}
+    <button
+      type="button"
+      role="menuitem"
+      disabled={soon || disabled}
+      aria-disabled={soon || disabled}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick?.();
+      }}
+      className={`${styles.menuItem} ${danger ? styles.menuDanger : ""} ${
+        soon ? styles.menuItemSoon : ""
+      }`}
+    >
+      {icon}
+      {children}
+    </button>
+  );
+}
+
+/* ── Modals ──────────────────────────────────────────────────────────────── */
+
+/**
+ * Shared modal shell: scrim, Escape to close, focus moved in on open and
+ * returned to whatever opened it on close.
+ *
+ * The prototype has none of this. It closes on a scrim click and nothing else,
+ * and its "input" is a styled div. A modal that cannot be dismissed from the
+ * keyboard and does not return focus is a trap for anybody not using a mouse.
+ */
+function ModalShell({
+  title,
+  sub,
+  onCancel,
+  children,
+}: {
+  title: string;
+  sub: string;
+  onCancel: () => void;
+  children: React.ReactNode;
+}) {
+  const returnTo = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    returnTo.current = document.activeElement as HTMLElement | null;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onCancel();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      returnTo.current?.focus?.();
+    };
+  }, [onCancel]);
+
+  return (
+    <div
+      className={styles.modalScrim}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onCancel();
+      }}
+    >
+      <div className={styles.modalCard} role="dialog" aria-modal="true" aria-label={title}>
+        <h2 className={styles.modalTitle}>{title}</h2>
+        <p className={styles.modalSub}>{sub}</p>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function FolderModal({
+  draft,
+  onCancel,
+  onSave,
+}: {
+  draft: Draft;
+  onCancel: () => void;
+  onSave: (name: string, colour: FolderColour) => void;
+}) {
+  const [name, setName] = useState(draft.name);
+  const [colour, setColour] = useState<FolderColour>(draft.colour);
+  const input = useRef<HTMLInputElement>(null);
+  const editing = draft.folder !== null;
+
+  useEffect(() => {
+    input.current?.focus();
+    input.current?.select();
+  }, []);
+
+  const valid = name.trim().length > 0 && name.trim().length <= 60;
+  const submit = () => {
+    if (valid) onSave(name, colour);
+  };
+
+  return (
+    <ModalShell
+      title={editing ? "Rename folder" : "New folder"}
+      sub="Resources sit in one folder at a time."
+      onCancel={onCancel}
+    >
+      <div className={styles.field}>
+        <label className={styles.fieldLabel} htmlFor="folder-name">
+          Name
+        </label>
+        <input
+          id="folder-name"
+          ref={input}
+          value={name}
+          maxLength={60}
+          onChange={(e) => setName(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              submit();
+            }
+          }}
+          placeholder="Autumn 2, Science"
+          className={styles.fieldInput}
+        />
+      </div>
+
+      <div className={styles.field}>
+        <span className={styles.fieldLabel}>Colour</span>
+        <div className={styles.swatches}>
+          {FOLDER_COLOURS.map((c) => (
+            <button
+              key={c.key}
+              type="button"
+              aria-label={c.name}
+              aria-pressed={colour === c.key}
+              onClick={() => setColour(c.key)}
+              style={{ background: c.tint, color: c.solid }}
+              className={`${styles.sw} ${colour === c.key ? styles.swOn : ""}`}
+            >
+              {colour === c.key && <Check weight="bold" className={styles.swCheck} />}
             </button>
           ))}
         </div>
-      )}
-    </div>
+      </div>
+
+      <div className={styles.modalFoot}>
+        <button type="button" className={styles.modalCancel} onClick={onCancel}>
+          Cancel
+        </button>
+        <button type="button" className={styles.modalSave} disabled={!valid} onClick={submit}>
+          {editing ? "Save folder" : "Create folder"}
+        </button>
+      </div>
+    </ModalShell>
   );
 }
 
-function SortMenu({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const h = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
-    document.addEventListener("mousedown", h);
-    return () => document.removeEventListener("mousedown", h);
-  }, []);
+function MoveModal({
+  run,
+  folders,
+  onCancel,
+  onPick,
+}: {
+  run: ToolRun;
+  folders: Folder[];
+  onCancel: () => void;
+  onPick: (target: Selection) => void;
+}) {
   return (
-    <div ref={ref} className="relative">
-      <button onClick={() => setOpen((v) => !v)} aria-label="Sort"
-        className="w-9 h-9 flex items-center justify-center rounded-xl border border-line bg-[#FAF9F5] text-gray-700 hover:border-dark transition-colors cursor-pointer">
-        <ArrowUpDown className="w-4 h-4" />
-      </button>
-      {open && (
-        <div className="absolute right-0 top-full mt-1 w-[min(12rem,calc(100vw-2rem))] bg-white border border-gray-200 rounded-xl shadow-lg z-20 py-1">
-          {SORTS.map((s) => (
-            <button key={s.key} onClick={() => { onChange(s.key); setOpen(false); }}
-              className="w-full flex items-center justify-between px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer">
-              {s.label}
-              {value === s.key && <Check className="w-3.5 h-3.5" />}
+    <ModalShell
+      title="Move to folder"
+      sub="Resources sit in one folder at a time."
+      onCancel={onCancel}
+    >
+      <div className={styles.picklist}>
+        {folders.map((folder) => {
+          const swatch = folderSwatch(folder.colour);
+          return (
+            <button
+              key={folder.id}
+              type="button"
+              className={styles.pick}
+              onClick={() => onPick(folder.id)}
+            >
+              <span
+                className={styles.pickChip}
+                style={{ background: swatch.tint, color: swatch.solid }}
+                aria-hidden="true"
+              >
+                <FolderIcon weight="fill" />
+              </span>
+              <span className={styles.pickName}>{folder.name}</span>
+              {run.folder_id === folder.id && <Check weight="bold" className={styles.pickCheck} />}
             </button>
-          ))}
-        </div>
-      )}
+          );
+        })}
+
+        <button type="button" className={styles.pick} onClick={() => onPick(null)}>
+          <span
+            className={styles.pickChip}
+            style={{ background: "var(--j-tint-slate)", color: "#6D6683" }}
+            aria-hidden="true"
+          >
+            <FolderOpen weight="fill" />
+          </span>
+          <span className={styles.pickName}>Unfiled</span>
+          {!run.folder_id && <Check weight="bold" className={styles.pickCheck} />}
+        </button>
+      </div>
+
+      <div className={styles.modalFoot}>
+        <button type="button" className={styles.modalCancel} onClick={onCancel}>
+          Cancel
+        </button>
+      </div>
+    </ModalShell>
+  );
+}
+
+/* ── Empty states ────────────────────────────────────────────────────────── */
+
+function EmptyState({
+  hasRuns,
+  searching,
+  selected,
+}: {
+  hasRuns: boolean;
+  searching: boolean;
+  selected: Selection;
+}) {
+  if (searching) {
+    return (
+      <div className={app.empty}>
+        <span className={app.emptyIcon}>
+          <MagnifyingGlass weight="fill" />
+        </span>
+        <p className={app.emptyTitle}>Nothing matches that search</p>
+        <p className={app.emptyBody}>Try a shorter word, or clear the search box.</p>
+      </div>
+    );
+  }
+
+  if (!hasRuns) {
+    return (
+      <div className={app.empty}>
+        <span className={app.emptyIcon}>
+          <FolderOpen weight="fill" />
+        </span>
+        <p className={app.emptyTitle}>Nothing filed yet</p>
+        <p className={app.emptyBody}>
+          Make something with any tool and it lands here automatically.
+        </p>
+      </div>
+    );
+  }
+
+  // The default view, and empty means the teacher has filed everything. That is
+  // the finished state of this page rather than a gap in it, so it says so.
+  if (selected === null) {
+    return (
+      <div className={app.empty}>
+        <span className={app.emptyIcon}>
+          <Check weight="fill" />
+        </span>
+        <p className={app.emptyTitle}>Everything is filed</p>
+        <p className={app.emptyBody}>
+          Every resource you have made is in a folder. Open All resources to see them.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className={app.empty}>
+      <span className={app.emptyIcon}>
+        <FolderOpen weight="fill" />
+      </span>
+      <p className={app.emptyTitle}>Nothing in here yet</p>
+      <p className={app.emptyBody}>
+        Drag a resource onto this folder, or use Move to folder from its menu.
+      </p>
     </div>
   );
 }

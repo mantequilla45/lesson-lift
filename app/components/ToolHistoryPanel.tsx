@@ -82,7 +82,7 @@ export default function ToolHistoryPanel({
         <ul className="space-y-1">
           {recent.map((run) => (
             <li key={run.id}>
-              <div className="group flex items-center gap-2 rounded-xl px-3 py-2 hover:bg-[#F1EFE3] transition-colors">
+              <div className="group flex items-center gap-2 rounded-xl px-3 py-2 hover:bg-(--j-tint) transition-colors">
                 <button
                   type="button"
                   onClick={() => onRestore(run)}

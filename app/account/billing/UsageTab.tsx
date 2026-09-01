@@ -18,7 +18,7 @@ export default async function UsageTab() {
     return (
       <div
         className="rounded-2xl p-6 border text-sm"
-        style={{ backgroundColor: "#FAF9F5", borderColor: "#DAD8D0", color: "#6b6055" }}
+        style={{ backgroundColor: "var(--j-card)", borderColor: "var(--j-line)", color: "var(--j-body)" }}
       >
         Usage figures are temporarily unavailable. Your credit balance on the
         Overview tab is unaffected.
@@ -44,7 +44,7 @@ export default async function UsageTab() {
 
   return (
     <>
-      <p className="text-sm mb-4" style={{ color: "#8a8078" }}>
+      <p className="text-sm mb-4" style={{ color: "var(--j-faint)" }}>
         Credits used per tool in {month}.
       </p>
 
@@ -53,7 +53,7 @@ export default async function UsageTab() {
       {/* No provider names, no dollar figures, no token counts. Credits are the
           unit teachers are sold and the only one they should have to reason
           about — see app/lib/plans.ts. */}
-      <p className="text-xs mt-4" style={{ color: "#8a8078" }}>
+      <p className="text-xs mt-4" style={{ color: "var(--j-faint)" }}>
         Credits are Jooma&apos;s unit for AI use. Per generation is this month&apos;s actual use
         divided by the number of generations; Next 10 and Next 100 are estimates at that same
         rate, so they&apos;ll move as your mix of tools changes. Your remaining balance is on the

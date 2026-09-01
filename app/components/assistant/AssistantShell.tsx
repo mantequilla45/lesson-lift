@@ -19,7 +19,7 @@ import {
   useState,
 } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import AppShell from "@/app/components/layout/AppShell";
+import AppShellV2 from "@/app/components/v2/AppShellV2";
 import UpgradeGate from "@/app/components/UpgradeGate";
 import ConfirmModal from "@/app/components/ConfirmModal";
 import ChatSidebar from "@/app/components/assistant/ChatSidebar";
@@ -144,8 +144,8 @@ export default function AssistantShell({ children }: { children: React.ReactNode
       {/* UpgradeGate catches the 402 from a spend ceiling or the plan gate and
           opens the upgrade/top-up modal. Not inherited from a layout —
           /assistant is a sibling of /tools, not inside it. */}
-      <AppShell
-        title="AI assistant"
+      <AppShellV2
+        title="Ask Mo"
         variant="fixed"
         slot={<UpgradeGate />}
         /* Stacks below `lg`: two fixed sidebars (the 256px rail plus this
@@ -169,7 +169,7 @@ export default function AssistantShell({ children }: { children: React.ReactNode
           <AssistantChatsContext.Provider value={value}>
             {children}
           </AssistantChatsContext.Provider>
-      </AppShell>
+      </AppShellV2>
 
       <ConfirmModal
         open={deleting !== null}

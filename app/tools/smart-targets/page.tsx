@@ -17,7 +17,7 @@ export default async function SmartTargetsPage({
       sidebar={
         <ToolInfoPanel
           icon={<Target className="w-5 h-5 text-emerald-600" />}
-          heroBg="bg-emerald-50"
+
           title="SMART Targets"
           description="This tool can be used to draft SMART targets for students. Simply provide the year group and the overall targets and let the AI draft the targets for you. Remember to review and adapt the output so it is fully applicable to your student."
           steps={[

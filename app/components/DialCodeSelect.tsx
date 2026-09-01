@@ -102,7 +102,7 @@ export default function DialCodeSelect({
                     onChange(c.code);
                     setOpen(false);
                   }}
-                  className="w-full flex items-center gap-3 px-3 py-2 text-sm hover:bg-[#F1EFE3] transition-colors"
+                  className="w-full flex items-center gap-3 px-3 py-2 text-sm hover:bg-(--j-tint) transition-colors"
                 >
                   <Flag code={c.code} rounded className="w-5 h-5" />
                   <span className="flex-1 text-left">{c.name}</span>

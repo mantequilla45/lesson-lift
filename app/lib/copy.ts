@@ -60,17 +60,17 @@ export type CopyMap = Record<CopyKey, string>;
  * string stays plain prose an admin can edit without writing HTML.
  */
 export const DEFAULTS: CopyMap = {
-  "home.hero.eyebrow": "AI-Powered Lesson Creation",
-  "home.hero.h1": "Create personalised lessons in minutes, not hours.",
+  "home.hero.eyebrow": "Built for the UK curriculum",
+  "home.hero.h1": "Type a topic. Walk out with the lesson.",
   "home.hero.sub":
-    "Jooma helps teachers generate personalised, curriculum-aligned lessons in minutes — reducing planning time while improving classroom engagement.",
-  "home.hero.cta": "Get Started",
-  "home.hero.reassure": "No card required · 5 free resources every month",
-  "pricing.headline": "Simple pricing for smarter lesson planning",
+    "Jooma turns one line into the slides, the worksheet and the comprehension, matched to your year group. Try it on this page. No sign up, no card.",
+  "home.hero.cta": "Start free",
+  "home.hero.reassure": "Five free resources a month. No card needed.",
+  "pricing.headline": "Start free. Upgrade when it has already saved you a Sunday.",
   "pricing.sub":
     "Choose a plan that saves you time, reduces workload, and helps you create better lessons in seconds.",
   "dash.empty.title": "Nothing here yet",
-  "dash.empty.body": "Pick a tool and make your first resource — it takes about a minute.",
+  "dash.empty.body": "Pick a tool and make your first resource. It takes about a minute.",
 };
 
 /**

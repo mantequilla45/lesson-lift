@@ -59,14 +59,14 @@ export default function NavAuth({
         <Link
           href="/login"
           className="px-4 py-2 text-sm font-semibold rounded-xl transition-colors hover:bg-black/5"
-          style={{ color: "#030303" }}
+          style={{ color: "var(--j-ink)" }}
         >
           Log In
         </Link>
         <Link
           href="/signup"
           className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-xl text-white transition-opacity hover:opacity-90"
-          style={{ backgroundColor: "#030303" }}
+          style={{ backgroundColor: "var(--j-purple)" }}
         >
           Let&apos;s Try Free
           <ArrowRight className="w-3.5 h-3.5 -rotate-45" />
@@ -87,13 +87,13 @@ export default function NavAuth({
         aria-haspopup="menu"
         aria-expanded={open}
         className="flex items-center gap-2 pl-1.5 pr-2.5 py-1.5 rounded-xl border transition-colors hover:bg-black/5"
-        style={{ borderColor: "#E0DCCB" }}
+        style={{ borderColor: "var(--j-line-2)" }}
       >
         <Avatar url={avatarUrl} name={avatarName} size={28} />
-        <span className="text-sm font-semibold max-w-35 truncate" style={{ color: "#030303" }}>
+        <span className="text-sm font-semibold max-w-35 truncate" style={{ color: "var(--j-ink)" }}>
           {label}
         </span>
-        <ChevronDown className="w-4 h-4" style={{ color: "#4a423a" }} />
+        <ChevronDown className="w-4 h-4" style={{ color: "var(--j-muted)" }} />
       </button>
 
       {open && (
