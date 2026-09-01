@@ -172,6 +172,7 @@ async function runLoad(): Promise<void> {
     accountCreatedAt: null,
     profileComplete: null,
     assistantMessageCount: null,
+    folderCount: null,
   }));
 
   const stats = buildStats({
@@ -207,26 +208,34 @@ async function runLoad(): Promise<void> {
   emit(derive(next, runs, stats.currentStreak, [...snapshot.justEarned, ...granted]));
 }
 
-/** Account age, profile completeness and Ask Mo use: three cheap reads that a
- *  handful of badges depend on and nothing else does. */
+/** Account age, profile completeness, Ask Mo use and folder count: four cheap
+ *  reads that a handful of badges depend on and nothing else does. */
 async function loadContext(): Promise<{
   accountCreatedAt: string | null;
   profileComplete: boolean | null;
   assistantMessageCount: number | null;
+  folderCount: number | null;
 }> {
   const supabase = createClient();
   const { data: userData } = await supabase.auth.getUser();
   const user = userData.user;
   if (!user) {
-    return { accountCreatedAt: null, profileComplete: null, assistantMessageCount: null };
+    return {
+      accountCreatedAt: null,
+      profileComplete: null,
+      assistantMessageCount: null,
+      folderCount: null,
+    };
   }
 
-  const [profileResult, messageResult] = await Promise.all([
+  const [profileResult, messageResult, folderResult] = await Promise.all([
     supabase.from("profiles").select("first_name, last_name").eq("id", user.id).maybeSingle(),
     supabase
       .from("assistant_messages")
       .select("id", { count: "exact", head: true })
       .eq("role", "user"),
+    // head + exact, so this costs a count and not the rows.
+    supabase.from("folders").select("id", { count: "exact", head: true }),
   ]);
 
   const profile = profileResult.data as { first_name?: string; last_name?: string } | null;
@@ -237,6 +246,10 @@ async function loadContext(): Promise<{
       ? Boolean(profile.first_name?.trim() && profile.last_name?.trim())
       : null,
     assistantMessageCount: messageResult.error ? null : (messageResult.count ?? 0),
+    // null rather than 0 when the table is not there yet: "no folders" and
+    // "folders have not shipped here" are different facts, and the criterion
+    // renders them differently.
+    folderCount: folderResult.error ? null : (folderResult.count ?? 0),
   };
 }
 

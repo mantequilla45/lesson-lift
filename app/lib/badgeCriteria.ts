@@ -226,6 +226,8 @@ export interface BadgeStats {
   accountAgeDays: number | null;
   profileComplete: boolean | null;
   assistantMessageCount: number | null;
+  /** Library folders the teacher has made. Null before the table exists. */
+  folderCount: number | null;
   /** How many badges are already held. Powers the two "collect them all" ones. */
   earnedCount: number;
 }
@@ -236,6 +238,7 @@ export function buildStats(input: {
   accountCreatedAt: string | null;
   profileComplete: boolean | null;
   assistantMessageCount: number | null;
+  folderCount: number | null;
   earnedCount: number;
 }): BadgeStats {
   const { runs, now } = input;
@@ -297,6 +300,7 @@ export function buildStats(input: {
       : null,
     profileComplete: input.profileComplete,
     assistantMessageCount: input.assistantMessageCount,
+    folderCount: input.folderCount,
     earnedCount: input.earnedCount,
   };
 }
@@ -363,7 +367,10 @@ export const CRITERIA: Record<string, Criterion> = {
   "streak-7": (s) => s.longestStreak >= 7,
   "monday-morning": (s) => s.weekendPlanning,
   "early-bird": (s) => s.earlyMorning,
-  "folder-five": unknowable,
+  // Real folders now, so this is a real count rather than a stand-in for
+  // "five different tools". Stays null while folderCount is null, which is what
+  // an environment without the folders table looks like.
+  "folder-five": (s) => (s.folderCount === null ? null : s.folderCount >= 5),
   "refined": (s) => s.runCount >= s.distinctTools.size + 3,
   "reused": unknowable,
   "differentiated": used("worksheet-generator"),

@@ -127,10 +127,7 @@ const LEVEL_BADGES: Badge[][] = [
     { id: "streak-7", name: "A full week", description: "You used Jooma seven days running.", icon: "fire-simple" },
     { id: "monday-morning", name: "Ready for Monday", description: "You planned ahead over a weekend.", icon: "sun-horizon" },
     { id: "early-bird", name: "Before the bell", description: "You made something before eight in the morning.", icon: "alarm" },
-    // Folders are derived from tool_slug, not a table you can add to, so
-    // "five folders" is really "five different tools" and `five-tools` at
-    // level 2 already says that. Pending until folders are real.
-    { id: "folder-five", name: "Tidy shelf", description: "You built up five folders of resources.", icon: "folders", pending: true },
+    { id: "folder-five", name: "Tidy shelf", description: "You built up five folders of resources.", icon: "folders" },
     { id: "refined", name: "Second draft", description: "You refined a resource rather than starting again.", icon: "arrows-clockwise" },
     // Reopening is a navigation, not a row. Nothing records a read.
     { id: "reused", name: "Worth keeping", description: "You reopened a resource you made earlier.", icon: "arrow-counter-clockwise", pending: true },

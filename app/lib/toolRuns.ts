@@ -12,6 +12,9 @@ export interface ToolRun {
   input: Record<string, unknown>;
   output: string;
   created_at: string;
+  /** The Library folder this resource is filed in. Null is "Unfiled", which is
+   *  a real state rather than a missing one: see app/lib/folders.ts. */
+  folder_id: string | null;
 }
 
 /*
@@ -111,6 +114,26 @@ export async function getToolRun(id: string): Promise<ToolRun | null> {
     .maybeSingle();
   if (error) throw error;
   return (data as ToolRun | null) ?? null;
+}
+
+/**
+ * File a resource into a folder, or out of one with `null`.
+ *
+ * The only UPDATE this codebase makes to tool_runs, and the reason the table
+ * gained an update policy in 20260902000000_folders. A generation is otherwise
+ * a historical fact; where the teacher decided to put it afterwards is not part
+ * of that.
+ *
+ * Lives here rather than in folders.ts because it writes tool_runs, and this
+ * module is that table's only gateway.
+ */
+export async function moveRunToFolder(runId: string, folderId: string | null): Promise<void> {
+  const supabase = createClient();
+  const { error } = await supabase
+    .from("tool_runs")
+    .update({ folder_id: folderId })
+    .eq("id", runId);
+  if (error) throw error;
 }
 
 export async function deleteToolRun(id: string): Promise<void> {

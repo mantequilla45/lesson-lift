@@ -8,6 +8,19 @@ import { TOOLS } from "@/app/lib/tools";
 
 const SLIDESHOW_SLUG = "__slideshows__";
 
+/*
+ * NOTE: the "folders" here are NOT the Library's folders.
+ *
+ * This groups tool_runs by tool_slug to give the editor a way to pick an
+ * existing resource, which is what /folders used to do before folders became
+ * real rows (app/lib/folders.ts, and tool_runs.folder_id). It is a picker over
+ * tools, not a view of how the teacher has actually filed anything, and it
+ * stays that way deliberately: reaching for a past slideshow by the tool that
+ * made it is the right shape for this modal.
+ *
+ * If this ever needs to show the teacher's own folders, read them from
+ * listFolders() rather than extending the grouping below.
+ */
 interface FolderItem {
   slug: string;
   label: string;

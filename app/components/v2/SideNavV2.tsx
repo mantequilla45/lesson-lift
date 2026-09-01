@@ -170,9 +170,11 @@ export default function SideNavV2({ mobileOpen = false, onMobileClose }: SideNav
               );
             }
 
-            // startsWith so a tool page keeps "Make" lit, and a single folder
-            // keeps "Library" lit. Exact match on /dashboard, which is a prefix
-            // of nothing but would otherwise stay lit on every route if it were.
+            // startsWith so a tool page keeps "Make" lit. Library has no child
+            // routes any more (a folder is ?folder= on /folders), but the
+            // prefix match costs nothing and is right if one is ever added.
+            // Exact match on /dashboard, which is a prefix of nothing but would
+            // otherwise stay lit on every route if it were.
             const active =
               item.href === "/dashboard"
                 ? pathname === item.href
