@@ -346,6 +346,14 @@ summary {
   --j-orange-ink: #8A3C12;
   --j-paper: #FFFDF7;  /* slide previews, deck thumbnails */
 
+  /* Attainment gold, from the dashboard prototype's level pill. Reserved for
+     what a teacher has EARNED: level and badge tier. Not a status colour, not
+     an accent, and never used for a control. The badge medallions carry their
+     own five metal palettes inside BadgeMedallion.tsx, which are artwork
+     gradients rather than interface colour, so they do not read from here. */
+  --j-gold: #B8860B;
+  --j-gold-bg: #FBF3DF;
+
   --j-r: 14px;
   --j-r-lg: 20px;
   --j-r-xl: 28px;

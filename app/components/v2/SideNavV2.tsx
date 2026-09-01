@@ -55,7 +55,7 @@ const NAV: NavItem[] = [
   { label: "Make", href: "/tools", Icon: SquaresFour, count: "tools" },
   { label: "Library", href: "/folders", Icon: Folder, count: "resources" },
   { label: "Timetable", href: "/timetable", Icon: CalendarBlank },
-  { label: "Colleagues", href: "/colleagues", Icon: UsersThree, soon: true },
+  { label: "Colleagues", href: "/colleagues", Icon: UsersThree },
   // Named for what it is, not what powers it. The language rules in
   // scripts/check-language.mjs fail the build on "AI" in teacher-facing copy,
   // which is what the old "AI assistant" label was.

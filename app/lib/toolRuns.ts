@@ -34,6 +34,27 @@ export function onToolRunSaved(listener: RunSavedListener): () => void {
   };
 }
 
+/**
+ * Tell the listeners a resource landed.
+ *
+ * Exported because saveToolRun is no longer the only way a row reaches
+ * tool_runs: accepting a colleague's share inserts one too (see
+ * saveSharedToLibrary in app/lib/colleagues.ts), and that resource has to count
+ * toward badges and the streak exactly as a generated one does.
+ *
+ * A listener must never be able to fail its caller. The resource is the thing
+ * the teacher cares about; a badge is not.
+ */
+export function fireToolRunSaved(): void {
+  for (const listener of runSavedListeners) {
+    try {
+      listener();
+    } catch {
+      // Deliberately ignored.
+    }
+  }
+}
+
 export async function saveToolRun(run: {
   toolSlug: string;
   title?: string | null;
@@ -59,16 +80,8 @@ export async function saveToolRun(run: {
   if (error) throw error;
 
   // Every tool that saves a run comes through here, which makes this the one
-  // place badge earning can hook without touching all five call sites. A
-  // listener must never be able to fail the save: the resource is the thing the
-  // teacher cares about, a badge is not.
-  for (const listener of runSavedListeners) {
-    try {
-      listener();
-    } catch {
-      // Deliberately ignored.
-    }
-  }
+  // place badge earning can hook without touching all five call sites.
+  fireToolRunSaved();
 
   return data as ToolRun;
 }

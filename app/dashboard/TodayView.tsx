@@ -11,6 +11,7 @@ import {
   ChatTeardropDots,
   ArrowRight,
   CalendarBlank,
+  ShareNetwork,
 } from "@phosphor-icons/react/dist/ssr";
 import AppShellV2 from "@/app/components/v2/AppShellV2";
 import UpgradeGate from "@/app/components/UpgradeGate";
@@ -29,6 +30,8 @@ import {
   makeItHref,
   type LessonWithResource,
 } from "@/app/lib/timetable";
+import ShareModal from "@/app/components/v2/ShareModal";
+import type { ToolRun } from "@/app/lib/toolRuns";
 import EarnedBadgesCard from "./EarnedBadgesCard";
 import BadgeMedallion from "@/app/components/v2/BadgeMedallion";
 import type { CopyMap } from "@/app/lib/copy";
@@ -116,6 +119,7 @@ export default function TodayView({
    * The week is a prompt to go and plan, not something worth an error on a
    * screen that has six other things on it.
    */
+  const [sharing, setSharing] = useState<ToolRun | null>(null);
   const [lessons, setLessons] = useState<LessonWithResource[]>([]);
   const [weekLoading, setWeekLoading] = useState(true);
   const [weekStart, setWeekStart] = useState<string | null>(null);
@@ -477,30 +481,43 @@ export default function TodayView({
             </div>
           ) : (
             <div className={app.rows}>
+              {/* A div, not a button, because the row now carries two actions.
+                  The title is the button that opens the run; Share sits beside
+                  it. Nesting a button inside a button is invalid markup and
+                  browsers resolve it by dropping one of them. */}
               {recent.map((run) => {
                 const tool = v2ToolForSlug(run.tool_slug);
                 return (
-                  <button
-                    key={run.id}
-                    type="button"
-                    className={app.row}
-                    // ?run= reopens THIS run. Without it the row opened an empty
-                    // tool and silently discarded what was clicked.
-                    onClick={() => tool && router.push(`${tool.href}?run=${run.id}`)}
-                  >
-                    <ToolTile
-                      icon={tool?.icon ?? "file-text"}
-                      solid={toolSolid(tool)}
-                      size="sm"
-                    />
-                    <span className={app.rowMain}>
-                      <span className={app.rowTitle}>
-                        {run.title?.trim() || "Untitled"}
+                  <div key={run.id} className={styles.recentRow}>
+                    <button
+                      type="button"
+                      className={styles.recentOpen}
+                      // ?run= reopens THIS run. Without it the row opened an empty
+                      // tool and silently discarded what was clicked.
+                      onClick={() => tool && router.push(`${tool.href}?run=${run.id}`)}
+                    >
+                      <ToolTile
+                        icon={tool?.icon ?? "file-text"}
+                        solid={toolSolid(tool)}
+                        size="sm"
+                      />
+                      <span className={app.rowMain}>
+                        <span className={`${app.rowTitle} ${styles.recentTitle}`}>
+                          {run.title?.trim() || "Untitled"}
+                        </span>
+                        <span className={app.rowMeta}>{tool?.name ?? run.tool_slug}</span>
                       </span>
-                      <span className={app.rowMeta}>{tool?.name ?? run.tool_slug}</span>
-                    </span>
-                    <ArrowRight className={styles.rowGo} />
-                  </button>
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.recentShare}
+                      onClick={() => setSharing(run)}
+                      aria-label={`Share ${run.title?.trim() || "Untitled"} with colleagues`}
+                    >
+                      <ShareNetwork className={styles.rowGo} />
+                    </button>
+                    <ArrowRight className={styles.rowGo} aria-hidden="true" />
+                  </div>
                 );
               })}
             </div>
@@ -641,6 +658,13 @@ export default function TodayView({
           </ul>
         )}
       </section>
+
+      <ShareModal
+        open={sharing !== null}
+        onClose={() => setSharing(null)}
+        runId={sharing?.id}
+        runTitle={sharing?.title?.trim() || "Untitled"}
+      />
     </AppShellV2>
   );
 }

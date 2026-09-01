@@ -37,8 +37,10 @@ export interface Badge {
   /**
    * Set when the feature this badge measures does not exist yet.
    *
-   * Sharing, colleagues, invites, folders and the timetable are all designed
-   * but unbuilt, and eighteen badges across levels 6, 9 and 10 depend on them.
+   * Ten badges are still pending, across levels 1, 3, 6, 9 and 10. Sharing and
+   * colleagues have now shipped, which cleared six of them; what remains needs
+   * teacher-to-teacher invites (four badges, waiting on the referral decision)
+   * and a handful of smaller unbuilt behaviours like exporting and reopening.
    * Left as ordinary unearned badges they would make level 7 unreachable, since
    * level is driven by how many you have collected: a teacher who did every
    * possible thing would still stall, which is worse than the honest "nothing
@@ -164,16 +166,19 @@ const LEVEL_BADGES: Badge[][] = [
   ],
   // 6 — sharing
   //
-  // Six of these ten need sharing or invites, neither of which is built. There
-  // is no shares table and no teacher-to-teacher invite: `pending_invites` is an
-  // admin inviting a teacher, not a colleague bringing a colleague.
+  // Sharing is built (see app/lib/colleagues.ts), so the four share badges are
+  // live. The invite ones are not: each is worded "N colleagues JOINED because
+  // of you", which needs an accepted invite, and acceptance is the same path
+  // the referral credit bonus will run through. That bonus is still an open
+  // product decision, and a badge that rewards an invite before its value is
+  // decided would contradict whatever is settled.
   [
-    { id: "first-share", name: "Passed it on", description: "You shared a resource with a colleague.", icon: "share-network", pending: true },
-    { id: "five-shares", name: "Generous", description: "You shared five resources.", icon: "gift", pending: true },
+    { id: "first-share", name: "Passed it on", description: "You shared a resource with a colleague.", icon: "share-network" },
+    { id: "five-shares", name: "Generous", description: "You shared five resources.", icon: "gift" },
     { id: "first-invite", name: "Brought someone", description: "You invited a colleague to Jooma.", icon: "user-plus", pending: true },
     { id: "three-invites", name: "Word of mouth", description: "Three colleagues joined because of you.", icon: "megaphone", pending: true },
-    { id: "received", name: "Borrowed well", description: "You saved something a colleague shared.", icon: "hand-arrow-down", pending: true },
-    { id: "department", name: "Team effort", description: "You shared with five different colleagues.", icon: "users-four", pending: true },
+    { id: "received", name: "Borrowed well", description: "You saved something a colleague shared.", icon: "hand-arrow-down" },
+    { id: "department", name: "Team effort", description: "You shared with five different colleagues.", icon: "users-four" },
     { id: "newsletter", name: "To the whole school", description: "You wrote a school newsletter.", icon: "newspaper" },
     { id: "assembly", name: "Everyone in the hall", description: "You planned an assembly.", icon: "microphone-stage" },
     { id: "parents", name: "Home and school", description: "You wrote to parents five times.", icon: "envelope-open" },
@@ -216,7 +221,7 @@ const LEVEL_BADGES: Badge[][] = [
     { id: "organised", name: "Everything in its place", description: "You filed every resource you made.", icon: "sort-ascending", pending: true },
     { id: "mo-regular", name: "On first name terms", description: "You asked Mo fifty times.", icon: "chats-circle" },
     { id: "refined-often", name: "Never settles", description: "You refined fifty resources.", icon: "sliders" },
-    { id: "shared-twenty", name: "Twenty shared", description: "You shared twenty resources with colleagues.", icon: "tree-structure", pending: true },
+    { id: "shared-twenty", name: "Twenty shared", description: "You shared twenty resources with colleagues.", icon: "tree-structure" },
     { id: "mentor", name: "Mentor", description: "Five colleagues joined because of you.", icon: "student", pending: true },
   ],
   // 10 — the long haul
@@ -227,7 +232,7 @@ const LEVEL_BADGES: Badge[][] = [
     { id: "every-category-deep", name: "Deep in every corner", description: "You used every category twenty times.", icon: "globe-hemisphere-west" },
     { id: "whole-school", name: "Whole school", description: "Your resources reached every year group.", icon: "buildings", pending: true },
     { id: "ten-invites", name: "Built the staffroom", description: "Ten colleagues joined because of you.", icon: "users-three", pending: true },
-    { id: "hundred-shares", name: "A hundred shared", description: "You shared a hundred resources.", icon: "broadcast", pending: true },
+    { id: "hundred-shares", name: "A hundred shared", description: "You shared a hundred resources.", icon: "broadcast" },
     { id: "never-missed", name: "Never missed a week", description: "You used Jooma every week for a year.", icon: "seal-check" },
     { id: "all-hundred", name: "The full hundred", description: "You collected every other badge.", icon: "trophy" },
     { id: "legend", name: "Staffroom legend", description: "There is nothing left to earn. Well done.", icon: "star-four" },

@@ -12,6 +12,7 @@ import {
 import { buildStats, evaluate } from "@/app/lib/badgeCriteria";
 import { claimBadges, listUserBadges } from "@/app/lib/userBadges";
 import { listRecentRuns, onToolRunSaved, type ToolRun } from "@/app/lib/toolRuns";
+import { shareCounts } from "@/app/lib/colleagues";
 import { createClient } from "@/app/lib/auth/client";
 
 /*
@@ -173,6 +174,9 @@ async function runLoad(): Promise<void> {
     profileComplete: null,
     assistantMessageCount: null,
     folderCount: null,
+    sharesSent: null,
+    shareRecipients: null,
+    sharesSaved: null,
   }));
 
   const stats = buildStats({
@@ -208,13 +212,17 @@ async function runLoad(): Promise<void> {
   emit(derive(next, runs, stats.currentStreak, [...snapshot.justEarned, ...granted]));
 }
 
-/** Account age, profile completeness, Ask Mo use and folder count: four cheap
- *  reads that a handful of badges depend on and nothing else does. */
+/** Account age, profile completeness, Ask Mo use, folder count and share
+ *  counts: cheap reads that a handful of badges depend on and nothing else
+ *  does. */
 async function loadContext(): Promise<{
   accountCreatedAt: string | null;
   profileComplete: boolean | null;
   assistantMessageCount: number | null;
   folderCount: number | null;
+  sharesSent: number | null;
+  shareRecipients: number | null;
+  sharesSaved: number | null;
 }> {
   const supabase = createClient();
   const { data: userData } = await supabase.auth.getUser();
@@ -225,31 +233,43 @@ async function loadContext(): Promise<{
       profileComplete: null,
       assistantMessageCount: null,
       folderCount: null,
+      sharesSent: null,
+      shareRecipients: null,
+      sharesSaved: null,
     };
   }
 
-  const [profileResult, messageResult, folderResult] = await Promise.all([
-    supabase.from("profiles").select("first_name, last_name").eq("id", user.id).maybeSingle(),
+  const [profileResult, messageResult, folderResult, shares] = await Promise.all([
+    // `surname`, not `last_name`. This selected a column that has never existed,
+    // so PostgREST rejected it, the catch below swallowed the error, and
+    // profileComplete was permanently null: the profile-complete badge could
+    // not be earned by anybody. Every other site in the codebase uses `surname`.
+    supabase.from("profiles").select("first_name, surname").eq("id", user.id).maybeSingle(),
     supabase
       .from("assistant_messages")
       .select("id", { count: "exact", head: true })
       .eq("role", "user"),
     // head + exact, so this costs a count and not the rows.
     supabase.from("folders").select("id", { count: "exact", head: true }),
+    shareCounts(),
   ]);
 
-  const profile = profileResult.data as { first_name?: string; last_name?: string } | null;
+  const profile = profileResult.data as { first_name?: string; surname?: string } | null;
 
   return {
     accountCreatedAt: user.created_at ?? null,
     profileComplete: profile
-      ? Boolean(profile.first_name?.trim() && profile.last_name?.trim())
+      ? Boolean(profile.first_name?.trim() && profile.surname?.trim())
       : null,
     assistantMessageCount: messageResult.error ? null : (messageResult.count ?? 0),
     // null rather than 0 when the table is not there yet: "no folders" and
     // "folders have not shipped here" are different facts, and the criterion
-    // renders them differently.
+    // renders them differently. Same for the three share counts below, which
+    // shareCounts returns as a single null for exactly that reason.
     folderCount: folderResult.error ? null : (folderResult.count ?? 0),
+    sharesSent: shares?.sent ?? null,
+    shareRecipients: shares?.distinctRecipients ?? null,
+    sharesSaved: shares?.savedFromOthers ?? null,
   };
 }
 

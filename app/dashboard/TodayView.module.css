@@ -346,6 +346,91 @@
   color: var(--j-lilac-2);
 }
 
+/* ── A recent row ───────────────────────────────────────────────────────────
+ *
+ * Two actions, so the row is a container and the title is its own button. It
+ * cannot use app.row, which IS the button. Everything else matches app.row so
+ * the two read identically. */
+.recentRow {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--j-line);
+}
+
+.recentRow:last-child {
+  border-bottom: 0;
+}
+
+.recentOpen {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  text-align: left;
+  font-family: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+/* Hovering the row, not just the title, previews the whole thing as clickable,
+   which is what app.row does.
+
+   Its own class rather than reaching for app.module.css's .rowTitle: that class
+   is hashed by CSS Modules and is not addressable from this file. Matching on a
+   partial attribute selector would work until the hashing changed. */
+.recentRow:hover .recentTitle {
+  color: var(--j-purple);
+}
+
+/* Visible on hover and on focus. Focus matters more than hover here: without
+   it the button is invisible to a keyboard user until it is already focused,
+   which is too late to know it was there. */
+.recentShare {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  cursor: pointer;
+  flex: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.recentRow:hover .recentShare,
+.recentShare:focus-visible {
+  opacity: 1;
+}
+
+.recentShare:hover {
+  background: var(--j-tint);
+}
+
+.recentShare:hover .rowGo {
+  color: var(--j-purple);
+}
+
+/* A touch screen has no hover, so the action would never appear. */
+@media (hover: none) {
+  .recentShare {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .recentShare {
+    transition: none;
+  }
+}
+
 /* ── Badge strip ─────────────────────────────────────────────────────────────
  *
  * The current level's ten badges. Ten across on a wide screen, matching the

@@ -1,13 +1,15 @@
 "use client";
 
-// Personal info — name, photo, email, phone, country.
+// Personal info — name, username, photo, email, phone, country.
 //
 // Everything here writes to columns that already existed and that
 // profiles_guard_privileged_columns_trg permits a teacher to edit. The guard is
 // a deny-list (is_admin, plan, subscription_status, stripe_*, school_id,
 // suspended_*), so this form is safe by construction: none of those fields are
 // on it, and adding one would be rejected by the database rather than silently
-// applied.
+// applied. `username` needed no change to that trigger for the same reason: a
+// new column is self-editable by default. Its uniqueness is a partial index and
+// its shape a CHECK, both in 20260904000000_colleagues.sql.
 
 import { useEffect, useRef, useState } from "react";
 import { Camera, Loader2, Trash2 } from "lucide-react";
@@ -15,6 +17,7 @@ import { createClient } from "@/app/lib/auth/client";
 import DialCodeSelect, { DEFAULT_DIAL_CODE } from "@/app/components/DialCodeSelect";
 import { Field, TextInput, CountrySelect, INPUT_CLASS } from "@/app/components/ui/FormFields";
 import Avatar from "@/app/components/ui/Avatar";
+import { usernameProblem } from "@/app/lib/colleagues";
 // The chrome renders the same name and photo. Publishing to this store is what
 // updates the navbar without a reload — TopBar is a sibling, so it cannot be
 // passed a prop, and router.refresh() does not reach a client component's state.
@@ -52,6 +55,10 @@ export default function PersonalInfoSection() {
 
   const [firstName, setFirstName] = useState("");
   const [surname, setSurname] = useState("");
+  // Lowercased as it is typed rather than validated after the fact: the CHECK
+  // constraint rejects capitals, and silently fixing what somebody typed is
+  // kinder than telling them their name is not allowed.
+  const [username, setUsername] = useState("");
   const [dialCountry, setDialCountry] = useState(DEFAULT_DIAL_CODE);
   const [phone, setPhone] = useState("");
   const [country, setCountry] = useState<string | null>(null);
@@ -78,7 +85,7 @@ export default function PersonalInfoSection() {
       }
       const { data } = await supabase
         .from("profiles")
-        .select("first_name, surname, dial_code, phone, country, avatar_url")
+        .select("first_name, surname, username, dial_code, phone, country, avatar_url")
         .eq("id", user.id)
         .maybeSingle();
       if (cancelled) return;
@@ -90,6 +97,7 @@ export default function PersonalInfoSection() {
       setEmail(user.email ?? "");
       setFirstName(data?.first_name ?? "");
       setSurname(data?.surname ?? "");
+      setUsername(data?.username ?? "");
       setDialCountry(data?.dial_code ?? DEFAULT_DIAL_CODE);
       setPhone(data?.phone ?? "");
       setCountry(data?.country ?? null);
@@ -198,11 +206,14 @@ export default function PersonalInfoSection() {
 
   // ── Details ──────────────────────────────────────────────────────────────
 
+  const usernameError = usernameProblem(username);
+
   const canSave =
     loaded &&
     userId !== null &&
     firstName.trim() !== "" &&
     surname.trim() !== "" &&
+    usernameError === null &&
     !saving;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -221,6 +232,10 @@ export default function PersonalInfoSection() {
       .update({
         first_name: firstName.trim(),
         surname: surname.trim(),
+        // Null rather than "" when cleared: the unique index is partial (only
+        // over rows that have one), so a run of empty strings would collide
+        // with each other while a run of nulls does not.
+        username: username.trim() === "" ? null : username.trim(),
         dial_code: dialCountry,
         phone: phone.trim(),
         country,
@@ -229,7 +244,15 @@ export default function PersonalInfoSection() {
 
     setSaving(false);
     if (e2) {
-      setError("Could not save your details. Please try again.");
+      // 23505 is unique_violation, which here can only be the username: it is
+      // the sole unique column a teacher can write. Worth naming, because
+      // "could not save your details" would send them looking at their phone
+      // number.
+      setError(
+        e2.code === "23505"
+          ? "That username is already taken. Try another."
+          : "Could not save your details. Please try again.",
+      );
       return;
     }
     setSaved(true);
@@ -340,6 +363,27 @@ export default function PersonalInfoSection() {
               placeholder="Surname"
               autoComplete="family-name"
             />
+          </Field>
+        </div>
+
+        <div className="mt-4">
+          <Field label="Username" htmlFor="username">
+            <input
+              id="username"
+              type="text"
+              value={username}
+              autoComplete="off"
+              spellCheck={false}
+              onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/\s+/g, ""))}
+              placeholder="sarahm"
+              aria-describedby="username-note"
+              aria-invalid={usernameError !== null}
+              className={INPUT_CLASS}
+            />
+            <p id="username-note" className="text-xs mt-1.5" style={{ color: "var(--j-faint)" }}>
+              {usernameError ??
+                "Optional. Colleagues can find you by this, and it is the quickest thing to read out in a staffroom."}
+            </p>
           </Field>
         </div>
 

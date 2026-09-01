@@ -228,6 +228,14 @@ export interface BadgeStats {
   assistantMessageCount: number | null;
   /** Library folders the teacher has made. Null before the table exists. */
   folderCount: number | null;
+  /** Resources shared with colleagues. Null before the shares table exists,
+   *  which is what keeps the six share badges quiet rather than saying you have
+   *  shared nothing. */
+  sharesSent: number | null;
+  /** How many different colleagues have been shared with. */
+  shareRecipients: number | null;
+  /** Shares from colleagues this teacher has saved into their own library. */
+  sharesSaved: number | null;
   /** How many badges are already held. Powers the two "collect them all" ones. */
   earnedCount: number;
 }
@@ -239,6 +247,9 @@ export function buildStats(input: {
   profileComplete: boolean | null;
   assistantMessageCount: number | null;
   folderCount: number | null;
+  sharesSent: number | null;
+  shareRecipients: number | null;
+  sharesSaved: number | null;
   earnedCount: number;
 }): BadgeStats {
   const { runs, now } = input;
@@ -301,6 +312,9 @@ export function buildStats(input: {
     profileComplete: input.profileComplete,
     assistantMessageCount: input.assistantMessageCount,
     folderCount: input.folderCount,
+    sharesSent: input.sharesSent,
+    shareRecipients: input.shareRecipients,
+    sharesSaved: input.sharesSaved,
     earnedCount: input.earnedCount,
   };
 }
@@ -400,13 +414,19 @@ export const CRITERIA: Record<string, Criterion> = {
   "behaviour-plan": used("behaviour-support-plan"),
   "fifty-hours": (s) => s.minutesSaved >= 3000,
 
-  // 6 — sharing. Six of these need a feature that does not exist.
-  "first-share": unknowable,
-  "five-shares": unknowable,
+  // 6 — sharing. The share ones are live; the invite ones still are not.
+  //
+  // An invite badge is worded "N colleagues JOINED because of you", which needs
+  // an accepted invite, and that acceptance is the same path the referral credit
+  // bonus will run through. That bonus is an open product decision, so these
+  // wait for it rather than shipping a reward for something whose value is
+  // still being decided.
+  "first-share": (s) => (s.sharesSent === null ? null : s.sharesSent >= 1),
+  "five-shares": (s) => (s.sharesSent === null ? null : s.sharesSent >= 5),
   "first-invite": unknowable,
   "three-invites": unknowable,
-  "received": unknowable,
-  "department": unknowable,
+  "received": (s) => (s.sharesSaved === null ? null : s.sharesSaved >= 1),
+  "department": (s) => (s.shareRecipients === null ? null : s.shareRecipients >= 5),
   "newsletter": used("newsletter-writer"),
   "assembly": used("assembly-planner"),
   "parents": (s) => s.distinctTools.has("letter-writer") && s.runCount >= 5,
@@ -445,7 +465,7 @@ export const CRITERIA: Record<string, Criterion> = {
   "organised": unknowable,
   "mo-regular": (s) => (s.assistantMessageCount === null ? null : s.assistantMessageCount >= 50),
   "refined-often": (s) => s.runCount >= s.distinctTools.size + 50,
-  "shared-twenty": unknowable,
+  "shared-twenty": (s) => (s.sharesSent === null ? null : s.sharesSent >= 20),
   "mentor": unknowable,
 
   // 10 — the long haul
@@ -455,7 +475,7 @@ export const CRITERIA: Record<string, Criterion> = {
   "every-category-deep": (s) => s.distinctCategories.size >= 7 && s.runCount >= 140,
   "whole-school": unknowable,
   "ten-invites": unknowable,
-  "hundred-shares": unknowable,
+  "hundred-shares": (s) => (s.sharesSent === null ? null : s.sharesSent >= 100),
   "never-missed": (s) => s.weeksSinceFirstRun >= 39 && s.activeDayCount >= 39,
   // The last two are the collection itself. Measured against the earnable total
   // minus these two, or they would require themselves.

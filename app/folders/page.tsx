@@ -18,6 +18,7 @@ import {
   CircleNotch,
 } from "@phosphor-icons/react/dist/ssr";
 import AppShellV2 from "@/app/components/v2/AppShellV2";
+import ShareModal from "@/app/components/v2/ShareModal";
 import { ToolTile } from "@/app/components/v2/Squircle";
 import {
   listRecentRuns,
@@ -113,6 +114,7 @@ function Library() {
 
   const [draft, setDraft] = useState<Draft | null>(null);
   const [moving, setMoving] = useState<ToolRun | null>(null);
+  const [sharing, setSharing] = useState<ToolRun | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [dropTarget, setDropTarget] = useState<Selection | undefined>(undefined);
   const [draggingId, setDraggingId] = useState<string | null>(null);
@@ -486,6 +488,7 @@ function Library() {
                     }}
                     onOpen={() => open(run)}
                     onMove={() => setMoving(run)}
+                    onShare={() => setSharing(run)}
                     onDelete={() => remove(run.id)}
                   />
                 ))}
@@ -514,6 +517,13 @@ function Library() {
           }}
         />
       )}
+
+      <ShareModal
+        open={sharing !== null}
+        onClose={() => setSharing(null)}
+        runId={sharing?.id}
+        runTitle={sharing?.title?.trim() || "Untitled"}
+      />
     </AppShellV2>
   );
 }
@@ -657,6 +667,7 @@ function ResourceItem({
   onDragEnd,
   onOpen,
   onMove,
+  onShare,
   onDelete,
 }: {
   run: ToolRun;
@@ -668,6 +679,7 @@ function ResourceItem({
   onDragEnd: () => void;
   onOpen: () => void;
   onMove: () => void;
+  onShare: () => void;
   onDelete: () => void;
 }) {
   const tool = v2ToolForSlug(run.tool_slug);
@@ -705,12 +717,14 @@ function ResourceItem({
             >
               Edit
             </MenuItem>
-            {/* Colleagues is not built yet. Shown rather than hidden so the
-                teacher knows it is coming, and inert rather than a dead click,
-                the same idiom the sidebar uses. */}
-            <MenuItem icon={<ShareNetwork className={styles.menuItemIcon} />} soon>
+            <MenuItem
+              icon={<ShareNetwork className={styles.menuItemIcon} />}
+              onClick={() => {
+                close();
+                onShare();
+              }}
+            >
               Share with colleagues
-              <span className={styles.soon}>Soon</span>
             </MenuItem>
             <MenuItem
               icon={<FolderIcon className={styles.menuItemIcon} />}
