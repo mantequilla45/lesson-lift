@@ -358,7 +358,7 @@ export const CRITERIA: Record<string, Criterion> = {
   "first-edit": (s) => s.runCount > s.distinctTools.size,
   // Every run is saved to the library; there is no separate save action.
   "first-save": (s) => s.runCount >= 1,
-  "first-mo": (s) => (s.assistantMessageCount === null ? null : s.assistantMessageCount >= 1),
+  "first-jo": (s) => (s.assistantMessageCount === null ? null : s.assistantMessageCount >= 1),
   "first-export": unknowable,
   "profile-complete": (s) => s.profileComplete,
   "first-week": (s) => (s.accountAgeDays === null ? null : s.accountAgeDays <= 7 && s.runCount >= 1),
@@ -463,7 +463,7 @@ export const CRITERIA: Record<string, Criterion> = {
   "two-hundred-hours": (s) => s.minutesSaved >= 12000,
   "library-fifty": (s) => s.runCount >= 50,
   "organised": unknowable,
-  "mo-regular": (s) => (s.assistantMessageCount === null ? null : s.assistantMessageCount >= 50),
+  "jo-regular": (s) => (s.assistantMessageCount === null ? null : s.assistantMessageCount >= 50),
   "refined-often": (s) => s.runCount >= s.distinctTools.size + 50,
   "shared-twenty": (s) => (s.sharesSent === null ? null : s.sharesSent >= 20),
   "mentor": unknowable,

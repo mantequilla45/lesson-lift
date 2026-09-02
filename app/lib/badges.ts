@@ -101,7 +101,7 @@ const LEVEL_BADGES: Badge[][] = [
     { id: "first-plan", name: "Planned out", description: "You wrote your first lesson plan.", icon: "clipboard-text" },
     { id: "first-edit", name: "Second thoughts", description: "You edited something after generating it.", icon: "pencil-simple" },
     { id: "first-save", name: "Filed away", description: "You saved a resource to your library.", icon: "folder" },
-    { id: "first-mo", name: "Said hello", description: "You asked Mo for something.", icon: "chat-teardrop-dots" },
+    { id: "first-jo", name: "Said hello", description: "You asked Jo for something.", icon: "chat-teardrop-dots" },
     // Exporting is a browser download. Nothing records that it happened.
     { id: "first-export", name: "Out the door", description: "You exported a resource to use in class.", icon: "download-simple", pending: true },
     { id: "profile-complete", name: "Properly introduced", description: "You finished setting up your profile.", icon: "user-circle" },
@@ -219,7 +219,7 @@ const LEVEL_BADGES: Badge[][] = [
     { id: "two-hundred-hours", name: "Two hundred hours back", description: "You saved two hundred hours.", icon: "hourglass-high" },
     { id: "library-fifty", name: "A proper library", description: "You built a library of fifty resources.", icon: "archive" },
     { id: "organised", name: "Everything in its place", description: "You filed every resource you made.", icon: "sort-ascending", pending: true },
-    { id: "mo-regular", name: "On first name terms", description: "You asked Mo fifty times.", icon: "chats-circle" },
+    { id: "jo-regular", name: "On first name terms", description: "You asked Jo fifty times.", icon: "chats-circle" },
     { id: "refined-often", name: "Never settles", description: "You refined fifty resources.", icon: "sliders" },
     { id: "shared-twenty", name: "Twenty shared", description: "You shared twenty resources with colleagues.", icon: "tree-structure" },
     { id: "mentor", name: "Mentor", description: "Five colleagues joined because of you.", icon: "student", pending: true },

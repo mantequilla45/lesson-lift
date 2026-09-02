@@ -6,9 +6,9 @@ import { v2ToolForSlug } from "@/app/lib/tools";
 import { prefillHref, validatePrefill, type ToolClarify } from "@/app/lib/toolPrefill";
 
 /**
- * The one question Mo asks before opening a tool.
+ * The one question Jo asks before opening a tool.
  *
- * The handover calls this out as one of the two behaviours that make Mo feel
+ * The handover calls this out as one of the two behaviours that make Jo feel
  * like an assistant rather than a slot machine: when a field a tool needs is
  * genuinely ambiguous, guessing burns a generation and teaches teachers not to
  * trust it.

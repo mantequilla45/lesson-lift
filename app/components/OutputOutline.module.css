@@ -1,0 +1,191 @@
+/* The outline's two presentations.
+ *
+ * Desktop keeps the sticky sidebar card. Below the shell's own 900px
+ * breakpoint (AppShellV2.module.css) that card is hidden and the outline
+ * becomes a floating button plus a bottom sheet, so a long document is not
+ * preceded by a tall block of links the teacher has to scroll past.
+ *
+ * 900px, not Tailwind's `lg` (1024px), so the button appears exactly when the
+ * shell's rail collapses to a drawer. Between the two widths the consumer
+ * column is already stacked and the card is hidden, which the button covers.
+ */
+
+.card {
+  display: block;
+}
+
+.floating {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .card {
+    display: none;
+  }
+
+  .floating {
+    display: block;
+  }
+}
+
+/* ── The button ────────────────────────────────────────────────────────────
+ *
+ * Sits ABOVE the support bubble, which owns bottom-6 right-6 at z-9998 and is
+ * not hidden on tool routes. A lower z-index here keeps help the topmost
+ * control if they ever meet.
+ */
+.fab {
+  position: fixed;
+  right: 1.5rem;
+  bottom: 5.5rem;
+  z-index: 9990;
+  width: 3.5rem;
+  height: 3.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 9999px;
+  background: var(--j-purple);
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(29, 23, 48, 0.28);
+  transition: transform 0.15s ease;
+}
+
+.fab:hover {
+  transform: scale(1.05);
+}
+
+.fab:active {
+  transform: scale(0.97);
+}
+
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 9991;
+  background: rgba(29, 23, 48, 0.45);
+  animation: fade 0.15s ease;
+}
+
+/* dvh, not vh: 100vh on mobile is the LARGE viewport, so with the URL bar
+ * showing the sheet's own bottom edge sat below the fold. */
+.sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9992;
+  display: flex;
+  flex-direction: column;
+  max-height: 70dvh;
+  padding-bottom: env(safe-area-inset-bottom);
+  background: var(--j-card);
+  border-top-left-radius: 1.5rem;
+  border-top-right-radius: 1.5rem;
+  box-shadow: 0 -8px 32px rgba(29, 23, 48, 0.22);
+  animation: rise 0.2s ease;
+}
+
+.sheetHead {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1.125rem 1.25rem 0.875rem;
+  border-bottom: 1px solid var(--j-line);
+}
+
+/* Jo's mark, the same one the Today card and the chat replies carry. */
+.face {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.75rem;
+  background: var(--j-deep);
+  color: #fff;
+}
+
+.headText {
+  min-width: 0;
+  flex-grow: 1;
+}
+
+.headText b {
+  display: block;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--j-deep);
+}
+
+.headText span {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 300;
+  color: var(--color-muted);
+}
+
+.close {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: none;
+  border-radius: 9999px;
+  background: transparent;
+  color: var(--color-muted);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.close:hover {
+  background: var(--j-tint);
+}
+
+.sheetList {
+  overflow-y: auto;
+  min-height: 0;
+  padding: 0.5rem 0.75rem 1rem;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* The row gap the card gets from `space-y-0.5`. Set here rather than with that
+   utility so the shared OutlineList carries no spacing of its own. */
+.sheetList > button + button {
+  margin-top: 0.125rem;
+}
+
+@keyframes rise {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Respect a reduced-motion preference: the sheet still appears, it just does
+   not travel. */
+@media (prefers-reduced-motion: reduce) {
+  .sheet,
+  .scrim {
+    animation: none;
+  }
+
+  .fab {
+    transition: none;
+  }
+}

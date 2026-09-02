@@ -66,7 +66,7 @@ const NAV: NavItem[] = [
   // Named for what it is, not what powers it. The language rules in
   // scripts/check-language.mjs fail the build on "AI" in teacher-facing copy,
   // which is what the old "AI assistant" label was.
-  { label: "Ask Mo", href: "/assistant", Icon: ChatTeardropDots },
+  { label: "Ask Jo", href: "/assistant", Icon: ChatTeardropDots },
 ];
 
 interface SideNavV2Props {

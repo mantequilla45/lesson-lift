@@ -27,8 +27,8 @@ export default function Faq() {
       a: "Yes. Every tool is written around the national curriculum for England, Scotland, Wales and Northern Ireland. You choose your curriculum once and it applies everywhere, so year group and key stage are built in rather than bolted on.",
     },
     {
-      q: "Who is Mo?",
-      a: "Mo is the assistant built into Jooma. Tell it what you are teaching in plain English and it opens the right tool with the details already filled in. It asks a question back if something is unclear, so you are never guessing what it will produce.",
+      q: "Who is Jo?",
+      a: "Jo is the assistant built into Jooma. Tell it what you are teaching in plain English and it opens the right tool with the details already filled in. It asks a question back if something is unclear, so you are never guessing what it will produce.",
     },
     {
       q: "Can I share resources with colleagues?",

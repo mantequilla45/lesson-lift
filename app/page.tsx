@@ -10,7 +10,7 @@ import Hero from "@/app/components/landing/v2/Hero";
 import ProblemStats from "@/app/components/landing/v2/ProblemStats";
 import Showcase from "@/app/components/landing/v2/Showcase";
 import {
-  MoChat,
+  JoChat,
   ReadingPreview,
   SlidePreview,
 } from "@/app/components/landing/v2/ShowcaseVisuals";
@@ -226,18 +226,18 @@ export default async function LandingPage({
         <Showcase
           alt
           bare
-          eyebrow="Ask Mo"
-          title="Say what you need. Mo opens the right tool."
-          lede="Thirty five tools is a lot to remember. Mo is the assistant built into Jooma. Tell it what you are teaching in plain English and it fills in the year group, the subject and the topic for you."
+          eyebrow="Ask Jo"
+          title="Say what you need. Jo opens the right tool."
+          lede="Thirty five tools is a lot to remember. Jo is the assistant built into Jooma. Tell it what you are teaching in plain English and it fills in the year group, the subject and the topic for you."
           points={[
             "No prompt writing and nothing to learn",
             "It asks a question back when something is unclear",
             "Knows what you taught last week, so it pitches the starter right",
             "Every answer can be saved to your library or shared",
           ]}
-          cta={{ href: "/signup", label: "Try Mo free" }}
+          cta={{ href: "/signup", label: "Try Jo free" }}
         >
-          <MoChat />
+          <JoChat />
         </Showcase>
 
         <Staffroom />

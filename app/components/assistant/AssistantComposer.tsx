@@ -49,7 +49,7 @@ export default function AssistantComposer({
   onSend,
   busy = false,
   disabled = false,
-  placeholder = "Ask the assistant anything…",
+  placeholder = "Ask Jo anything…",
   compact = false,
   autoFocus = false,
 }: Props) {

@@ -163,7 +163,15 @@ export default function RichTextEditor({ value, onChange }: RichTextEditorProps)
   return (
     <div>
       {/* Toolbar */}
-      <div className="sticky top-22.25 z-10 flex items-center flex-wrap gap-0.5 px-3 py-2 border-b border-gray-200 bg-gray-50">
+      {/* Sticks directly under ResultPanel's header, whose measured height it
+          publishes as --result-header-h. The fallback is the old hardcoded
+          89px, for the editor's other mounts where no panel sets the variable.
+          A constant cannot work here: the header is shorter and unoffset below
+          lg, and taller again when its buttons wrap. */}
+      <div
+        className="sticky z-10 flex items-center flex-wrap gap-0.5 px-3 py-2 border-b border-gray-200 bg-gray-50"
+        style={{ top: "var(--result-header-h, 89px)" }}
+      >
 
         {/* Undo / Redo */}
         <Btn title="Undo" onClick={() => editor.chain().focus().undo().run()} disabled={!editor.can().undo()}>

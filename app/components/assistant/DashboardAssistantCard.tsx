@@ -67,7 +67,7 @@ export default function DashboardAssistantCard() {
           <ChatTeardropDots weight="fill" className="w-4 h-4" style={{ color: "#fff" }} />
         </span>
         <h2 className="text-[22px] font-medium text-dark grow" style={{ letterSpacing: "-0.45px" }}>
-          Ask Mo
+          Ask Jo
         </h2>
         <Link
           href="/assistant"

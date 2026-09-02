@@ -164,12 +164,12 @@ function AssistantTurn({
 }
 
 /**
- * Mo's mark beside each of its replies.
+ * Jo's mark beside each of its replies.
  *
  * Gives the assistant a consistent presence in the thread, so a teacher
  * scanning back can tell at a glance which turns are theirs. `aria-hidden`
  * because the turn is already distinguishable to a screen reader by its
- * content and order; announcing "Mo" on every reply would be noise.
+ * content and order; announcing "Jo" on every reply would be noise.
  */
 function MoOrb() {
   return (

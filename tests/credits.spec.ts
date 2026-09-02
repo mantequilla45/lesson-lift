@@ -48,7 +48,7 @@ test.describe("Credits", () => {
   // This was the gap the shared shell was built to close: /assistant used to
   // mount its own AppShellV2, so crossing into it tore the rail down and the
   // meter restarted at loading. It is now under app/(app) like everything else.
-  test("the meter survives crossing into Ask Mo", async ({ page }) => {
+  test("the meter survives crossing into Ask Jo", async ({ page }) => {
     await signIn(page, teacher);
     await page.goto("/dashboard");
 
@@ -56,7 +56,7 @@ test.describe("Credits", () => {
     const credits = nav.getByText("Credits", { exact: true });
     await expect(credits).toBeVisible();
 
-    await nav.getByRole("link", { name: /^ask mo$/i }).first().click();
+    await nav.getByRole("link", { name: /^ask jo$/i }).first().click();
     await expect(page).toHaveURL(/\/assistant/);
 
     await expect(credits).toBeVisible({ timeout: 2000 });

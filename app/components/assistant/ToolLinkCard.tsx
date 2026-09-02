@@ -8,7 +8,7 @@ import { v2ToolForSlug, toolSolid } from "@/app/lib/tools";
 import { prefillHref, type ToolPrefill } from "@/app/lib/toolPrefill";
 
 /**
- * The card beneath a Mo reply that opens a tool, prefilled.
+ * The card beneath a Jo reply that opens a tool, prefilled.
  *
  * This is the moment the assistant hands back to the rest of the product, so it
  * uses the same squircle tile and the same tool name as Make and Library. A

@@ -4,8 +4,8 @@
 // on it.
 //
 // The sidebar and top bar are NOT here. They live in app/(app)/layout.tsx and
-// are shared with every other signed-in screen, so moving between Ask Mo and
-// the rest of the app no longer tears them down. This declares Ask Mo's own
+// are shared with every other signed-in screen, so moving between Ask Jo and
+// the rest of the app no longer tears them down. This declares Ask Jo's own
 // chrome through useAppShell instead.
 //
 // This lives in app/(app)/assistant/layout.tsx rather than in the page, which is
@@ -65,12 +65,12 @@ export default function AssistantShell({ children }: { children: React.ReactNode
   const pathname = usePathname();
 
   // The shell itself is shared with every other signed-in screen, so this only
-  // declares what Ask Mo needs from it. "fixed" pins <main> to the viewport so
+  // declares what Ask Jo needs from it. "fixed" pins <main> to the viewport so
   // the chat list and the conversation own their own scrolling; the content
   // class stacks them below `lg`, where two fixed sidebars (the 250px rail plus
   // this 292px list) left the conversation at negative width on a phone.
   useAppShell({
-    title: "Ask Mo",
+    title: "Ask Jo",
     variant: "fixed",
     contentClassName:
       "flex flex-1 flex-col lg:flex-row gap-3 overflow-hidden px-4 sm:px-6 lg:px-10 pb-5 min-h-0",

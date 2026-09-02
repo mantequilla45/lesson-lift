@@ -255,7 +255,7 @@ function navNameFor(path: string): RegExp {
     case "/tools":
       return /^make/i;
     case "/assistant":
-      return /^ask mo$/i;
+      return /^ask jo$/i;
     default:
       return /^today$/i;
   }
