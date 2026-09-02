@@ -57,10 +57,10 @@ export default function SlideshowBreakdown({ slides }: { slides: SlideRow[] }) {
     });
 
   return (
-    <div className="rounded-2xl border overflow-hidden" style={{ backgroundColor: "#FAF9F5", borderColor: "#DAD8D0" }}>
+    <div className="rounded-2xl border overflow-hidden" style={{ backgroundColor: "#FFFFFF", borderColor: "#EAE6F5" }}>
       <table className="w-full text-sm">
         <thead>
-          <tr style={{ color: "#8a8078" }} className="text-left">
+          <tr style={{ color: "#6D6683" }} className="text-left">
             <th className="font-semibold px-4 py-3">Slideshow</th>
             <th className="font-semibold px-4 py-3">Generated</th>
             <th className="font-semibold px-4 py-3 text-right">Cost</th>
@@ -75,10 +75,10 @@ export default function SlideshowBreakdown({ slides }: { slides: SlideRow[] }) {
               <Fragment key={`${s.slide_label}:${i}`}>
                 <tr
                   className="border-t"
-                  style={{ borderColor: "#EEECE4", cursor: hasBreakdown ? "pointer" : "default" }}
+                  style={{ borderColor: "#F1ECFC", cursor: hasBreakdown ? "pointer" : "default" }}
                   onClick={hasBreakdown ? () => toggle(i) : undefined}
                 >
-                  <td className="px-4 py-3 font-medium" style={{ color: "#1a1a1a" }}>
+                  <td className="px-4 py-3 font-medium" style={{ color: "#1D1730" }}>
                     <div className="flex items-center gap-1.5">
                       {hasBreakdown ? (
                         isOpen ? (
@@ -92,22 +92,22 @@ export default function SlideshowBreakdown({ slides }: { slides: SlideRow[] }) {
                       {s.slide_label}
                     </div>
                   </td>
-                  <td className="px-4 py-3 whitespace-nowrap" style={{ color: "#8a8078" }}>
+                  <td className="px-4 py-3 whitespace-nowrap" style={{ color: "#6D6683" }}>
                     {fmtDateTime(s.created_at)}
                   </td>
-                  <td className="px-4 py-3 text-right" style={{ color: "#6b6055" }}>
+                  <td className="px-4 py-3 text-right" style={{ color: "#3C3552" }}>
                     {usd(Number(s.cost_usd))}
                   </td>
                 </tr>
                 {hasBreakdown &&
                   isOpen &&
                   rows.map((r, j) => (
-                    <tr key={`${s.slide_label}:${i}:line:${j}`} style={{ backgroundColor: "#F6F4EC" }}>
-                      <td className="pl-10 pr-4 py-2 text-sm" style={{ color: "#6b6055" }}>
+                    <tr key={`${s.slide_label}:${i}:line:${j}`} style={{ backgroundColor: "#F1ECFC" }}>
+                      <td className="pl-10 pr-4 py-2 text-sm" style={{ color: "#3C3552" }}>
                         {r.label}
                       </td>
                       <td />
-                      <td className="px-4 py-2 text-right text-sm" style={{ color: "#6b6055" }}>
+                      <td className="px-4 py-2 text-right text-sm" style={{ color: "#3C3552" }}>
                         {usd(r.cost_usd)}
                       </td>
                     </tr>
@@ -117,12 +117,12 @@ export default function SlideshowBreakdown({ slides }: { slides: SlideRow[] }) {
           })}
         </tbody>
         <tfoot>
-          <tr className="border-t-2" style={{ borderColor: "#DAD8D0" }}>
-            <td className="px-4 py-3 font-bold" style={{ color: "#1a1a1a" }}>
+          <tr className="border-t-2" style={{ borderColor: "#EAE6F5" }}>
+            <td className="px-4 py-3 font-bold" style={{ color: "#1D1730" }}>
               Total
             </td>
             <td />
-            <td className="px-4 py-3 text-right font-bold" style={{ color: "#1a1a1a" }}>
+            <td className="px-4 py-3 text-right font-bold" style={{ color: "#1D1730" }}>
               {usd(total)}
             </td>
           </tr>

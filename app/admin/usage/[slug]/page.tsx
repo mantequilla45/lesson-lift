@@ -31,10 +31,10 @@ interface StepRow {
 }
 function Stat({ label, value, foot }: { label: string; value: string; foot?: string }) {
   return (
-    <div className="rounded-2xl p-5 border" style={{ backgroundColor: "#FAF9F5", borderColor: "#DAD8D0" }}>
-      <p className="text-xs font-semibold mb-2" style={{ color: "#8a8078" }}>{label}</p>
-      <p className="text-2xl font-bold" style={{ color: "#1a1a1a" }}>{value}</p>
-      {foot && <p className="text-xs mt-1" style={{ color: "#8a8078" }}>{foot}</p>}
+    <div className="rounded-2xl p-5 border" style={{ backgroundColor: "#FFFFFF", borderColor: "#EAE6F5" }}>
+      <p className="text-xs font-semibold mb-2" style={{ color: "#6D6683" }}>{label}</p>
+      <p className="text-2xl font-bold" style={{ color: "#1D1730" }}>{value}</p>
+      {foot && <p className="text-xs mt-1" style={{ color: "#6D6683" }}>{foot}</p>}
     </div>
   );
 }
@@ -82,16 +82,16 @@ export default async function AdminToolDetailPage({
       <Link
         href="/admin/usage"
         className="inline-flex items-center gap-2 text-sm font-semibold mb-5 transition-colors hover:opacity-70"
-        style={{ color: "#1a1a1a" }}
+        style={{ color: "#1D1730" }}
       >
         <ArrowLeft className="w-4 h-4" />
         Back to usage
       </Link>
 
-      <h1 className="text-2xl font-bold tracking-tight mb-1" style={{ color: "#1a1a1a" }}>
+      <h1 className="text-2xl font-bold tracking-tight mb-1" style={{ color: "#1D1730" }}>
         {typeLabel(slug)}
       </h1>
-      <p className="text-sm mb-6" style={{ color: "#8a8078" }}>
+      <p className="text-sm mb-6" style={{ color: "#6D6683" }}>
         Usage across all users for {month}.
       </p>
 
@@ -115,14 +115,14 @@ export default async function AdminToolDetailPage({
         <Stat label="Total cost" value={usd(Number(report?.cost_usd ?? 0))} />
       </div>
 
-      <h2 className="text-sm font-semibold mb-3" style={{ color: "#1a1a1a" }}>
+      <h2 className="text-sm font-semibold mb-3" style={{ color: "#1D1730" }}>
         {isSlideshow ? "Each slideshow" : "Cost breakdown"}
       </h2>
 
       {!hasData ? (
         <div
           className="rounded-2xl p-6 border text-sm"
-          style={{ backgroundColor: "#FAF9F5", borderColor: "#DAD8D0", color: "#6b6055" }}
+          style={{ backgroundColor: "#FFFFFF", borderColor: "#EAE6F5", color: "#3C3552" }}
         >
           {isSlideshow
             ? "No slideshows generated yet this month."
@@ -131,26 +131,26 @@ export default async function AdminToolDetailPage({
       ) : isSlideshow ? (
         <SlideshowBreakdown slides={slides} />
       ) : (
-        <div className="rounded-2xl border overflow-hidden" style={{ backgroundColor: "#FAF9F5", borderColor: "#DAD8D0" }}>
+        <div className="rounded-2xl border overflow-hidden" style={{ backgroundColor: "#FFFFFF", borderColor: "#EAE6F5" }}>
           <table className="w-full text-sm">
             <thead>
-              <tr style={{ color: "#8a8078" }} className="text-left">
+              <tr style={{ color: "#6D6683" }} className="text-left">
                 <th className="font-semibold px-4 py-3">Item</th>
                 <th className="font-semibold px-4 py-3 text-right">Cost</th>
               </tr>
             </thead>
             <tbody>
               {stepBreakdown.map((b, i) => (
-                <tr key={`${b.label}:${i}`} className="border-t" style={{ borderColor: "#EEECE4" }}>
-                  <td className="px-4 py-3" style={{ color: "#1a1a1a" }}>{b.label}</td>
-                  <td className="px-4 py-3 text-right" style={{ color: "#6b6055" }}>{usd(b.cost_usd)}</td>
+                <tr key={`${b.label}:${i}`} className="border-t" style={{ borderColor: "#F1ECFC" }}>
+                  <td className="px-4 py-3" style={{ color: "#1D1730" }}>{b.label}</td>
+                  <td className="px-4 py-3 text-right" style={{ color: "#3C3552" }}>{usd(b.cost_usd)}</td>
                 </tr>
               ))}
             </tbody>
             <tfoot>
-              <tr className="border-t-2" style={{ borderColor: "#DAD8D0" }}>
-                <td className="px-4 py-3 font-bold" style={{ color: "#1a1a1a" }}>Total</td>
-                <td className="px-4 py-3 text-right font-bold" style={{ color: "#1a1a1a" }}>
+              <tr className="border-t-2" style={{ borderColor: "#EAE6F5" }}>
+                <td className="px-4 py-3 font-bold" style={{ color: "#1D1730" }}>Total</td>
+                <td className="px-4 py-3 text-right font-bold" style={{ color: "#1D1730" }}>
                   {usd(breakdownTotal)}
                 </td>
               </tr>
@@ -160,7 +160,7 @@ export default async function AdminToolDetailPage({
       )}
 
       {isSlideshow && (
-        <p className="text-xs mt-4" style={{ color: "#8a8078" }}>
+        <p className="text-xs mt-4" style={{ color: "#6D6683" }}>
           Each row is one generated deck — click it to break the cost down into deck text (exact
           tokens) + AI images (per image, calibrated to the OpenAI console) + audio. The stat cards
           above are the month&apos;s totals across all slideshows.

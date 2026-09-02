@@ -52,24 +52,24 @@ export function layout(content: string): string {
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 </head>
-<body style="margin:0;padding:0;background-color:#F1EFE9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#F1EFE9;">
-    <tr><td style="background-color:#1a1a1a;height:5px;font-size:0;line-height:0;">&nbsp;</td></tr>
+<body style="margin:0;padding:0;background-color:#F7F5FC;font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#F7F5FC;">
+    <tr><td style="background-color:#5B2ED6;height:5px;font-size:0;line-height:0;">&nbsp;</td></tr>
     <tr>
       <td style="padding:40px 20px 0 20px;" align="center">
         <table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;">
           <tr>
             <td align="center" style="padding-bottom:26px;">
-              <a href="${base}" style="text-decoration:none;font-size:22px;font-weight:700;color:#1a1a1a;letter-spacing:-0.5px;">Jooma</a>
+              <a href="${base}" style="text-decoration:none;font-size:22px;font-weight:800;color:#5B2ED6;letter-spacing:-0.5px;">Jooma</a>
             </td>
           </tr>
           <tr>
-            <td style="background-color:#FAF9F5;border-radius:16px;padding:38px 34px;border:1px solid #DAD8D0;">
+            <td style="background-color:#FFFFFF;border-radius:16px;padding:38px 34px;border:1px solid #EAE6F5;">
               ${content}
             </td>
           </tr>
           <tr>
-            <td align="center" style="padding:28px 0 40px 0;color:#8a8078;font-size:12px;line-height:1.6;">
+            <td align="center" style="padding:28px 0 40px 0;color:#6D6683;font-size:12px;line-height:1.6;">
               <p style="margin:0;">&copy; ${new Date().getFullYear()} Jooma. All rights reserved.</p>
             </td>
           </tr>

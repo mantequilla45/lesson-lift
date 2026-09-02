@@ -21,7 +21,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   if (awaiting > 0) badges["/admin/flags"] = awaiting;
 
   return (
-    <div className="flex min-h-screen" style={{ backgroundColor: "#F1EFE3" }}>
+    <div className="flex min-h-screen" style={{ backgroundColor: "#F7F5FC" }}>
       <AdminSidebar badges={badges} />
       <main className="flex-1 min-w-0 px-8 py-10">
         <div className="w-full">{children}</div>

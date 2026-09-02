@@ -84,17 +84,17 @@ export default function ActivityLogModal({
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
       <div
         className="relative z-10 w-full max-w-2xl rounded-2xl shadow-2xl border overflow-hidden flex flex-col max-h-[85vh]"
-        style={{ borderColor: "#DAD8D0", backgroundColor: "#FAF9F5" }}
+        style={{ borderColor: "#EAE6F5", backgroundColor: "#FFFFFF" }}
       >
         <div
           className="flex items-start gap-3 p-5 pb-4 border-b shrink-0"
-          style={{ borderColor: "#DAD8D0" }}
+          style={{ borderColor: "#EAE6F5" }}
         >
           <div className="flex-1 min-w-0">
-            <h2 className="font-bold" style={{ color: "#1a1a1a" }}>
+            <h2 className="font-bold" style={{ color: "#1D1730" }}>
               Activity log
             </h2>
-            <p className="text-sm mt-0.5 truncate" style={{ color: "#8a8078" }}>
+            <p className="text-sm mt-0.5 truncate" style={{ color: "#6D6683" }}>
               {name} · {nf.format(total)} generation{total === 1 ? "" : "s"}
             </p>
           </div>
@@ -102,7 +102,7 @@ export default function ActivityLogModal({
             type="button"
             onClick={onClose}
             className="p-1.5 rounded-lg hover:bg-black/5"
-            style={{ color: "#8a8078" }}
+            style={{ color: "#6D6683" }}
             aria-label="Close"
           >
             <X className="w-4 h-4" />
@@ -115,17 +115,17 @@ export default function ActivityLogModal({
               {error}
             </p>
           ) : loading ? (
-            <p className="p-6 text-sm" style={{ color: "#8a8078" }}>
+            <p className="p-6 text-sm" style={{ color: "#6D6683" }}>
               Loading…
             </p>
           ) : rows.length === 0 ? (
-            <p className="p-6 text-sm" style={{ color: "#8a8078" }}>
+            <p className="p-6 text-sm" style={{ color: "#6D6683" }}>
               No generations yet.
             </p>
           ) : (
             <table className="w-full text-sm">
               <thead>
-                <tr style={{ color: "#8a8078" }} className="text-left">
+                <tr style={{ color: "#6D6683" }} className="text-left">
                   <th className="font-semibold px-5 py-2.5">Resource</th>
                   <th className="font-semibold px-5 py-2.5">Tool</th>
                   <th className="font-semibold px-5 py-2.5 text-right">Cost</th>
@@ -134,16 +134,16 @@ export default function ActivityLogModal({
               </thead>
               <tbody>
                 {rows.map((r) => (
-                  <tr key={r.id} className="border-t" style={{ borderColor: "#EEECE4" }}>
-                    <td className="px-5 py-2.5" style={{ color: "#1a1a1a" }}>
+                  <tr key={r.id} className="border-t" style={{ borderColor: "#F1ECFC" }}>
+                    <td className="px-5 py-2.5" style={{ color: "#1D1730" }}>
                       {r.title || typeLabel(r.tool_slug)}
                     </td>
-                    <td className="px-5 py-2.5" style={{ color: "#6b6055" }}>
+                    <td className="px-5 py-2.5" style={{ color: "#3C3552" }}>
                       {typeLabel(r.tool_slug)}
                     </td>
                     <td
                       className="px-5 py-2.5 text-right font-mono text-xs"
-                      style={{ color: "#6b6055" }}
+                      style={{ color: "#3C3552" }}
                       title={
                         r.cost_is_exact
                           ? "Exact — every cost row for this generation"
@@ -154,7 +154,7 @@ export default function ActivityLogModal({
                         ? `${r.cost_is_exact ? "" : "~"}${gbpFromUsd(Number(r.approx_cost_usd))}`
                         : "—"}
                     </td>
-                    <td className="px-5 py-2.5 text-right whitespace-nowrap" style={{ color: "#8a8078" }}>
+                    <td className="px-5 py-2.5 text-right whitespace-nowrap" style={{ color: "#6D6683" }}>
                       {formatDate(r.created_at)}
                     </td>
                   </tr>
@@ -166,9 +166,9 @@ export default function ActivityLogModal({
 
         <div
           className="flex items-center justify-between gap-2 p-4 border-t shrink-0"
-          style={{ borderColor: "#DAD8D0" }}
+          style={{ borderColor: "#EAE6F5" }}
         >
-          <p className="text-xs" style={{ color: "#8a8078" }}>
+          <p className="text-xs" style={{ color: "#6D6683" }}>
             {total === 0 ? "Nothing to show" : `Showing ${nf.format(from)}–${nf.format(to)} of ${nf.format(total)}`}
           </p>
           <div className="flex items-center gap-2">
@@ -177,7 +177,7 @@ export default function ActivityLogModal({
               onClick={() => setPage((p) => Math.max(0, p - 1))}
               disabled={page === 0 || loading}
               className="text-sm font-semibold rounded-xl border px-3 py-1.5 transition-colors hover:bg-black/5 disabled:opacity-40"
-              style={{ borderColor: "#DAD8D0", color: "#1a1a1a" }}
+              style={{ borderColor: "#EAE6F5", color: "#1D1730" }}
             >
               Previous
             </button>
@@ -186,7 +186,7 @@ export default function ActivityLogModal({
               onClick={() => setPage((p) => Math.min(lastPage, p + 1))}
               disabled={page >= lastPage || loading}
               className="text-sm font-semibold rounded-xl border px-3 py-1.5 transition-colors hover:bg-black/5 disabled:opacity-40"
-              style={{ borderColor: "#DAD8D0", color: "#1a1a1a" }}
+              style={{ borderColor: "#EAE6F5", color: "#1D1730" }}
             >
               Next
             </button>

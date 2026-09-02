@@ -35,7 +35,7 @@ export default function NewPresentationPage() {
   }, [router]);
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center" style={{ backgroundColor: "#F1EFE3" }}>
+    <div className="fixed inset-0 flex items-center justify-center" style={{ backgroundColor: "var(--j-bg)" }}>
       <SlideshowLoadingAnimation label="Creating slideshow" />
     </div>
   );

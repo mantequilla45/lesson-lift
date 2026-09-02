@@ -18,8 +18,8 @@ import { checkPassword } from "@/app/lib/password";
 // their password directly rather than sending an invite link.
 
 const fieldClass =
-  "w-full px-3.5 py-2.5 border rounded-xl bg-white text-sm font-medium placeholder-[#A5A5A5] focus:outline-none focus:border-[#1a1a1a] transition-colors";
-const fieldStyle = { borderColor: "#DAD8D0" };
+  "w-full px-3.5 py-2.5 border rounded-xl bg-white text-sm font-medium placeholder-[#9A93AD] focus:outline-none focus:border-[#1D1730] transition-colors";
+const fieldStyle = { borderColor: "#EAE6F5" };
 
 function PasswordInput({
   value,
@@ -49,7 +49,7 @@ function PasswordInput({
         type="button"
         onClick={onToggle}
         aria-label={visible ? "Hide password" : "Show password"}
-        className="absolute right-2.5 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center text-[#8a8078] hover:text-[#1a1a1a]"
+        className="absolute right-2.5 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center text-[#6D6683] hover:text-[#1D1730]"
       >
         {visible ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
       </button>
@@ -115,20 +115,20 @@ export default function AddTeacherModal({ onClose }: { onClose: () => void }) {
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
       <div
         className="relative z-10 w-full max-w-lg rounded-2xl shadow-2xl border overflow-hidden flex flex-col max-h-[90vh]"
-        style={{ borderColor: "#DAD8D0", backgroundColor: "#FAF9F5" }}
+        style={{ borderColor: "#EAE6F5", backgroundColor: "#FFFFFF" }}
       >
-        <div className="flex items-start gap-3 p-6 pb-4 border-b shrink-0" style={{ borderColor: "#DAD8D0" }}>
+        <div className="flex items-start gap-3 p-6 pb-4 border-b shrink-0" style={{ borderColor: "#EAE6F5" }}>
           <div
             className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
-            style={{ backgroundColor: "#EEECE4" }}
+            style={{ backgroundColor: "#F1ECFC" }}
           >
-            <UserPlus className="w-5 h-5" style={{ color: "#1a1a1a" }} />
+            <UserPlus className="w-5 h-5" style={{ color: "#1D1730" }} />
           </div>
           <div className="flex-1 min-w-0">
-            <h2 className="font-bold" style={{ color: "#1a1a1a" }}>
+            <h2 className="font-bold" style={{ color: "#1D1730" }}>
               Add teacher
             </h2>
-            <p className="text-sm mt-0.5" style={{ color: "#8a8078" }}>
+            <p className="text-sm mt-0.5" style={{ color: "#6D6683" }}>
               Same details a teacher fills in when they sign up themselves.
             </p>
           </div>
@@ -136,7 +136,7 @@ export default function AddTeacherModal({ onClose }: { onClose: () => void }) {
             type="button"
             onClick={onClose}
             className="p-1.5 rounded-lg hover:bg-black/5"
-            style={{ color: "#8a8078" }}
+            style={{ color: "#6D6683" }}
             aria-label="Close"
           >
             <X className="w-4 h-4" />
@@ -146,7 +146,7 @@ export default function AddTeacherModal({ onClose }: { onClose: () => void }) {
         <form onSubmit={handleSubmit} className="overflow-y-auto">
           <div className="p-6 space-y-4">
             <div>
-              <label className="block text-xs font-semibold mb-1.5" style={{ color: "#4a423a" }}>
+              <label className="block text-xs font-semibold mb-1.5" style={{ color: "#3C3552" }}>
                 Email
               </label>
               <input
@@ -161,7 +161,7 @@ export default function AddTeacherModal({ onClose }: { onClose: () => void }) {
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-semibold mb-1.5" style={{ color: "#4a423a" }}>
+                <label className="block text-xs font-semibold mb-1.5" style={{ color: "#3C3552" }}>
                   First name
                 </label>
                 <input
@@ -174,7 +174,7 @@ export default function AddTeacherModal({ onClose }: { onClose: () => void }) {
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold mb-1.5" style={{ color: "#4a423a" }}>
+                <label className="block text-xs font-semibold mb-1.5" style={{ color: "#3C3552" }}>
                   Surname
                 </label>
                 <input
@@ -189,7 +189,7 @@ export default function AddTeacherModal({ onClose }: { onClose: () => void }) {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold mb-1.5" style={{ color: "#4a423a" }}>
+              <label className="block text-xs font-semibold mb-1.5" style={{ color: "#3C3552" }}>
                 Phone number
               </label>
               <div className="flex gap-2">
@@ -207,7 +207,7 @@ export default function AddTeacherModal({ onClose }: { onClose: () => void }) {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold mb-1.5" style={{ color: "#4a423a" }}>
+              <label className="block text-xs font-semibold mb-1.5" style={{ color: "#3C3552" }}>
                 Password
               </label>
               <PasswordInput
@@ -222,7 +222,7 @@ export default function AddTeacherModal({ onClose }: { onClose: () => void }) {
                   <li
                     key={rule.key}
                     className="flex items-center gap-1.5 text-xs"
-                    style={{ color: rule.met ? "#3F6B37" : "#8a8078" }}
+                    style={{ color: rule.met ? "#0F6E56" : "#6D6683" }}
                   >
                     {rule.met ? (
                       <Check className="w-3.5 h-3.5 shrink-0" />
@@ -236,7 +236,7 @@ export default function AddTeacherModal({ onClose }: { onClose: () => void }) {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold mb-1.5" style={{ color: "#4a423a" }}>
+              <label className="block text-xs font-semibold mb-1.5" style={{ color: "#3C3552" }}>
                 Confirm password
               </label>
               <PasswordInput
@@ -257,9 +257,9 @@ export default function AddTeacherModal({ onClose }: { onClose: () => void }) {
 
           <div
             className="flex items-center justify-between gap-2 p-6 pt-4 border-t shrink-0"
-            style={{ borderColor: "#DAD8D0" }}
+            style={{ borderColor: "#EAE6F5" }}
           >
-            <p className="text-xs" style={{ color: notice ? "#A85F0C" : "#8a8078" }}>
+            <p className="text-xs" style={{ color: notice ? "#8A3C12" : "#6D6683" }}>
               {notice ?? " "}
             </p>
             <div className="flex items-center gap-2 shrink-0">
@@ -267,7 +267,7 @@ export default function AddTeacherModal({ onClose }: { onClose: () => void }) {
                 type="button"
                 onClick={onClose}
                 className="text-sm font-semibold rounded-xl border px-4 py-2 transition-colors hover:bg-black/5"
-                style={{ borderColor: "#DAD8D0", color: "#1a1a1a" }}
+                style={{ borderColor: "#EAE6F5", color: "#1D1730" }}
               >
                 Cancel
               </button>
@@ -275,7 +275,7 @@ export default function AddTeacherModal({ onClose }: { onClose: () => void }) {
                 type="submit"
                 disabled={!canSubmit}
                 className="inline-flex items-center gap-1.5 text-sm font-semibold rounded-xl px-4 py-2 text-white transition-opacity hover:opacity-90 disabled:opacity-40"
-                style={{ backgroundColor: "#1a1a1a" }}
+                style={{ backgroundColor: "#5B2ED6" }}
               >
                 {loading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                 {loading ? "Creating…" : "Create account"}

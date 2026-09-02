@@ -18,10 +18,10 @@ export default async function AdminUsersPage() {
     <>
       <div className="flex items-start justify-between gap-4 flex-wrap mb-6">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight mb-1" style={{ color: "#1a1a1a" }}>
+          <h1 className="text-2xl font-bold tracking-tight mb-1" style={{ color: "#1D1730" }}>
             Teachers
           </h1>
-          <p className="text-sm" style={{ color: "#8a8078" }}>
+          <p className="text-sm" style={{ color: "#6D6683" }}>
             {nf.format(rows.length)} {rows.length === 1 ? "teacher" : "teachers"}. Resources reset
             monthly; AI images have no cap yet.
           </p>

@@ -153,7 +153,7 @@ export default function PlansView({
                         className="ml-2 text-xs font-semibold px-2 py-0.5 rounded-full align-middle"
                         // Deliberately high-contrast: the card around it is
                         // greyscaled, so a pale badge would disappear.
-                        style={{ backgroundColor: "#3a3a3a", color: "#fff" }}
+                        style={{ backgroundColor: "#1D1730", color: "#fff" }}
                       >
                         NOT BUILT YET
                       </span>
@@ -355,7 +355,7 @@ export default function PlansView({
               School seat ladder
               <span
                 className="ml-2 text-xs font-semibold px-2 py-0.5 rounded-full align-middle"
-                style={{ backgroundColor: "#3a3a3a", color: "#fff" }}
+                style={{ backgroundColor: "#1D1730", color: "#fff" }}
               >
                 NOT BUILT YET
               </span>
@@ -517,7 +517,7 @@ export function RuleRow({
               {rule.label}
               <span
                 className="ml-2 text-xs font-semibold px-2 py-0.5 rounded-full align-middle"
-                style={{ backgroundColor: "#EEECE4", color: "#8a8078" }}
+                style={{ backgroundColor: "#F1ECFC", color: "#6D6683" }}
               >
                 Not wired up
               </span>

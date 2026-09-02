@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Search, Plus, Monitor, LayoutGrid, Trash2, Sparkles, Loader2 } from "lucide-react";
+import { Search, Plus, Monitor, LayoutGrid, Trash2, Loader2 } from "lucide-react";
 import { listPresentations, deletePresentation, createPresentation, type PresentationListItem, type SlideJSON } from "@/app/lib/presentations";
 import MiniSlide from "@/app/components/editor/MiniSlide";
 import GenerateModal from "@/app/components/slideshow/GenerateModal";
@@ -140,7 +140,7 @@ export default function SlideshowListPage() {
             className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
             style={{ backgroundColor: "var(--j-purple)" }}
           >
-            <Monitor className="w-5 h-5" style={{ color: "var(--j-purple)" }} />
+            <Monitor className="w-5 h-5" style={{ color: "#fff" }} />
           </div>
           <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 truncate">Slideshows</h1>
         </div>
@@ -148,10 +148,10 @@ export default function SlideshowListPage() {
           <button
             onClick={() => setGenerateOpen(true)}
             className="flex items-center gap-2 text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors"
-            style={{ backgroundColor: "var(--j-purple)", color: "var(--j-purple)" }}
+            style={{ backgroundColor: "var(--j-purple)", color: "#fff" }}
           >
-            <Sparkles className="w-4 h-4" />
-            Generate with AI
+            <Monitor className="w-4 h-4" />
+            Generate slideshow
           </button>
           <button
             type="button"
@@ -188,14 +188,14 @@ export default function SlideshowListPage() {
               position (just a shimmer bar) above the same grid, so when the
               real data arrives only the cards swap — header, search bar,
               and count slot all stay put with zero layout shift. */}
-          <div className="-mt-4 h-5 w-32 rounded-full animate-pulse" style={{ backgroundColor: "#E7E2D5" }} />
+          <div className="-mt-4 h-5 w-32 rounded-full animate-pulse" style={{ backgroundColor: "var(--j-tint-2)" }} />
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
             {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="bg-(--j-card) rounded-2xl overflow-hidden border animate-pulse" style={{ borderColor: "#EDEAE0" }}>
-                <div className="aspect-video" style={{ backgroundColor: "#ECE8DE" }} />
+              <div key={i} className="bg-(--j-card) rounded-2xl overflow-hidden border animate-pulse" style={{ borderColor: "var(--j-line)" }}>
+                <div className="aspect-video" style={{ backgroundColor: "var(--j-tint)" }} />
                 <div className="p-4 space-y-2.5">
-                  <div className="h-4 rounded-full w-3/4" style={{ backgroundColor: "#E7E2D5" }} />
-                  <div className="h-3 rounded-full w-1/2" style={{ backgroundColor: "#EDE8DC" }} />
+                  <div className="h-4 rounded-full w-3/4" style={{ backgroundColor: "var(--j-tint-2)" }} />
+                  <div className="h-3 rounded-full w-1/2" style={{ backgroundColor: "var(--j-tint)" }} />
                 </div>
               </div>
             ))}

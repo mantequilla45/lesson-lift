@@ -17,8 +17,8 @@ interface Charge {
 }
 
 const fieldClass =
-  "w-full px-3.5 py-2.5 border rounded-xl bg-white text-sm font-medium placeholder-[#A5A5A5] focus:outline-none focus:border-[#1a1a1a] transition-colors";
-const fieldStyle = { borderColor: "#DAD8D0" };
+  "w-full px-3.5 py-2.5 border rounded-xl bg-white text-sm font-medium placeholder-[#9A93AD] focus:outline-none focus:border-[#1D1730] transition-colors";
+const fieldStyle = { borderColor: "#EAE6F5" };
 
 function money(pence: number, currency: string) {
   return new Intl.NumberFormat("en-GB", {
@@ -102,14 +102,14 @@ export default function RefundModal({
       <form
         onSubmit={submit}
         className="relative z-10 w-full max-w-md rounded-2xl shadow-2xl border overflow-hidden flex flex-col max-h-[85vh]"
-        style={{ borderColor: "#DAD8D0", backgroundColor: "#FAF9F5" }}
+        style={{ borderColor: "#EAE6F5", backgroundColor: "#FFFFFF" }}
       >
-        <div className="flex items-start gap-3 p-5 pb-4 border-b" style={{ borderColor: "#DAD8D0" }}>
+        <div className="flex items-start gap-3 p-5 pb-4 border-b" style={{ borderColor: "#EAE6F5" }}>
           <div className="flex-1 min-w-0">
-            <h2 className="font-bold" style={{ color: "#1a1a1a" }}>
+            <h2 className="font-bold" style={{ color: "#1D1730" }}>
               Refund
             </h2>
-            <p className="text-sm mt-0.5 truncate" style={{ color: "#8a8078" }}>
+            <p className="text-sm mt-0.5 truncate" style={{ color: "#6D6683" }}>
               {name}
             </p>
           </div>
@@ -117,7 +117,7 @@ export default function RefundModal({
             type="button"
             onClick={onClose}
             className="p-1.5 rounded-lg hover:bg-black/5"
-            style={{ color: "#8a8078" }}
+            style={{ color: "#6D6683" }}
             aria-label="Close"
           >
             <X className="w-4 h-4" />
@@ -126,11 +126,11 @@ export default function RefundModal({
 
         <div className="p-5 space-y-4 overflow-y-auto">
           {charges === null ? (
-            <p className="text-sm" style={{ color: "#8a8078" }}>
+            <p className="text-sm" style={{ color: "#6D6683" }}>
               Loading charges…
             </p>
           ) : charges.length === 0 ? (
-            <p className="text-sm" style={{ color: "#8a8078" }}>
+            <p className="text-sm" style={{ color: "#6D6683" }}>
               No refundable charges for this teacher.
             </p>
           ) : (
@@ -141,8 +141,8 @@ export default function RefundModal({
                     key={c.id}
                     className="flex items-center gap-2.5 rounded-xl border px-3 py-2.5 cursor-pointer"
                     style={{
-                      borderColor: chargeId === c.id ? "#1a1a1a" : "#DAD8D0",
-                      backgroundColor: chargeId === c.id ? "#F1EFE9" : "#fff",
+                      borderColor: chargeId === c.id ? "#1D1730" : "#EAE6F5",
+                      backgroundColor: chargeId === c.id ? "#F7F5FC" : "#fff",
                     }}
                   >
                     <input
@@ -152,16 +152,16 @@ export default function RefundModal({
                       onChange={() => setChargeId(c.id)}
                     />
                     <span className="flex-1 min-w-0">
-                      <span className="block text-sm font-semibold" style={{ color: "#1a1a1a" }}>
+                      <span className="block text-sm font-semibold" style={{ color: "#1D1730" }}>
                         {money(c.amount - c.amountRefunded, c.currency)}
                         {c.amountRefunded > 0 && (
-                          <span className="font-normal" style={{ color: "#8a8078" }}>
+                          <span className="font-normal" style={{ color: "#6D6683" }}>
                             {" "}
                             left of {money(c.amount, c.currency)}
                           </span>
                         )}
                       </span>
-                      <span className="block text-xs font-mono truncate" style={{ color: "#8a8078" }}>
+                      <span className="block text-xs font-mono truncate" style={{ color: "#6D6683" }}>
                         {new Date(c.created * 1000).toLocaleDateString("en-GB")} · {c.description ?? c.id}
                       </span>
                     </span>
@@ -169,7 +169,7 @@ export default function RefundModal({
                 ))}
               </div>
 
-              <label className="flex items-center gap-2 text-sm" style={{ color: "#4a423a" }}>
+              <label className="flex items-center gap-2 text-sm" style={{ color: "#3C3552" }}>
                 <input
                   type="checkbox"
                   checked={partial}
@@ -180,7 +180,7 @@ export default function RefundModal({
 
               {partial && (
                 <div>
-                  <label className="block text-xs font-semibold mb-1.5" style={{ color: "#4a423a" }}>
+                  <label className="block text-xs font-semibold mb-1.5" style={{ color: "#3C3552" }}>
                     Amount ({(selected?.currency ?? "gbp").toUpperCase()}) — up to{" "}
                     {money(refundable, selected?.currency ?? "gbp")}
                   </label>
@@ -198,7 +198,7 @@ export default function RefundModal({
               )}
 
               <div>
-                <label className="block text-xs font-semibold mb-1.5" style={{ color: "#4a423a" }}>
+                <label className="block text-xs font-semibold mb-1.5" style={{ color: "#3C3552" }}>
                   Reason
                 </label>
                 <input
@@ -225,7 +225,7 @@ export default function RefundModal({
             type="button"
             onClick={onClose}
             className="text-sm font-semibold rounded-xl border px-4 py-2 transition-colors hover:bg-black/5"
-            style={{ borderColor: "#DAD8D0", color: "#1a1a1a" }}
+            style={{ borderColor: "#EAE6F5", color: "#1D1730" }}
           >
             Cancel
           </button>

@@ -510,7 +510,7 @@ export default function InboxView({
                           className="px-3 py-2 rounded-xl text-sm border"
                           style={
                             isNote
-                              ? { backgroundColor: C.warnBg, borderColor: "#F0DFC4", color: C.ink }
+                              ? { backgroundColor: C.warnBg, borderColor: "#EFDFB4", color: C.ink }
                               : isUs
                                 ? { backgroundColor: C.ink, borderColor: C.ink, color: "#fff" }
                                 : { backgroundColor: C.white, borderColor: C.border, color: C.ink }
@@ -587,7 +587,7 @@ export default function InboxView({
                   onChange={(e) => setDraft(e.target.value)}
                   rows={3}
                   placeholder={`Reply to ${thread.teacher}…`}
-                  className="w-full px-3 py-2 border rounded-xl bg-white text-sm resize-none focus:outline-none focus:border-[#1a1a1a] transition-colors"
+                  className="w-full px-3 py-2 border rounded-xl bg-white text-sm resize-none focus:outline-none focus:border-[#1D1730] transition-colors"
                   style={{ borderColor: C.border }}
                 />
                 <div className="flex items-center gap-2 mt-2">

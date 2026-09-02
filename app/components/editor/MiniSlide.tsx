@@ -312,11 +312,11 @@ const MiniImage = memo(function MiniImage({ image, srcOverride }: { image: Image
       }}
     >
       {image.isPending && !image.src ? (
-        <div style={{ width: "100%", height: "100%", background: "#e7e5e0", overflow: "hidden", position: "relative", ...frameStyle }}>
+        <div style={{ width: "100%", height: "100%", background: "#EAE6F5", overflow: "hidden", position: "relative", ...frameStyle }}>
           <div className="absolute inset-0 jooma-shimmer" />
         </div>
       ) : isEmptyFrame ? (
-        <div style={{ width: "100%", height: "100%", background: "#e7e5e0", ...frameStyle }} />
+        <div style={{ width: "100%", height: "100%", background: "#EAE6F5", ...frameStyle }} />
       ) : (() => {
         const sw = image.strokeWidth ?? 0;
         const sc = image.strokeColor ?? "#1a1a2e";

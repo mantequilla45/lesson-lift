@@ -397,7 +397,7 @@ export default function PicturesPanel({ onAdd, onlyProvider }: Props) {
       {/* Search bar stays pinned while only the results grid scrolls. The
           negative side margins + matching bg let it cover the panel's p-4
           padding so grid items scroll cleanly behind it. */}
-      <div className="sticky top-0 z-10 -mx-4 px-4 pt-2 pb-2" style={{ backgroundColor: "#F1EFE3" }}>
+      <div className="sticky top-0 z-10 -mx-4 px-4 pt-2 pb-2" style={{ backgroundColor: "var(--j-bg)" }}>
         <div className="relative">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
           <input
@@ -462,7 +462,7 @@ export default function PicturesPanel({ onAdd, onlyProvider }: Props) {
               <div
                 ref={infoRef}
                 className="absolute top-9 right-1.5 z-50 bg-white border rounded-lg shadow-lg p-2 text-[11px] w-44"
-                style={{ borderColor: "#DAD8D0" }}
+                style={{ borderColor: "var(--j-line)" }}
               >
                 <p className="text-gray-500 leading-tight">Photo by</p>
                 {p.photographerUrl ? (

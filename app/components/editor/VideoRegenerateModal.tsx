@@ -12,7 +12,7 @@
 // beside the slide canvas; renders nothing when `open` is false.
 
 import { useEffect, useRef, useState } from "react";
-import { Loader2, Sparkles, X, ExternalLink, Link2 } from "lucide-react";
+import { Loader2, Pencil, X, ExternalLink, Link2 } from "lucide-react";
 import { parseYouTubeId } from "./youtube";
 
 export type VideoLength = "short" | "medium" | "long" | "any";
@@ -128,12 +128,12 @@ export default function VideoEditPanel({ open, onClose, context, defaults, onApp
   return (
     <aside
       className="shrink-0 w-100 h-full border-l flex flex-col bg-white"
-      style={{ borderColor: "#DAD8D0" }}
+      style={{ borderColor: "#EAE6F5" }}
     >
       {/* Header */}
       <div
         className="flex items-start justify-between px-4 pt-4 pb-3 border-b shrink-0"
-        style={{ borderColor: "#EDEBE2" }}
+        style={{ borderColor: "#F1ECFC" }}
       >
         <div>
           <h2 className="text-sm font-semibold text-gray-900">Edit video</h2>
@@ -168,7 +168,7 @@ export default function VideoEditPanel({ open, onClose, context, defaults, onApp
             onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleApplyUrl(); } }}
             placeholder="https://www.youtube.com/watch?v=..."
             className="w-full px-2.5 py-2 text-xs bg-white border rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-200"
-            style={{ borderColor: "#DAD8D0" }}
+            style={{ borderColor: "#EAE6F5" }}
           />
           {urlErr && <p className="text-[10px] text-red-600">{urlErr}</p>}
           <button
@@ -176,22 +176,22 @@ export default function VideoEditPanel({ open, onClose, context, defaults, onApp
             onClick={handleApplyUrl}
             disabled={!url.trim()}
             className="w-full px-3 py-2 text-xs font-semibold rounded-lg disabled:opacity-50"
-            style={{ backgroundColor: "#1a1a1a", color: "#fff" }}
+            style={{ backgroundColor: "#1D1730", color: "#fff" }}
           >
             Replace video
           </button>
         </section>
 
         <div className="relative flex items-center">
-          <div className="flex-1 h-px" style={{ backgroundColor: "#EDEBE2" }} />
+          <div className="flex-1 h-px" style={{ backgroundColor: "#F1ECFC" }} />
           <span className="px-2 text-[10px] uppercase tracking-wide text-gray-400">or</span>
-          <div className="flex-1 h-px" style={{ backgroundColor: "#EDEBE2" }} />
+          <div className="flex-1 h-px" style={{ backgroundColor: "#F1ECFC" }} />
         </div>
 
         {/* ── Option 2: search with AI ─────────────────────────────────── */}
         <section className="space-y-3">
           <h3 className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 flex items-center gap-1.5">
-            <Sparkles className="w-3 h-3" />
+            <Pencil className="w-3 h-3" />
             Search with AI
           </h3>
 
@@ -204,7 +204,7 @@ export default function VideoEditPanel({ open, onClose, context, defaults, onApp
               placeholder={context.deckTitle || "E.g. the water cycle"}
               disabled={busy}
               className="mt-1 w-full px-2.5 py-2 text-xs bg-white border rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-200 disabled:opacity-60"
-              style={{ borderColor: "#DAD8D0" }}
+              style={{ borderColor: "#EAE6F5" }}
             />
             <span className="text-[10px] text-gray-400 mt-1 block">
               Defaults to the deck title if left blank.
@@ -222,7 +222,7 @@ export default function VideoEditPanel({ open, onClose, context, defaults, onApp
               rows={3}
               disabled={busy}
               className="mt-1 w-full px-2.5 py-2 text-xs bg-white border rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-200 disabled:opacity-60 resize-none"
-              style={{ borderColor: "#DAD8D0" }}
+              style={{ borderColor: "#EAE6F5" }}
             />
           </label>
 
@@ -240,8 +240,8 @@ export default function VideoEditPanel({ open, onClose, context, defaults, onApp
                     className="px-2.5 py-1 text-[11px] font-semibold rounded-full border transition-colors disabled:opacity-60"
                     style={
                       selected
-                        ? { backgroundColor: "#1a1a1a", borderColor: "#1a1a1a", color: "#fff" }
-                        : { backgroundColor: "#fff", borderColor: "#DAD8D0", color: "#1a1a1a" }
+                        ? { backgroundColor: "#1D1730", borderColor: "#1D1730", color: "#fff" }
+                        : { backgroundColor: "#fff", borderColor: "#EAE6F5", color: "#1D1730" }
                     }
                   >
                     {o.label}
@@ -258,7 +258,7 @@ export default function VideoEditPanel({ open, onClose, context, defaults, onApp
             className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-semibold rounded-lg transition-colors disabled:opacity-50"
             style={{ backgroundColor: "#7c3aed", color: "#fff" }}
           >
-            {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+            {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Pencil className="w-3.5 h-3.5" />}
             {busy ? "Searching…" : candidates ? "Search again" : "Find videos"}
           </button>
 
@@ -269,7 +269,7 @@ export default function VideoEditPanel({ open, onClose, context, defaults, onApp
           )}
 
           {candidates && candidates.length > 0 && (
-            <div className="pt-2 border-t" style={{ borderColor: "#EDEBE2" }}>
+            <div className="pt-2 border-t" style={{ borderColor: "#F1ECFC" }}>
               <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 mb-2">
                 Results — click one to use it
               </p>
@@ -290,7 +290,7 @@ function CandidateRow({ candidate, onPick }: { candidate: VideoCandidate; onPick
   return (
     <div
       className="flex gap-2 p-2 rounded-xl border bg-white hover:bg-gray-50 cursor-pointer transition-colors"
-      style={{ borderColor: "#DAD8D0" }}
+      style={{ borderColor: "#EAE6F5" }}
       onClick={onPick}
       role="button"
       tabIndex={0}

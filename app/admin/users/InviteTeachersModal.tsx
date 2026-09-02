@@ -11,8 +11,8 @@ import { parseCsv } from "@/app/lib/csv";
 // /create-password, so nobody is ever emailed a password.
 
 const fieldClass =
-  "w-full px-3.5 py-2.5 border rounded-xl bg-white text-sm font-medium placeholder-[#A5A5A5] focus:outline-none focus:border-[#1a1a1a] transition-colors";
-const fieldStyle = { borderColor: "#DAD8D0" };
+  "w-full px-3.5 py-2.5 border rounded-xl bg-white text-sm font-medium placeholder-[#9A93AD] focus:outline-none focus:border-[#1D1730] transition-colors";
+const fieldStyle = { borderColor: "#EAE6F5" };
 
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
@@ -138,20 +138,20 @@ export default function InviteTeachersModal({ onClose }: { onClose: () => void }
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
       <div
         className="relative z-10 w-full max-w-lg rounded-2xl shadow-2xl border overflow-hidden flex flex-col max-h-[90vh]"
-        style={{ borderColor: "#DAD8D0", backgroundColor: "#FAF9F5" }}
+        style={{ borderColor: "#EAE6F5", backgroundColor: "#FFFFFF" }}
       >
-        <div className="flex items-start gap-3 p-6 pb-4 border-b shrink-0" style={{ borderColor: "#DAD8D0" }}>
+        <div className="flex items-start gap-3 p-6 pb-4 border-b shrink-0" style={{ borderColor: "#EAE6F5" }}>
           <div
             className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
-            style={{ backgroundColor: "#EEECE4" }}
+            style={{ backgroundColor: "#F1ECFC" }}
           >
-            <Mail className="w-5 h-5" style={{ color: "#1a1a1a" }} />
+            <Mail className="w-5 h-5" style={{ color: "#1D1730" }} />
           </div>
           <div className="flex-1 min-w-0">
-            <h2 className="font-bold" style={{ color: "#1a1a1a" }}>
+            <h2 className="font-bold" style={{ color: "#1D1730" }}>
               Invite teachers
             </h2>
-            <p className="text-sm mt-0.5" style={{ color: "#8a8078" }}>
+            <p className="text-sm mt-0.5" style={{ color: "#6D6683" }}>
               Send an invite link to one or more teachers by email.
             </p>
           </div>
@@ -159,7 +159,7 @@ export default function InviteTeachersModal({ onClose }: { onClose: () => void }
             type="button"
             onClick={onClose}
             className="p-1.5 rounded-lg hover:bg-black/5"
-            style={{ color: "#8a8078" }}
+            style={{ color: "#6D6683" }}
             aria-label="Close"
           >
             <X className="w-4 h-4" />
@@ -169,7 +169,7 @@ export default function InviteTeachersModal({ onClose }: { onClose: () => void }
         <form onSubmit={handleSubmit} className="overflow-y-auto">
           <div className="p-6 space-y-4">
             <div>
-              <label className="block text-xs font-semibold mb-1.5" style={{ color: "#4a423a" }}>
+              <label className="block text-xs font-semibold mb-1.5" style={{ color: "#3C3552" }}>
                 Email addresses
               </label>
               <textarea
@@ -192,20 +192,20 @@ export default function InviteTeachersModal({ onClose }: { onClose: () => void }
                   e.target.value = "";
                 }}
               />
-              <p className="mt-1.5 text-xs" style={{ color: "#8a8078" }}>
+              <p className="mt-1.5 text-xs" style={{ color: "#6D6683" }}>
                 Or{" "}
                 <button
                   type="button"
                   onClick={() => fileRef.current?.click()}
                   className="underline hover:no-underline"
-                  style={{ color: "#1a1a1a" }}
+                  style={{ color: "#1D1730" }}
                 >
                   upload a CSV
                 </button>{" "}
                 — we&rsquo;ll find the email column.
                 {valid.length > 0 && ` ${valid.length} address${valid.length === 1 ? "" : "es"} ready.`}
                 {invalid > 0 && (
-                  <span style={{ color: "#A85F0C" }}>
+                  <span style={{ color: "#8A3C12" }}>
                     {" "}
                     {invalid} don&rsquo;t look like emails and will be skipped.
                   </span>
@@ -214,7 +214,7 @@ export default function InviteTeachersModal({ onClose }: { onClose: () => void }
             </div>
 
             <div>
-              <label className="block text-xs font-semibold mb-1.5" style={{ color: "#4a423a" }}>
+              <label className="block text-xs font-semibold mb-1.5" style={{ color: "#3C3552" }}>
                 Add to
               </label>
               {/* Still disabled: there are no schools in the database yet, so
@@ -230,7 +230,7 @@ export default function InviteTeachersModal({ onClose }: { onClose: () => void }
             </div>
 
             <div>
-              <label className="block text-xs font-semibold mb-1.5" style={{ color: "#4a423a" }}>
+              <label className="block text-xs font-semibold mb-1.5" style={{ color: "#3C3552" }}>
                 Plan
               </label>
               <select
@@ -251,21 +251,21 @@ export default function InviteTeachersModal({ onClose }: { onClose: () => void }
             </div>
 
             {results && results.length > 0 && (
-              <div className="rounded-xl border divide-y" style={{ borderColor: "#DAD8D0" }}>
+              <div className="rounded-xl border divide-y" style={{ borderColor: "#EAE6F5" }}>
                 {results.map((r) => (
                   <div
                     key={r.email}
                     className="flex items-center gap-2 px-3 py-2 text-xs"
-                    style={{ borderColor: "#EEECE4" }}
+                    style={{ borderColor: "#F1ECFC" }}
                   >
-                    <span className="flex-1 min-w-0 truncate font-mono" style={{ color: "#1a1a1a" }}>
+                    <span className="flex-1 min-w-0 truncate font-mono" style={{ color: "#1D1730" }}>
                       {r.email}
                     </span>
                     <span
                       className="font-semibold shrink-0"
                       style={{
                         color:
-                          r.status === "sent" ? "#1f6b3b" : r.status === "exists" ? "#8a8078" : "#B3261E",
+                          r.status === "sent" ? "#0F6E56" : r.status === "exists" ? "#6D6683" : "#B3261E",
                       }}
                       title={r.error}
                     >
@@ -279,9 +279,9 @@ export default function InviteTeachersModal({ onClose }: { onClose: () => void }
 
           <div
             className="flex items-center justify-between gap-2 p-6 pt-4 border-t shrink-0"
-            style={{ borderColor: "#DAD8D0" }}
+            style={{ borderColor: "#EAE6F5" }}
           >
-            <p className="text-xs" style={{ color: notice ? "#A85F0C" : "#8a8078" }}>
+            <p className="text-xs" style={{ color: notice ? "#8A3C12" : "#6D6683" }}>
               {notice ?? " "}
             </p>
             <div className="flex items-center gap-2 shrink-0">
@@ -289,7 +289,7 @@ export default function InviteTeachersModal({ onClose }: { onClose: () => void }
                 type="button"
                 onClick={onClose}
                 className="text-sm font-semibold rounded-xl border px-4 py-2 transition-colors hover:bg-black/5"
-                style={{ borderColor: "#DAD8D0", color: "#1a1a1a" }}
+                style={{ borderColor: "#EAE6F5", color: "#1D1730" }}
               >
                 {results ? "Done" : "Cancel"}
               </button>
@@ -297,7 +297,7 @@ export default function InviteTeachersModal({ onClose }: { onClose: () => void }
                 type="submit"
                 disabled={!canSubmit}
                 className="text-sm font-semibold rounded-xl px-4 py-2 text-white transition-opacity hover:opacity-90 disabled:opacity-40"
-                style={{ backgroundColor: "#1a1a1a" }}
+                style={{ backgroundColor: "#5B2ED6" }}
               >
                 {sending ? "Sending…" : `Send invite${valid.length === 1 ? "" : "s"}`}
               </button>

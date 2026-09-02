@@ -9,8 +9,8 @@ import { SELECTABLE_PLANS } from "@/app/lib/plans";
 // which of the four paths this particular change will take before it's made.
 
 const fieldClass =
-  "w-full px-3.5 py-2.5 border rounded-xl bg-white text-sm font-medium placeholder-[#A5A5A5] focus:outline-none focus:border-[#1a1a1a] transition-colors";
-const fieldStyle = { borderColor: "#DAD8D0" };
+  "w-full px-3.5 py-2.5 border rounded-xl bg-white text-sm font-medium placeholder-[#9A93AD] focus:outline-none focus:border-[#1D1730] transition-colors";
+const fieldStyle = { borderColor: "#EAE6F5" };
 
 export default function ChangePlanModal({
   userId,
@@ -77,14 +77,14 @@ export default function ChangePlanModal({
       <form
         onSubmit={submit}
         className="relative z-10 w-full max-w-md rounded-2xl shadow-2xl border overflow-hidden flex flex-col"
-        style={{ borderColor: "#DAD8D0", backgroundColor: "#FAF9F5" }}
+        style={{ borderColor: "#EAE6F5", backgroundColor: "#FFFFFF" }}
       >
-        <div className="flex items-start gap-3 p-5 pb-4 border-b" style={{ borderColor: "#DAD8D0" }}>
+        <div className="flex items-start gap-3 p-5 pb-4 border-b" style={{ borderColor: "#EAE6F5" }}>
           <div className="flex-1 min-w-0">
-            <h2 className="font-bold" style={{ color: "#1a1a1a" }}>
+            <h2 className="font-bold" style={{ color: "#1D1730" }}>
               Change plan
             </h2>
-            <p className="text-sm mt-0.5 truncate" style={{ color: "#8a8078" }}>
+            <p className="text-sm mt-0.5 truncate" style={{ color: "#6D6683" }}>
               {name} · currently {currentPlan}
             </p>
           </div>
@@ -92,7 +92,7 @@ export default function ChangePlanModal({
             type="button"
             onClick={onClose}
             className="p-1.5 rounded-lg hover:bg-black/5"
-            style={{ color: "#8a8078" }}
+            style={{ color: "#6D6683" }}
             aria-label="Close"
           >
             <X className="w-4 h-4" />
@@ -101,7 +101,7 @@ export default function ChangePlanModal({
 
         <div className="p-5 space-y-4">
           <div>
-            <label className="block text-xs font-semibold mb-1.5" style={{ color: "#4a423a" }}>
+            <label className="block text-xs font-semibold mb-1.5" style={{ color: "#3C3552" }}>
               Move to
             </label>
             <select
@@ -119,7 +119,7 @@ export default function ChangePlanModal({
           </div>
 
           {downgrade && hasSubscription && (
-            <label className="flex items-start gap-2 text-sm" style={{ color: "#4a423a" }}>
+            <label className="flex items-start gap-2 text-sm" style={{ color: "#3C3552" }}>
               <input
                 type="checkbox"
                 checked={immediate}
@@ -133,15 +133,15 @@ export default function ChangePlanModal({
           <div
             className="rounded-xl px-3 py-2.5 text-sm"
             style={{
-              backgroundColor: !downgrade && !hasCustomer ? "#FDF3E5" : "#F1EFE9",
-              color: !downgrade && !hasCustomer ? "#A85F0C" : "#6b6055",
+              backgroundColor: !downgrade && !hasCustomer ? "#FBF3DF" : "#F7F5FC",
+              color: !downgrade && !hasCustomer ? "#8A3C12" : "#3C3552",
             }}
           >
             {consequence}
           </div>
 
           <div>
-            <label className="block text-xs font-semibold mb-1.5" style={{ color: "#4a423a" }}>
+            <label className="block text-xs font-semibold mb-1.5" style={{ color: "#3C3552" }}>
               Reason
             </label>
             <input
@@ -163,13 +163,13 @@ export default function ChangePlanModal({
 
         <div
           className="flex items-center justify-end gap-2 p-5 pt-0"
-          style={{ borderColor: "#DAD8D0" }}
+          style={{ borderColor: "#EAE6F5" }}
         >
           <button
             type="button"
             onClick={onClose}
             className="text-sm font-semibold rounded-xl border px-4 py-2 transition-colors hover:bg-black/5"
-            style={{ borderColor: "#DAD8D0", color: "#1a1a1a" }}
+            style={{ borderColor: "#EAE6F5", color: "#1D1730" }}
           >
             Cancel
           </button>
@@ -177,7 +177,7 @@ export default function ChangePlanModal({
             type="submit"
             disabled={!reason.trim() || saving}
             className="text-sm font-semibold rounded-xl px-4 py-2 text-white transition-opacity hover:opacity-90 disabled:opacity-40"
-            style={{ backgroundColor: "#1a1a1a" }}
+            style={{ backgroundColor: "#5B2ED6" }}
           >
             {saving ? "Working…" : "Change plan"}
           </button>

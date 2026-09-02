@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Fragment, useEffect, useRef, useState } from "react";
-import { Undo2, Redo2, Download, ArrowLeft, Palette, Check, Play, Wand2, ChevronDown } from "lucide-react";
+import { Undo2, Redo2, Download, ArrowLeft, Palette, Check, Play, Pencil, ChevronDown } from "lucide-react";
 import DropdownMenu from "@/app/components/ui/DropdownMenu";
 import { SLIDESHOW_THEMES, THEME_CATEGORIES, getThemesByCategory, ART_STYLES, getThemeArt, type ArtStyleId } from "@/app/lib/slideshowThemes";
 
@@ -64,7 +64,7 @@ export default function EditorTopBar({
   return (
     <div
       className="h-14 shrink-0 flex items-center justify-between px-4 border-b"
-      style={{ borderColor: "#DAD8D0", backgroundColor: "#F1EFE3" }}
+      style={{ borderColor: "#EAE6F5", backgroundColor: "#F7F5FC" }}
     >
       <div className="flex items-center gap-3">
         <Link
@@ -77,7 +77,7 @@ export default function EditorTopBar({
         </Link>
         <Link href="/tools/slideshow" className="hover:opacity-70 transition-opacity">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo/logo.svg" alt="Jooma" style={{ height: 22, width: "auto" }} />
+          <img src="/logo/logo-v2.svg" alt="Jooma" style={{ height: 22, width: "auto" }} />
         </Link>
         <span className="text-gray-400">/</span>
         <input
@@ -98,10 +98,10 @@ export default function EditorTopBar({
             onClick={onEditPrompt}
             disabled={disableHistory}
             className="ml-1 inline-flex items-center gap-1.5 text-xs font-semibold rounded-lg border px-2.5 py-1.5 text-gray-700 hover:bg-gray-100 transition-colors disabled:opacity-40"
-            style={{ borderColor: "#DAD8D0" }}
+            style={{ borderColor: "#EAE6F5" }}
             title="Edit the original prompt and regenerate"
           >
-            <Wand2 className="w-3.5 h-3.5" />
+            <Pencil className="w-3.5 h-3.5" />
             Edit prompt
           </button>
         )}
@@ -143,7 +143,7 @@ export default function EditorTopBar({
                     const a = getThemeArt(activeTheme, artStyle ?? "watercolor");
                     return a ? `url(${a.src})` : undefined;
                   })(),
-                  borderColor: "#DAD8D0",
+                  borderColor: "#EAE6F5",
                 }}
               />
               <span>{activeTheme.name}</span>
@@ -199,7 +199,7 @@ export default function EditorTopBar({
                           const a = getThemeArt(t, artStyle ?? "watercolor");
                           return a ? `url(${a.src})` : undefined;
                         })(),
-                        borderColor: "#DAD8D0",
+                        borderColor: "#EAE6F5",
                       }}
                     />
                     <span
@@ -224,7 +224,7 @@ export default function EditorTopBar({
         <button
           onClick={onPresent}
           className="flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
-          style={{ backgroundColor: "#1a1a1a", color: "#fff" }}
+          style={{ backgroundColor: "#1D1730", color: "#fff" }}
           title="Present"
         >
           <Play className="w-4 h-4" />

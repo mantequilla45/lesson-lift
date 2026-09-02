@@ -40,15 +40,15 @@ export default function FontPanel({ current, onSelect, onClose }: Props) {
     <div
       ref={panelRef}
       className="absolute top-0 bottom-0 left-0 w-72 bg-white shadow-xl border-r flex flex-col z-30"
-      style={{ borderColor: "#DAD8D0" }}
+      style={{ borderColor: "#EAE6F5" }}
     >
-      <div className="flex items-center justify-between p-4 border-b" style={{ borderColor: "#DAD8D0" }}>
+      <div className="flex items-center justify-between p-4 border-b" style={{ borderColor: "#EAE6F5" }}>
         <h2 className="text-sm font-semibold text-gray-800">Fonts</h2>
         <button onClick={onClose} className="p-1 rounded-lg hover:bg-gray-100" title="Close">
           <X className="w-4 h-4 text-gray-500" />
         </button>
       </div>
-      <div className="p-3 border-b" style={{ borderColor: "#DAD8D0" }}>
+      <div className="p-3 border-b" style={{ borderColor: "#EAE6F5" }}>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
           <input
