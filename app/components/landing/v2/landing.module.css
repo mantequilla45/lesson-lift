@@ -45,7 +45,13 @@
   line-height: 1.28;
 }
 
-.page p {
+/* The paragraph reset. `:where()` carries ZERO specificity, so a component
+   rule beats it with a single class. As `.page p` it was two selectors against
+   the one class of `.sub`, which silently killed the `margin: 0 auto` that
+   centres the hero subtext: the paragraph kept its `max-width` and its centred
+   text but lost the auto margins, so the whole block sat hard against the left
+   of the shell while the headline above it stayed centred. */
+:where(.page) p {
   margin: 0;
 }
 
