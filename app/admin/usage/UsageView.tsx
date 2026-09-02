@@ -18,6 +18,7 @@ import {
   Disclosure,
   EmptyState,
   Note,
+  PLAN_TONE,
   PageHead,
   Stat,
   Table,
@@ -343,7 +344,7 @@ export default function UsageView({
                         </div>
                       </Td>
                       <Td>
-                        <Tag tone={r.plan === "free" ? "plain" : "brand"}>{r.plan}</Tag>
+                        <Tag tone={PLAN_TONE[r.plan] ?? "plain"}>{r.plan}</Tag>
                       </Td>
                       <Td align="right">
                         <div className="tabular-nums" style={{ color: C.ink }}>

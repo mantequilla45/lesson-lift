@@ -121,6 +121,22 @@ const STATUS_STYLE: Record<string, { bg: string; color: string }> = {
   canceled: { bg: "#F1ECFC", color: "#6D6683" },
 };
 
+/**
+ * Plan → pill colours, mirroring PLAN_TONE in ../ui.tsx (free plain, pro ok,
+ * max ai, school brand) in the inline-hex form the rest of this drawer's pills
+ * use.
+ *
+ * This was a two-branch "free is grey, everything else is green", which gave
+ * Max the same green as Pro and made a £14.99 subscriber indistinguishable from
+ * a £7.99 one at a glance.
+ */
+const PLAN_STYLE: Record<string, { bg: string; color: string }> = {
+  free: { bg: "#F1ECFC", color: "#6D6683" },
+  pro: { bg: "#E1F5EE", color: "#0F6E56" },
+  max: { bg: "#F1ECFC", color: "#5B2ED6" },
+  school: { bg: "#F1ECFC", color: "#5B2ED6" },
+};
+
 function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 }
@@ -364,7 +380,7 @@ export default function TeacherDrawer({ userId, onClose }: { userId: string; onC
                 <div className="flex flex-wrap items-center gap-1.5 mt-2">
                   <span
                     className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
-                    style={{ backgroundColor: plan === "free" ? "#F1ECFC" : "#E1F5EE", color: plan === "free" ? "#6D6683" : "#0F6E56" }}
+                    style={PLAN_STYLE[plan] ? { backgroundColor: PLAN_STYLE[plan].bg, color: PLAN_STYLE[plan].color } : { backgroundColor: "#F1ECFC", color: "#6D6683" }}
                   >
                     {p.name}
                   </span>

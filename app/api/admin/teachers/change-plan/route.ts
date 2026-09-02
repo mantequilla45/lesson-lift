@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdminRoute } from "@/app/lib/auth/admin-route";
 import { supabaseAdmin } from "@/app/lib/supabase-admin";
-import { stripe, priceIdFor } from "@/app/lib/stripe";
+import { stripe, priceIdFor, isPaidPlanId } from "@/app/lib/stripe";
 import { SELECTABLE_PLANS } from "@/app/lib/plans";
 
 // Moves a teacher between plans from the admin console.
@@ -87,9 +87,21 @@ export async function POST(req: NextRequest) {
       } else {
         // Case 2 — real subscription. Requires a default payment method on the
         // customer; Stripe rejects it otherwise, which surfaces below.
+        //
+        // The price MUST follow the requested plan. This once read
+        // priceIdFor("pro") unconditionally, so moving a teacher to Max created
+        // a subscription on the PRO price: they were billed £7.99 instead of
+        // £14.99, and the webhook then resolved that price back to "pro" and
+        // quietly undid the admin's change.
+        if (!isPaidPlanId(plan)) {
+          return NextResponse.json(
+            { error: `${plan} isn't sold through Stripe Checkout.` },
+            { status: 400 },
+          );
+        }
         const sub = await stripe.subscriptions.create({
           customer: profile.stripe_customer_id,
-          items: [{ price: await priceIdFor("pro") }],
+          items: [{ price: await priceIdFor(plan) }],
           metadata: { userId, admin_action: "change_plan" },
         });
         method = "stripe";

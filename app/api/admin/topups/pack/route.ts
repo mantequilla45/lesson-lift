@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAdminRoute } from "@/app/lib/auth/admin-route";
 import { supabaseAdmin } from "@/app/lib/supabase-admin";
 import { replacePrice, assertPriceUsable, assertSaneAmount } from "@/app/lib/stripe-prices";
+import { SELECTABLE_PLAN_IDS } from "@/app/lib/plans";
 
 // Create or edit a top-up pack, keeping Stripe in step.
 //
@@ -27,6 +28,7 @@ export async function POST(req: NextRequest) {
     unit?: number;
     active?: boolean;
     availableTo?: string[];
+    sort?: number;
   };
   try {
     body = await req.json();
@@ -39,6 +41,33 @@ export async function POST(req: NextRequest) {
   const amountGbp = Number(body.priceGbp);
   const unit = Number(body.unit);
   const active = body.active !== false;
+
+  // Validated against the real plan ids rather than stored as sent: this array
+  // is what decides who is offered the pack, and a typo ("Pro", "max ") would
+  // match no plan and silently hide the pack from everyone.
+  let availableTo: string[] | null = null;
+  if (body.availableTo !== undefined) {
+    if (!Array.isArray(body.availableTo)) {
+      return NextResponse.json({ error: "availableTo must be a list of plans." }, { status: 400 });
+    }
+    const unknown = body.availableTo.filter(
+      (p) => !(SELECTABLE_PLAN_IDS as string[]).includes(p),
+    );
+    if (unknown.length > 0) {
+      return NextResponse.json(
+        { error: `Not a plan we sell: ${unknown.join(", ")}.` },
+        { status: 400 },
+      );
+    }
+    availableTo = body.availableTo;
+  }
+
+  // Blank means "leave it alone" (edit) or "append at the end" (create), which
+  // the RPC works out. Only a real number is passed through.
+  const sort =
+    body.sort === undefined || body.sort === null || !Number.isFinite(Number(body.sort))
+      ? null
+      : Math.trunc(Number(body.sort));
 
   if (!name) {
     return NextResponse.json({ error: "A pack name is required." }, { status: 400 });
@@ -56,12 +85,13 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Existing pack, if this is an edit.
+  // Existing pack, if this is an edit. `available_to` is selected so an edit can
+  // CARRY IT FORWARD — see the note where it is written below.
   const existing = id
     ? (
         await supabaseAdmin
           .from("topup_packs")
-          .select("id, kind, name, price_gbp, stripe_price_id")
+          .select("id, kind, name, price_gbp, stripe_price_id, available_to")
           .eq("id", id)
           .maybeSingle()
       ).data
@@ -118,7 +148,16 @@ export async function POST(req: NextRequest) {
         price_gbp: amountGbp,
         unit,
         active,
-        available_to: body.availableTo ?? ["free", "pro"],
+        // Preserved when not sent, never defaulted to a narrower list. The
+        // fallback here used to be ["free","pro"], which meant EVERY save
+        // rewrote the row: credit packs silently lost "max", and the image
+        // packs (seeded ["pro","max"]) were flipped to ["free","pro"], handing
+        // them to Free users and taking them from Max. The editor now sends
+        // this explicitly, but a caller that omits it still leaves it alone.
+        available_to: availableTo ?? existing?.available_to ?? SELECTABLE_PLAN_IDS,
+        // Omitted rather than nulled when absent, so the RPC keeps the current
+        // value on an edit and appends at the end on a create.
+        ...(sort === null ? {} : { sort }),
         stripe_price_id: stripePriceId,
       },
     });

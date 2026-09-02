@@ -37,11 +37,14 @@ export default function AssistantLocked() {
         ))}
       </ul>
 
+      {/* Their own subscription page, not /pricing: they are signed in, and the
+          plan cards there can sell every plan. /pricing is the logged-out
+          marketing page and only ever offers Pro. */}
       <Link
-        href="/pricing"
+        href="/profile?section=subscription"
         className="mt-8 rounded-xl bg-(--j-purple) px-6 py-3 text-sm font-semibold text-white transition-opacity hover:opacity-90"
       >
-        Upgrade to Pro — £7.99 a month
+        Upgrade to Pro, £7.99 a month
       </Link>
       <p className="mt-3 text-xs text-muted">Cancel any time.</p>
     </div>

@@ -7,6 +7,7 @@ import { COST, ONBOARD_FEE, SEAT_BANDS, marginTone, worstCase } from "@/app/lib/
 import {
   AI_SPEND_CEILING_PENCE,
   PLAN_CREDITS,
+  PRICEABLE_PLAN_IDS,
   toCredits,
   type PlanId,
 } from "@/app/lib/plans";
@@ -62,8 +63,13 @@ export interface PricingRule {
 }
 
 /** Plans sold through Stripe Checkout, and therefore able to have a real price
- *  changed from here. Free has nothing to charge; School isn't built. */
-const PRICEABLE = new Set(["pro"]);
+ *  changed from here. Free has nothing to charge; School isn't built.
+ *
+ *  Imported rather than redeclared: this screen and /api/admin/plans/price must
+ *  agree on which plans are priceable, and when the list lived in both places
+ *  they drifted — the screen went on offering "display only" for Max after Max
+ *  was back on sale. */
+const PRICEABLE = new Set<string>(PRICEABLE_PLAN_IDS);
 
 export default function PlansView({
   plans,

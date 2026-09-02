@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAdminRoute } from "@/app/lib/auth/admin-route";
 import { supabaseAdmin } from "@/app/lib/supabase-admin";
 import { replacePrice, assertPriceUsable } from "@/app/lib/stripe-prices";
+import { PRICEABLE_PLAN_IDS } from "@/app/lib/plans";
 
 // Changes what a plan actually costs, in Stripe and in our database.
 //
@@ -18,8 +19,29 @@ import { replacePrice, assertPriceUsable } from "@/app/lib/stripe-prices";
 //
 // Runs through the service role, so requireAdminRoute IS the security boundary.
 
-/** Plans that can have a self-serve Stripe price. */
-const PRICEABLE = new Set(["pro"]);
+/** Plans that can have a self-serve Stripe price. Shared with the Plans admin
+ *  screen so the field it offers and the allowlist enforced here cannot drift —
+ *  they did before, both stuck on Pro after Max returned to sale. */
+const PRICEABLE = new Set<string>(PRICEABLE_PLAN_IDS);
+
+/**
+ * The env-var fallback for a plan's CURRENT price, used when plan_config has no
+ * stripe_price_monthly recorded yet.
+ *
+ * Per-plan, and that matters: this was once hardcoded to Pro's env var for
+ * every plan. replacePrice() resolves the Stripe PRODUCT from the price id it
+ * is given and then archives that price, so saving a Max price while Max's
+ * column was empty would have created the new Max price on the PRO product and
+ * archived Pro's live price, breaking Pro checkout for every customer.
+ *
+ * Returning null is safe: replacePrice creates a fresh Product and archives
+ * nothing.
+ */
+function envPriceFor(planId: string): string | null {
+  if (planId === "pro") return process.env.STRIPE_PRICE_PRO_MONTHLY || null;
+  if (planId === "max") return process.env.STRIPE_PRICE_MAX_MONTHLY || null;
+  return null;
+}
 
 export async function POST(req: NextRequest) {
   const gate = await requireAdminRoute("change_plan");
@@ -40,7 +62,7 @@ export async function POST(req: NextRequest) {
       {
         error:
           `${planId || "That plan"} has no self-serve Stripe price. ` +
-          `Only Pro is sold through Checkout.`,
+          `Only ${PRICEABLE_PLAN_IDS.join(" and ")} are sold through Checkout.`,
       },
       { status: 400 },
     );
@@ -64,8 +86,7 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  const currentPriceId =
-    plan.stripe_price_monthly || process.env.STRIPE_PRICE_PRO_MONTHLY || null;
+  const currentPriceId = plan.stripe_price_monthly || envPriceFor(planId);
 
   try {
     const result = await replacePrice({

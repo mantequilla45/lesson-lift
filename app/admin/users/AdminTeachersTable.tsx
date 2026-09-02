@@ -262,10 +262,10 @@ export default function AdminTeachersTable({ rows }: { rows: TeacherRow[] }) {
             style={selectStyle}
           >
             <option value="">All plans</option>
-            {/* Only the plans we actually sell. Max is withdrawn and School
-                isn't built, so listing them here reads as bloat — and nobody
-                is on either (checked: 8 free, 2 pro). A teacher somehow
-                holding one still renders their badge correctly below. */}
+            {/* Only the plans we actually sell: currently Free, Pro and Max.
+                School isn't built, so listing it here reads as bloat. A
+                teacher somehow holding it still renders their badge correctly
+                below. */}
             {SELECTABLE_PLANS.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.name}

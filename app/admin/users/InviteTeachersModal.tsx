@@ -239,9 +239,9 @@ export default function InviteTeachersModal({ onClose }: { onClose: () => void }
                 className={fieldClass}
                 style={fieldStyle}
               >
-                {/* Free and Pro only — Max is withdrawn from sale and School
-                    isn't built, so inviting someone onto either would put them
-                    on a plan we can't bill. */}
+                {/* The plans we sell — currently Free, Pro and Max. School
+                    isn't built, so inviting someone onto it would put them on
+                    a plan we can't bill. */}
                 {SELECTABLE_PLANS.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.name}

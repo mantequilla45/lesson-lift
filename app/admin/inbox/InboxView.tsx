@@ -12,6 +12,7 @@ import {
   C,
   EmptyState,
   Meter,
+  PLAN_TONE,
   PageHead,
   StatusTag,
   Tag,
@@ -424,7 +425,7 @@ export default function InboxView({
                     </div>
                     <div className="flex items-center gap-1 mt-1.5">
                       <StatusTag status={t.status} />
-                      <Tag tone={t.plan === "free" ? "plain" : "brand"}>{t.plan}</Tag>
+                      <Tag tone={PLAN_TONE[t.plan] ?? "plain"}>{t.plan}</Tag>
                       {/* Who the ball is with. The list is sorted by triage need,
                           so this is the fastest read of "does this need me?". */}
                       {t.status !== "closed" && t.last_direction === "inbound" && (
@@ -632,7 +633,7 @@ export default function InboxView({
                 {thread.email}
               </div>
               <div className="flex flex-wrap gap-1.5 mb-4">
-                <Tag tone={thread.plan === "free" ? "plain" : "brand"}>{plan.name}</Tag>
+                <Tag tone={PLAN_TONE[thread.plan] ?? "plain"}>{plan.name}</Tag>
                 {thread.school_name && <Tag>{thread.school_name}</Tag>}
               </div>
 

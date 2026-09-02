@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { X } from "lucide-react";
-import { SELECTABLE_PLANS } from "@/app/lib/plans";
+import { PLANS, SELECTABLE_PLANS, asPlanId } from "@/app/lib/plans";
 
 // Changing a plan means different things depending on what's behind the
 // account, and getting it wrong costs real money — so the modal spells out
@@ -38,18 +38,25 @@ export default function ChangePlanModal({
 
   const downgrade = plan === "free";
 
+  // Both plans by their real names. These sentences used to say "Pro"
+  // unconditionally, which was wrong at both ends once Max went back on sale:
+  // it described losing "Pro access" to a teacher who was on Max, and offered
+  // to comp "Pro" when the admin had selected Max at twice the price.
+  const targetName = PLANS[asPlanId(plan)].name;
+  const currentName = PLANS[asPlanId(currentPlan)].name;
+
   // Mirrors the branching in /api/admin/teachers/change-plan so the admin knows
   // what they're about to do. Kept in step with that route by hand — if the
   // cases there change, change them here too.
   const consequence = downgrade
     ? hasSubscription
       ? immediate
-        ? "Their Stripe subscription will be cancelled straight away and they'll lose Pro access now."
+        ? `Their Stripe subscription will be cancelled straight away and they'll lose ${currentName} access now.`
         : "Their Stripe subscription will be set to cancel at the end of the current period. They keep access until then."
       : "They'll move to Free right away. There's no Stripe subscription to cancel."
     : hasCustomer
-      ? "A Stripe subscription will be created and their card will be charged on the normal cycle."
-      : "This teacher has no card on file, so this is a COMP — they'll get Pro for free until you change it back. Nothing will be billed.";
+      ? `A Stripe subscription will be created at the ${targetName} price and their card will be charged on the normal cycle.`
+      : `This teacher has no card on file, so this is a COMP — they'll get ${targetName} for free until you change it back. Nothing will be billed.`;
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();

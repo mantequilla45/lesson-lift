@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronDown, ChevronUp, Mail } from "lucide-react";
 import { usePermissions } from "./usePermissions";
-import { C, Tag } from "../ui";
+import { C, PLAN_TONE, Tag } from "../ui";
 import { fmtRelative } from "../format";
 
 export interface PendingInvite {
@@ -85,7 +85,9 @@ export default function PendingInvites({ invites }: { invites: PendingInvite[] }
                     {inv.email}
                   </td>
                   <td className="px-4 py-2.5 capitalize" style={{ color: C.ink2 }}>
-                    {inv.invited_plan ?? "free"}
+                    <Tag tone={PLAN_TONE[inv.invited_plan ?? "free"] ?? "plain"}>
+                      {inv.invited_plan ?? "free"}
+                    </Tag>
                   </td>
                   <td className="px-4 py-2.5 whitespace-nowrap" style={{ color: C.muted }}>
                     {new Date(inv.expires_at).getTime() < Date.now() ? (

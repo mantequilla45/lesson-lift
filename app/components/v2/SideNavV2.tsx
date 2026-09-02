@@ -50,6 +50,13 @@ interface NavItem {
   soon?: boolean;
 }
 
+/**
+ * Show the top-up button once this fraction of the month's credits or less is
+ * left. The mirror of PROMINENT_AT (0.8 USED) in the billing page's
+ * AllowanceMeter — same moment, counted from the other end.
+ */
+const LOW_CREDIT_AT = 0.2;
+
 const NAV: NavItem[] = [
   { label: "Today", href: "/dashboard", Icon: House },
   { label: "Make", href: "/tools", Icon: SquaresFour, count: "tools" },
@@ -283,13 +290,28 @@ export default function SideNavV2({ mobileOpen = false, onMobileClose }: SideNav
                   month: "long",
                 })}
               </p>
-              <button
-                type="button"
-                className={styles.topup}
-                onClick={() => setTopUpOpen(true)}
-              >
-                Top up credits
-              </button>
+              {/* The METER is always shown on a metered plan; the BUTTON only
+                  once credits are actually running low. Offering to sell more
+                  to someone with most of the month's allowance left is a nag,
+                  and pricing_rules carries the same instinct as `hide_counter`.
+
+                  MIND THE INVERSION: this fraction is credits REMAINING (see
+                  useCreditMeter), while AllowanceMeter's same-named fraction is
+                  the proportion USED. `remaining <= 0.2` here and `used >= 0.8`
+                  there are the same moment described from opposite ends — they
+                  are not a contradiction to be tidied up.
+
+                  Suppressed while loading so the button cannot flash on against
+                  the initial remaining=0 before real figures arrive. */}
+              {!credits.loading && credits.fraction <= LOW_CREDIT_AT && (
+                <button
+                  type="button"
+                  className={styles.topup}
+                  onClick={() => setTopUpOpen(true)}
+                >
+                  Top up credits
+                </button>
+              )}
             </div>
           )}
 
