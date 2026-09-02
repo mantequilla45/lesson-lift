@@ -11,6 +11,30 @@
 // yields null and the form opens empty — never a crash, never half-filled.
 import { assistantToolFor } from "@/app/lib/assistant-tools";
 
+/** One answer the teacher can pick in a clarifying question. */
+export interface ClarifyOption {
+  /** What the teacher sees on the chip. */
+  label: string;
+  /** The value written into the field when they pick it. */
+  value: string;
+}
+
+/**
+ * A question Mo asks before opening a tool.
+ *
+ * Carries the tool and everything already parsed, so answering resolves
+ * straight to a prefill without going back to the model.
+ */
+export interface ToolClarify {
+  slug: string;
+  question: string;
+  /** The field an answer fills in. */
+  field: string;
+  options: ClarifyOption[];
+  /** What was understood from the request already. */
+  fields: Record<string, string | number | boolean | string[]>;
+}
+
 /** What the assistant decided, and what the tool page consumes. */
 export interface ToolPrefill {
   slug: string;
@@ -76,6 +100,33 @@ export function validatePrefill(raw: unknown): ToolPrefill | null {
   const tool = assistantToolFor(slug);
   if (!tool) return null; // not a wired tool — never open it
   if (!fields || typeof fields !== "object" || Array.isArray(fields)) return null;
+
+  const clean = cleanFields(slug, fields as Record<string, unknown>);
+  if (!clean || Object.keys(clean).length === 0) return null;
+
+  // A prefill missing a required field would open a form the teacher still has
+  // to complete, having been told it was filled in. Better to answer in chat.
+  const required =
+    (tool.fields as { required?: string[] }).required ?? [];
+  if (required.some((f) => clean[f] === undefined)) return null;
+
+  return { slug, fields: clean };
+}
+
+/**
+ * Sanitise a raw field bag against a tool's schema.
+ *
+ * The allow-list half of validatePrefill, split out so a clarifying question
+ * can carry partially parsed fields through the same checks. Deliberately does
+ * NOT enforce required fields: a clarify is incomplete by definition, which is
+ * the whole reason it is asking.
+ */
+function cleanFields(
+  slug: string,
+  fields: Record<string, unknown>,
+): Record<string, string | number | boolean | string[]> | null {
+  const tool = assistantToolFor(slug);
+  if (!tool) return null;
 
   const schema = tool.fields as {
     properties: Record<string, {
@@ -166,14 +217,85 @@ export function validatePrefill(raw: unknown): ToolPrefill | null {
     }
   }
 
-  if (Object.keys(clean).length === 0) return null;
+  return clean;
+}
 
-  // A prefill missing a required field would open a form the teacher still has
-  // to complete, having been told it was filled in. Better to answer in chat.
-  const required = schema.required ?? [];
-  if (required.some((f) => clean[f] === undefined)) return null;
+/** Cap on the question text. One sentence, not a paragraph. */
+const MAX_QUESTION = 200;
 
-  return { slug, fields: clean };
+/** Cap on an option label or value. These become chips, so they must stay short. */
+const MAX_OPTION = 80;
+
+/**
+ * Validate a clarifying question from the model.
+ *
+ * Same hostile-input posture as validatePrefill: an unknown tool, an unknown
+ * field, or options that are not real values for that field all yield null, and
+ * Mo simply answers in chat instead. A bad question is worse than none, because
+ * it stalls a teacher who was already clear.
+ */
+export function validateClarify(raw: unknown): ToolClarify | null {
+  if (!raw || typeof raw !== "object") return null;
+  const { slug, question, field, options, fields } = raw as Record<string, unknown>;
+
+  if (typeof slug !== "string") return null;
+  const tool = assistantToolFor(slug);
+  if (!tool) return null;
+
+  if (typeof question !== "string" || !question.trim()) return null;
+  if (typeof field !== "string" || !field.trim()) return null;
+
+  const schema = tool.fields as {
+    properties: Record<string, { enum?: readonly unknown[] }>;
+  };
+  // The question must be about a field the tool actually has, or answering it
+  // would fill in nothing.
+  const spec = schema.properties[field];
+  if (!spec) return null;
+
+  if (!Array.isArray(options)) return null;
+  const clean: ClarifyOption[] = [];
+  const seen = new Set<string>();
+  for (const raw of options) {
+    if (!raw || typeof raw !== "object") continue;
+    const { label, value } = raw as { label?: unknown; value?: unknown };
+    if (typeof label !== "string" || typeof value !== "string") continue;
+    const l = label.trim();
+    const v = value.trim();
+    if (!l || !v) continue;
+    // A closed field can only be asked about with its own members, so a chip
+    // can never write a value the form would render as nothing.
+    if (spec.enum) {
+      const match = spec.enum.find(
+        (e) => typeof e === "string" && normaliseEnum(e) === normaliseEnum(v),
+      );
+      if (match === undefined) continue;
+      if (seen.has(match as string)) continue;
+      seen.add(match as string);
+      clean.push({ label: l.slice(0, MAX_OPTION), value: match as string });
+      continue;
+    }
+    if (seen.has(v)) continue;
+    seen.add(v);
+    clean.push({ label: l.slice(0, MAX_OPTION), value: v.slice(0, MAX_OPTION) });
+  }
+
+  // Two is the point: one option is not a choice, and more than three is a
+  // form, which is what the tool page is for.
+  if (clean.length < 2) return null;
+
+  const parsed =
+    fields && typeof fields === "object" && !Array.isArray(fields)
+      ? (cleanFields(slug, fields as Record<string, unknown>) ?? {})
+      : {};
+
+  return {
+    slug,
+    question: question.trim().slice(0, MAX_QUESTION),
+    field,
+    options: clean.slice(0, 3),
+    fields: parsed,
+  };
 }
 
 /**

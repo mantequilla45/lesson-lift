@@ -50,7 +50,7 @@
    teacher can see they picked the right thing before they pick a person. */
 .subject {
   font-size: 0.88rem;
-  font-weight: 700;
+  font-weight: 800;
   color: var(--j-deep);
   background: var(--j-tint);
   border-radius: var(--j-r);
@@ -153,7 +153,7 @@
   display: block;
   font-size: 0.9rem;
   color: var(--j-ink);
-  font-weight: 700;
+  font-weight: 800;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

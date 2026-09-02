@@ -1,0 +1,417 @@
+/* Colleagues.
+   Ported from the #friends section of
+   docs/JOOMA VERSION 2/2-jooma-dashboard-web_1.html, with every literal swapped
+   for a --j-* token.
+
+   Only what the prototype adds beyond the shared furniture lives here. The
+   header, panels, rows, buttons and empty states come from app.module.css, so
+   anything already solved there is not restated.
+
+   Class names are namespaced past the prototype's `.m`, `.when` and `.act`, for
+   the reason in app.module.css's header: those bare names collided across
+   components in the prototype. */
+
+/* ── The bar above the list ──────────────────────────────────────────────── */
+
+.fbar {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+/* The prototype caps the search at 420px inline. It is a token-free constant of
+   the layout, not a value worth a variable. */
+.searchBig {
+  max-width: 420px;
+}
+
+/* ── A colleague ─────────────────────────────────────────────────────────── */
+
+.friendPanel {
+  padding: 6px 16px;
+}
+
+.friend {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--j-line);
+}
+
+.friend:last-child {
+  border-bottom: 0;
+}
+
+.fav {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--j-tint);
+  color: var(--j-deep);
+  display: grid;
+  place-items: center;
+  font-size: 0.88rem;
+  font-weight: 800;
+  flex: none;
+  object-fit: cover;
+}
+
+/* The name column. `min-width: 0` is what lets a long name ellipsise rather
+   than pushing the stats off the end of the row. */
+.friendMain {
+  flex: 1;
+  min-width: 0;
+}
+
+.friendName {
+  font-size: 0.97rem;
+  font-weight: 800;
+  color: var(--j-ink);
+  letter-spacing: -0.015em;
+  line-height: 1.2;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.friendMeta {
+  font-size: 0.78rem;
+  color: var(--j-faint);
+  display: block;
+  margin-top: 1px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Attainment gold, the one place in the app that uses it. See the token
+   comment in globals.css: gold marks what a teacher has earned. */
+.lvlpill {
+  background: var(--j-gold-bg);
+  color: var(--j-gold);
+  font-size: 0.71rem;
+  font-weight: 800;
+  padding: 4px 10px;
+  border-radius: var(--j-pill);
+  flex: none;
+  white-space: nowrap;
+}
+
+/* ── The four metrics ────────────────────────────────────────────────────── */
+
+.fstats {
+  display: flex;
+  gap: 22px;
+  flex: none;
+}
+
+.fstat {
+  text-align: center;
+}
+
+.fstatValue {
+  display: block;
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--j-ink);
+  letter-spacing: -0.02em;
+}
+
+/* A value the teacher has not reached yet, rendered as words rather than a
+   zero. Same rule as ProfileHeader and TodayView: never a zero as a headline. */
+.fstatEmpty {
+  color: var(--j-faint);
+  font-size: 0.83rem;
+  font-weight: 800;
+}
+
+.fstatLabel {
+  font-size: 0.66rem;
+  color: var(--j-faint);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.friendAction {
+  flex: none;
+}
+
+/* Below 1100px the four stat columns and a name and a button no longer fit on
+   one line. The row wraps and the stats drop underneath, rather than the name
+   ellipsising to nothing. */
+@media (max-width: 1100px) {
+  .friend {
+    flex-wrap: wrap;
+  }
+
+  .friendMain {
+    flex: 1 1 200px;
+  }
+
+  .fstats {
+    order: 3;
+    flex: 1 1 100%;
+    justify-content: space-between;
+    gap: 12px;
+    padding-top: 4px;
+  }
+
+  .fstat {
+    text-align: left;
+  }
+}
+
+/* ── Shared with you ─────────────────────────────────────────────────────── */
+
+/* The row is not a button here, because it carries two of its own. Matches
+   app.module.css .row otherwise. */
+.sharedRow {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--j-line);
+}
+
+.sharedRow:last-child {
+  border-bottom: 0;
+}
+
+.act {
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: var(--j-purple);
+  background: var(--j-tint);
+  border: 0;
+  border-radius: var(--j-pill);
+  padding: 6px 13px;
+  font-family: inherit;
+  cursor: pointer;
+  flex: none;
+}
+
+.act:hover {
+  background: var(--j-tint-2);
+}
+
+.act:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+/* Dismiss. Quieter than the save, because saving is the thing worth doing and
+   the two should not read as a pair of equal choices. */
+.dismiss {
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: var(--j-faint);
+  background: none;
+  border: 0;
+  padding: 6px 4px;
+  font-family: inherit;
+  cursor: pointer;
+  flex: none;
+}
+
+.dismiss:hover {
+  color: var(--j-body);
+}
+
+.when {
+  font-size: 0.77rem;
+  color: var(--j-faint);
+  font-weight: 800;
+  flex: none;
+  min-width: 30px;
+  text-align: right;
+}
+
+/* ── Requests, and search results ────────────────────────────────────────── */
+
+/* A pending request the teacher sent. Not a button: there is nothing to press,
+   it is a statement of where things stand. */
+.pending {
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: var(--j-faint);
+  padding: 9px 4px;
+  flex: none;
+}
+
+.actionPair {
+  display: flex;
+  gap: 8px;
+  flex: none;
+}
+
+/* ── Feedback ────────────────────────────────────────────────────────────── */
+
+.error {
+  font-size: 0.86rem;
+  color: var(--j-orange-ink);
+  background: var(--j-orange-bg);
+  border-radius: var(--j-r);
+  padding: 11px 14px;
+  margin-bottom: 16px;
+}
+
+.state {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.87rem;
+  color: var(--j-muted);
+  padding: 20px 16px;
+}
+
+.spin {
+  width: 16px;
+  height: 16px;
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spin {
+    animation: none;
+  }
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ── Invite modal ────────────────────────────────────────────────────────── */
+
+.scrim {
+  position: fixed;
+  inset: 0;
+  background: rgba(29, 23, 48, 0.45);
+  display: grid;
+  place-items: center;
+  z-index: 80;
+  padding: 20px;
+}
+
+.modal {
+  background: var(--j-card);
+  border-radius: var(--j-r-xl);
+  padding: 28px;
+  width: 100%;
+  max-width: 460px;
+  font-family: var(--font-jakarta), system-ui, sans-serif;
+}
+
+.modalTitle {
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+  color: var(--j-ink);
+  margin: 0 0 6px;
+  outline: none;
+}
+
+.modalSub {
+  font-size: 0.88rem;
+  color: var(--j-muted);
+  margin: 0 0 20px;
+}
+
+.field {
+  margin-bottom: 16px;
+}
+
+.fieldLabel {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: var(--j-ink);
+  margin-bottom: 7px;
+}
+
+.input {
+  width: 100%;
+  background: var(--j-bg);
+  border: 1px solid var(--j-line-2);
+  border-radius: var(--j-r);
+  padding: 12px 14px;
+  font-size: 0.9rem;
+  font-family: inherit;
+  color: var(--j-ink);
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--j-lilac-2);
+}
+
+.modalFoot {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 20px;
+}
+
+.modalFoot button {
+  border-radius: var(--j-pill);
+  padding: 10px 18px;
+  font-size: 0.87rem;
+  font-weight: 800;
+  font-family: inherit;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+.modalCancel {
+  background: var(--j-card);
+  border-color: var(--j-line-2);
+  color: var(--j-body);
+}
+
+.modalCancel:hover {
+  border-color: var(--j-lilac-2);
+  color: var(--j-deep);
+}
+
+.modalSave {
+  background: var(--j-purple);
+  color: #fff;
+}
+
+.modalSave:hover {
+  background: var(--j-deep);
+}
+
+.modalSave:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.modalSave:disabled:hover {
+  background: var(--j-purple);
+}
+
+.modalNote {
+  font-size: 0.82rem;
+  color: var(--j-muted);
+  margin: 0;
+}

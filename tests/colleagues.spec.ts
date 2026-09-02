@@ -244,7 +244,7 @@ test.describe("Colleagues", () => {
     await expect(dialog.getByLabel(/their email address/i)).toBeVisible();
 
     // The referral bonus is an open decision, so the interface must not offer
-    // a number nothing pays out. See app/colleagues/InviteModal.tsx.
+    // a number nothing pays out. See app/(app)/colleagues/InviteModal.tsx.
     await expect(dialog.getByText(/200|bonus credits/i)).toHaveCount(0);
 
     await page.keyboard.press("Escape");

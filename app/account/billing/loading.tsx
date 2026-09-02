@@ -1,6 +1,6 @@
 // This segment is now just a redirect into /profile?section=subscription, so
 // there is no content to skeleton — the real loading state belongs to the
-// destination and lives in app/profile/loading.tsx.
+// destination and lives in app/(app)/profile/loading.tsx.
 //
 // The file stays rather than being deleted because the route is still dynamic
 // (it reads searchParams to forward them), and a dynamic segment with no

@@ -111,7 +111,7 @@
 .count {
   margin-left: auto;
   font-size: 0.75rem;
-  font-weight: 700;
+  font-weight: 800;
   color: var(--j-faint);
 }
 
@@ -185,12 +185,16 @@
  * of gauges rather than as unrelated widgets. Tinted rather than bordered: the
  * meter below is the plain one, and giving this the brand tint is what stops
  * two stacked progress bars looking like a settings panel. */
+/* Sits directly under the nav, not down in the foot with credits. The top
+   margin separates it from the last nav item; there is no bottom margin
+   because .foot below owns its own spacing and is pushed to the bottom by
+   margin-top: auto. */
 .levelBox {
   display: block;
   background: var(--j-tint);
   border-radius: var(--j-r);
   padding: 12px 13px;
-  margin-bottom: 12px;
+  margin-top: 16px;
   text-decoration: none;
   transition: background 0.2s var(--j-ease);
 }
@@ -224,13 +228,13 @@
 
 .meterName {
   font-size: 0.77rem;
-  font-weight: 700;
+  font-weight: 800;
   color: var(--j-body);
 }
 
 .meterVal {
   font-size: 0.73rem;
-  font-weight: 700;
+  font-weight: 800;
   color: var(--j-faint);
 }
 

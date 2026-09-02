@@ -6,13 +6,17 @@ import { ChatTeardropDots } from "@phosphor-icons/react/dist/ssr";
 import { useState } from "react";
 import MarkdownResult from "@/app/components/MarkdownResult";
 import ToolLinkCard from "@/app/components/assistant/ToolLinkCard";
-import type { ToolPrefill } from "@/app/lib/toolPrefill";
+import ClarifyChips from "@/app/components/assistant/ClarifyChips";
+import type { ToolPrefill, ToolClarify } from "@/app/lib/toolPrefill";
 
 export interface ChatTurn {
   id: string;
   role: "user" | "assistant";
   content: string;
   toolCall?: ToolPrefill | null;
+  /** A question asked instead of opening a tool. Never persisted: a stale
+   *  question on reload would offer a choice that has already been made. */
+  clarify?: ToolClarify | null;
 }
 
 interface Props {
@@ -57,6 +61,7 @@ export default function ChatMessages({ turns, streaming = false }: Props) {
               key={turn.id}
               content={turn.content}
               toolCall={turn.toolCall}
+              clarify={turn.clarify}
               // Only the final turn can still be arriving.
               streaming={streaming && i === turns.length - 1}
             />
@@ -81,10 +86,12 @@ function UserTurn({ content }: { content: string }) {
 function AssistantTurn({
   content,
   toolCall,
+  clarify,
   streaming,
 }: {
   content: string;
   toolCall?: ToolPrefill | null;
+  clarify?: ToolClarify | null;
   streaming: boolean;
 }) {
   const [copied, setCopied] = useState(false);
@@ -127,6 +134,8 @@ function AssistantTurn({
         )}
 
         {toolCall && <ToolLinkCard prefill={toolCall} />}
+
+        {clarify && <ClarifyChips clarify={clarify} />}
 
         {/* Actions appear once the reply is complete — offering "copy"
             mid-stream would copy a fragment. */}

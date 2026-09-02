@@ -93,7 +93,7 @@
   font-family: inherit;
   border-radius: var(--j-pill);
   font-size: 0.9rem;
-  font-weight: 700;
+  font-weight: 800;
   color: var(--j-muted);
   transition:
     background 0.15s,
@@ -284,7 +284,7 @@
 
 .stepNow {
   color: var(--j-ink);
-  font-weight: 700;
+  font-weight: 800;
 }
 
 .stepNow b {

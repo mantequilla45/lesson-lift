@@ -41,7 +41,7 @@ interface NavItem {
   href: string;
   Icon: React.ComponentType<{ className?: string; weight?: "regular" | "fill" }>;
   /** Which count to show, if any. */
-  count?: "tools" | "resources";
+  count?: "tools" | "resources" | "colleagues";
   /**
    * Features designed but not built. Rendered as a disabled row with a
    * "Soon" pill rather than a link, so the shape of the product is visible
@@ -55,7 +55,7 @@ const NAV: NavItem[] = [
   { label: "Make", href: "/tools", Icon: SquaresFour, count: "tools" },
   { label: "Library", href: "/folders", Icon: Folder, count: "resources" },
   { label: "Timetable", href: "/timetable", Icon: CalendarBlank },
-  { label: "Colleagues", href: "/colleagues", Icon: UsersThree },
+  { label: "Colleagues", href: "/colleagues", Icon: UsersThree, count: "colleagues" },
   // Named for what it is, not what powers it. The language rules in
   // scripts/check-language.mjs fail the build on "AI" in teacher-facing copy,
   // which is what the old "AI assistant" label was.
@@ -85,6 +85,7 @@ export default function SideNavV2({ mobileOpen = false, onMobileClose }: SideNav
   // on navigation so the counts settle after a generation is saved or a
   // notification is read, without needing a full reload.
   const [resourceCount, setResourceCount] = useState<number | null>(null);
+  const [colleagueCount, setColleagueCount] = useState<number | null>(null);
   const [supportUnread, setSupportUnread] = useState(0);
   const [announceUnread, setAnnounceUnread] = useState(0);
 
@@ -92,15 +93,22 @@ export default function SideNavV2({ mobileOpen = false, onMobileClose }: SideNav
     let cancelled = false;
     void (async () => {
       const supabase = createClient();
-      const [runs, support, announce] = await Promise.all([
+      const [runs, colleagues, support, announce] = await Promise.all([
         // head + exact count: no rows come back, just the number. RLS scopes it
         // to the signed-in teacher.
         supabase.from("tool_runs").select("id", { count: "exact", head: true }),
+        // colleague_edges stores both directions, so this is already the
+        // connection count without a de-duplicating OR. Counted here rather
+        // than via listColleagues(), which also fetches every profile.
+        supabase.from("colleague_edges").select("other_id", { count: "exact", head: true }),
         supabase.rpc("my_support_unread"),
         supabase.rpc("my_announcements_unread"),
       ]);
       if (cancelled) return;
       setResourceCount(runs.count ?? null);
+      // null on error (the table is absent on an environment without the
+      // migration), which hides the count rather than showing a false zero.
+      setColleagueCount(colleagues.error ? null : colleagues.count ?? null);
       setSupportUnread(Number(support.data ?? 0));
       setAnnounceUnread(Number(announce.data ?? 0));
     })();
@@ -120,6 +128,9 @@ export default function SideNavV2({ mobileOpen = false, onMobileClose }: SideNav
   const countFor = (item: NavItem): number | null => {
     if (item.count === "tools") return TOOLS.length;
     if (item.count === "resources") return resourceCount;
+    // Hidden at zero: "Colleagues 0" reads as a failure state, and the empty
+    // page already explains how to connect to someone.
+    if (item.count === "colleagues") return colleagueCount || null;
     return null;
   };
 
@@ -195,6 +206,43 @@ export default function SideNavV2({ mobileOpen = false, onMobileClose }: SideNav
           })}
         </nav>
 
+        {/* The level box, directly under the nav rather than down with credits.
+            Shown from level 1 with an empty track, as in the mockup: "9 more
+            badges to reach Level 2" is a goal rather than a judgement, and
+            hiding it until something is earned meant most teachers would
+            never discover the collection exists. Only the migration not being
+            applied hides it. */}
+        {badges.available && !badges.loading && (
+          <Link href="/profile?section=badges" className={styles.levelBox}>
+            <div className={styles.meterTop}>
+              <span className={styles.meterName}>
+                <Medal weight="fill" className={styles.levelIcon} />
+                Level {badges.level}
+              </span>
+              <span className={styles.meterVal}>
+                {/* "None yet" rather than "0 of 100": the count is the one
+                    place a zero would read as a verdict on the teacher. */}
+                {badges.earnedCount === 0
+                  ? "None yet"
+                  : `${badges.earnedCount} of ${badges.total}`}
+              </span>
+            </div>
+            <div className={styles.track}>
+              <i
+                className={styles.trackFill}
+                style={{ width: `${Math.round(badges.levelFraction * 100)}%` }}
+              />
+            </div>
+            <p className={styles.meterNote}>
+              {badges.toNextLevel === 0
+                ? "The full set. Nothing left to climb."
+                : `${badges.toNextLevel} more ${
+                    badges.toNextLevel === 1 ? "badge" : "badges"
+                  } to reach Level ${badges.level + 1}`}
+            </p>
+          </Link>
+        )}
+
         <div className={styles.foot}>
           {/* Pinned from the Library page. */}
           {pinnedTools.length > 0 && (
@@ -209,42 +257,6 @@ export default function SideNavV2({ mobileOpen = false, onMobileClose }: SideNav
             </div>
           )}
 
-          {/* The level box, above credits, per the handover's sidebar order.
-              Shown from level 1 with an empty track, as in the mockup: "9 more
-              badges to reach Level 2" is a goal rather than a judgement, and
-              hiding it until something is earned meant most teachers would
-              never discover the collection exists. Only the migration not being
-              applied hides it. */}
-          {badges.available && !badges.loading && (
-            <Link href="/profile?section=badges" className={styles.levelBox}>
-              <div className={styles.meterTop}>
-                <span className={styles.meterName}>
-                  <Medal weight="fill" className={styles.levelIcon} />
-                  Level {badges.level}
-                </span>
-                <span className={styles.meterVal}>
-                  {/* "None yet" rather than "0 of 100": the count is the one
-                      place a zero would read as a verdict on the teacher. */}
-                  {badges.earnedCount === 0
-                    ? "None yet"
-                    : `${badges.earnedCount} of ${badges.total}`}
-                </span>
-              </div>
-              <div className={styles.track}>
-                <i
-                  className={styles.trackFill}
-                  style={{ width: `${Math.round(badges.levelFraction * 100)}%` }}
-                />
-              </div>
-              <p className={styles.meterNote}>
-                {badges.toNextLevel === 0
-                  ? "The full set. Nothing left to climb."
-                  : `${badges.toNextLevel} more ${
-                      badges.toNextLevel === 1 ? "badge" : "badges"
-                    } to reach Level ${badges.level + 1}`}
-              </p>
-            </Link>
-          )}
 
           {/* Credits live HERE and in the account page, nowhere else. No per
               tool costs on cards, no chips on list rows. */}

@@ -84,16 +84,24 @@ export function useCreditMeter(): CreditMeter {
           metered: true,
         });
       } catch {
-        // A failed lookup must not take the sidebar down with it. Falling back
-        // to unmetered hides the meter rather than showing a wrong balance.
+        // A failed lookup must not take the sidebar down with it, and must not
+        // silently DELETE the credit block either: metered:false is how an
+        // UNMETERED PLAN hides the meter, so reusing it for an error conflates
+        // "you have no ceiling" with "we could not find out".
+        //
+        // Keep whatever was last shown instead. On a first load there is
+        // nothing to keep, so the meter stays in its loading state rather than
+        // resolving to a wrong answer.
+        //
+        // NOTE this catch is narrower than it looks. supabase-js resolves with
+        // { data: null, error } rather than throwing, so a failed request does
+        // NOT land here: getEntitlements falls through to plan "free", whose
+        // ceiling is null, and the meter hides anyway. Credits disappearing in
+        // practice is that path plus a sidebar remount, not this one.
         if (!cancelled) {
-          setState({
-            loading: false,
-            remaining: 0,
-            allowance: 0,
-            fraction: 0,
-            metered: false,
-          });
+          setState((previous) =>
+            previous.loading ? previous : { ...previous, loading: false },
+          );
         }
       }
     })();

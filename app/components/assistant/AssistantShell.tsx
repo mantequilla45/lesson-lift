@@ -1,10 +1,15 @@
 "use client";
 
-// The assistant's persistent frame: chrome, the chat list, and the actions that
-// operate on it.
+// The assistant's persistent frame: the chat list and the actions that operate
+// on it.
 //
-// This lives in app/assistant/layout.tsx rather than in the page, which is the
-// whole point. /assistant and /assistant/[id] are separate route segments, so
+// The sidebar and top bar are NOT here. They live in app/(app)/layout.tsx and
+// are shared with every other signed-in screen, so moving between Ask Mo and
+// the rest of the app no longer tears them down. This declares Ask Mo's own
+// chrome through useAppShell instead.
+//
+// This lives in app/(app)/assistant/layout.tsx rather than in the page, which is
+// the whole point. /assistant and /assistant/[id] are separate route segments, so
 // anything held in the page is torn down and rebuilt on every chat click —
 // the sidebar would refetch from Supabase and, while that was in flight, render
 // "Chats (0) / No chats yet." over a list the teacher had just clicked. In a
@@ -19,8 +24,7 @@ import {
   useState,
 } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import AppShellV2 from "@/app/components/v2/AppShellV2";
-import UpgradeGate from "@/app/components/UpgradeGate";
+import { useAppShell } from "@/app/components/v2/AppShellContext";
 import ConfirmModal from "@/app/components/ConfirmModal";
 import ChatSidebar from "@/app/components/assistant/ChatSidebar";
 import {
@@ -59,6 +63,18 @@ export function useAssistantChats(): AssistantChatsValue {
 export default function AssistantShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
+
+  // The shell itself is shared with every other signed-in screen, so this only
+  // declares what Ask Mo needs from it. "fixed" pins <main> to the viewport so
+  // the chat list and the conversation own their own scrolling; the content
+  // class stacks them below `lg`, where two fixed sidebars (the 250px rail plus
+  // this 292px list) left the conversation at negative width on a phone.
+  useAppShell({
+    title: "Ask Mo",
+    variant: "fixed",
+    contentClassName:
+      "flex flex-1 flex-col lg:flex-row gap-3 overflow-hidden px-4 sm:px-6 lg:px-10 pb-5 min-h-0",
+  });
 
   // null = not loaded yet, [] = genuinely empty. Without the distinction the
   // sidebar renders "No chats yet." during every load, which is the bug this
@@ -141,35 +157,22 @@ export default function AssistantShell({ children }: { children: React.ReactNode
 
   return (
     <>
-      {/* UpgradeGate catches the 402 from a spend ceiling or the plan gate and
-          opens the upgrade/top-up modal. Not inherited from a layout —
-          /assistant is a sibling of /tools, not inside it. */}
-      <AppShellV2
-        title="Ask Mo"
-        variant="fixed"
-        slot={<UpgradeGate />}
-        /* Stacks below `lg`: two fixed sidebars (the 256px rail plus this
-           292px chat list) left the conversation at negative width on a
-           phone. */
-        contentClassName="flex flex-1 flex-col lg:flex-row gap-3 overflow-hidden px-4 sm:px-6 lg:px-10 pb-5 min-h-0"
-      >
-          <ChatSidebar
-            chats={chats ?? []}
-            loading={chats === null}
-            loadFailed={loadFailed}
-            onRetry={refreshChats}
-            activeId={activeId}
-            onSelect={(id) => router.push(`/assistant/${id}`)}
-            onNew={() => router.push("/assistant")}
-            onRename={handleRename}
-            onDelete={(id) => setDeleting(id)}
-            disabled={locked}
-          />
+      <ChatSidebar
+        chats={chats ?? []}
+        loading={chats === null}
+        loadFailed={loadFailed}
+        onRetry={refreshChats}
+        activeId={activeId}
+        onSelect={(id) => router.push(`/assistant/${id}`)}
+        onNew={() => router.push("/assistant")}
+        onRename={handleRename}
+        onDelete={(id) => setDeleting(id)}
+        disabled={locked}
+      />
 
-          <AssistantChatsContext.Provider value={value}>
-            {children}
-          </AssistantChatsContext.Provider>
-      </AppShellV2>
+      <AssistantChatsContext.Provider value={value}>
+        {children}
+      </AssistantChatsContext.Provider>
 
       <ConfirmModal
         open={deleting !== null}
