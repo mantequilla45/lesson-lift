@@ -46,7 +46,7 @@ export interface AppShellV2Props {
   /**
    * "scroll" — the page scrolls (the common case).
    * "fixed"  — <main> is pinned to the viewport and the page owns its own
-   *            scrolling regions. Used by Ask Mo, whose composer is sized
+   *            scrolling regions. Used by Ask Jo, whose composer is sized
    *            against the viewport.
    */
   variant?: "scroll" | "fixed";
@@ -62,7 +62,7 @@ export default function AppShellV2({
   slot,
   banner,
   // No default here: `= "scroll"` would make the prop always defined and so
-  // always beat the context, leaving Ask Mo and Help scrolling. The fallback
+  // always beat the context, leaving Ask Jo and Help scrolling. The fallback
   // belongs below, after the context has had its say.
   variant,
   launcher,

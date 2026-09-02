@@ -32,7 +32,7 @@ export interface AppShellSettings {
   /**
    * "scroll" — the page scrolls (the common case).
    * "fixed"  — <main> is pinned to the viewport and the page owns its own
-   *            scrolling regions. Ask Mo and Help, whose panes are sized
+   *            scrolling regions. Ask Jo and Help, whose panes are sized
    *            against the viewport.
    */
   variant?: "scroll" | "fixed";

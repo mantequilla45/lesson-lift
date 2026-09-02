@@ -41,7 +41,7 @@ import styles from "./TodayView.module.css";
  * Today.
  *
  * The order here is the one the handover specifies, and it matters: this screen
- * starts work rather than reporting on it. Ask Mo and the tools come before the
+ * starts work rather than reporting on it. Ask Jo and the tools come before the
  * numbers.
  *
  * The week panel is the last one with no data behind it: the timetable does not
@@ -296,14 +296,14 @@ export default function TodayView({
   })();
 
   /*
-   * Hand off to Ask Mo.
+   * Hand off to Ask Jo.
    *
    * Deliberately not a second chat implementation: this creates the chat,
    * stores the opening message, and navigates to /assistant/[id], which owns
    * streaming and history. AssistantView notices a conversation that ends on a
    * user turn and answers it, so a refresh mid-answer resumes correctly too.
    *
-   * Mo never generates straight from free text. It parses the intent, opens the
+   * Jo never generates straight from free text. It parses the intent, opens the
    * matched tool with the fields filled, and lets the teacher confirm, so a
    * misread costs nothing. That routing lives in the assistant; this is only the
    * way in.
@@ -348,7 +348,7 @@ export default function TodayView({
           <ChatTeardropDots weight="fill" className={styles.moFaceIcon} />
         </span>
         <div className={styles.moText}>
-          <b>Ask Mo</b>
+          <b>Ask Jo</b>
           <p>Tell it what you need and it opens the right tool, filled in.</p>
         </div>
         <form
@@ -362,12 +362,12 @@ export default function TodayView({
             value={ask}
             onChange={(e) => setAsk(e.target.value)}
             placeholder="Year 4 fractions lesson with a worksheet"
-            aria-label="Ask Mo"
+            aria-label="Ask Jo"
             disabled={asking}
             className={styles.moInput}
           />
           <button type="submit" disabled={asking || !ask.trim()} className={styles.moGo}>
-            {asking ? "Starting…" : "Ask Mo"}
+            {asking ? "Starting…" : "Ask Jo"}
           </button>
         </form>
       </div>

@@ -46,14 +46,14 @@ import {
 /** Header carrying the prefill decision. Base64 so it is header-safe. */
 const TOOL_HEADER = "x-assistant-tool";
 
-/** Header carrying a clarifying question, when Mo asks one instead. */
+/** Header carrying a clarifying question, when Jo asks one instead. */
 const CLARIFY_HEADER = "x-assistant-clarify";
 
 /**
  * What the tool-selection pass decided.
  *
  * A discriminated union rather than two nullable returns, so the two outcomes
- * cannot both be set: Mo either opens a tool or asks about it, never both.
+ * cannot both be set: Jo either opens a tool or asks about it, never both.
  */
 type ToolDecision =
   | { kind: "prefill"; prefill: ToolPrefill }

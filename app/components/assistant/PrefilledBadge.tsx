@@ -1,7 +1,7 @@
 import { PencilSimple } from "@phosphor-icons/react/dist/ssr";
 
 /**
- * Marks a form Mo filled in.
+ * Marks a form Jo filled in.
  *
  * Matters for trust as much as for information: the teacher needs to see at a
  * glance that these values were inferred from a sentence and are theirs to

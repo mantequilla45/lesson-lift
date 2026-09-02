@@ -18,7 +18,7 @@ import {
 const TOOL_HEADER = "x-assistant-tool";
 
 /** Set when the reply is the guardrail's refusal. Shown, but never stored. */
-/** Header carrying a clarifying question, when Mo asks one instead of opening a tool. */
+/** Header carrying a clarifying question, when Jo asks one instead of opening a tool. */
 const CLARIFY_HEADER = "x-assistant-clarify";
 
 const REFUSAL_HEADER = "x-assistant-refusal";

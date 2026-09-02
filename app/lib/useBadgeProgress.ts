@@ -212,7 +212,7 @@ async function runLoad(): Promise<void> {
   emit(derive(next, runs, stats.currentStreak, [...snapshot.justEarned, ...granted]));
 }
 
-/** Account age, profile completeness, Ask Mo use, folder count and share
+/** Account age, profile completeness, Ask Jo use, folder count and share
  *  counts: cheap reads that a handful of badges depend on and nothing else
  *  does. */
 async function loadContext(): Promise<{

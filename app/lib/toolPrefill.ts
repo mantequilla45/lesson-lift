@@ -20,7 +20,7 @@ export interface ClarifyOption {
 }
 
 /**
- * A question Mo asks before opening a tool.
+ * A question Jo asks before opening a tool.
  *
  * Carries the tool and everything already parsed, so answering resolves
  * straight to a prefill without going back to the model.
@@ -231,7 +231,7 @@ const MAX_OPTION = 80;
  *
  * Same hostile-input posture as validatePrefill: an unknown tool, an unknown
  * field, or options that are not real values for that field all yield null, and
- * Mo simply answers in chat instead. A bad question is worse than none, because
+ * Jo simply answers in chat instead. A bad question is worse than none, because
  * it stalls a teacher who was already clear.
  */
 export function validateClarify(raw: unknown): ToolClarify | null {

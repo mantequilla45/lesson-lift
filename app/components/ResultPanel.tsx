@@ -56,9 +56,53 @@ export default function ResultPanel({
   const [exportError, setExportError] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  const headerRef = useRef<HTMLDivElement>(null);
   const userScrolledUp = useRef(false);
   const isGeneratingRef = useRef(isGenerating || isRefining);
   const isBusy = isGenerating || isRefining;
+
+  /*
+   * Publish the sticky header's real height as --result-header-h.
+   *
+   * RichTextEditor's toolbar is sticky too, and it has to come to rest exactly
+   * under this header or the two visibly detach mid-scroll. It used to do that
+   * with a hardcoded `top-22.25`, which was measured on desktop only: this
+   * header is `top-0 lg:top-8` with `py-3 sm:py-4`, so on a phone it is both
+   * shorter AND unoffset, and the toolbar parked ~30px below it with a strip of
+   * document showing through the gap.
+   *
+   * Measured rather than recalculated per breakpoint because no constant is
+   * right: the header is `flex-wrap`, so on a narrow phone the buttons drop to
+   * a second row and it doubles in height. A ResizeObserver tracks that, the
+   * breakpoint change and the sm:/lg: padding steps in one.
+   */
+  useEffect(() => {
+    const header = headerRef.current;
+    const panel = panelRef.current;
+    if (!header || !panel) return;
+
+    const measure = () => {
+      // The offset the header itself sticks at: 0 below lg, 32px at and above
+      // it, matching `top-0 lg:top-8`. The toolbar has to clear both.
+      const offset = window.innerWidth >= 1024 ? 32 : 0;
+      panel.style.setProperty(
+        "--result-header-h",
+        `${header.getBoundingClientRect().height + offset}px`,
+      );
+    };
+
+    const observer = new ResizeObserver(measure);
+    observer.observe(header);
+    // Crossing lg changes the offset without necessarily changing the header's
+    // height, which a ResizeObserver alone would not see.
+    window.addEventListener("resize", measure);
+    measure();
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, [result]);
 
   // Keep ref in sync so the scroll listener always sees the latest value
   useEffect(() => {
@@ -235,7 +279,7 @@ export default function ResultPanel({
             equal z-index it painted over the open menu — hiding "Download PDF"
             and making it look as though the tool had no PDF export at all.
             This must stay above that toolbar's z-10. */}
-        <div className="sticky top-0 lg:top-8 z-30 flex flex-wrap items-center justify-between gap-2 px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200 bg-white rounded-t-3xl">
+        <div ref={headerRef} className="sticky top-0 lg:top-8 z-30 flex flex-wrap items-center justify-between gap-2 px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200 bg-white rounded-t-3xl">
           <div className="flex items-center gap-3">
             <h2 className="font-semibold text-gray-900 text-sm">My results</h2>
             {isGenerating && (

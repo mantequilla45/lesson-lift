@@ -1227,15 +1227,15 @@ export function prefillFunctionDef() {
 /**
  * The clarifying question.
  *
- * Mo asks one when a field a tool NEEDS is genuinely ambiguous, offering two or
+ * Jo asks one when a field a tool NEEDS is genuinely ambiguous, offering two or
  * three concrete options rather than guessing. The handover calls this out as
- * one of the two behaviours that make Mo feel like an assistant rather than a
+ * one of the two behaviours that make Jo feel like an assistant rather than a
  * slot machine: guessing wrong burns a generation and teaches teachers not to
  * trust it.
  *
  * Deliberately bounded:
  *
- *   - ONE question, never a chain. The failure this guards against is Mo
+ *   - ONE question, never a chain. The failure this guards against is Jo
  *     interrogating a teacher who was already perfectly clear.
  *   - The tool and the fields parsed so far travel WITH the question, so
  *     answering an option resolves straight to a prefill without a second

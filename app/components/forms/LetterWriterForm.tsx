@@ -194,7 +194,7 @@ export default function LetterWriterForm({
 
       <div className={result !== null ? "flex flex-col lg:flex-row gap-4 lg:gap-8" : ""}>
         {result !== null && (
-          <div className="w-full lg:w-md shrink-0">
+          <div className="hidden lg:block lg:w-md shrink-0">
             <div className="lg:sticky lg:top-8">
               <OutputOutline markdown={result} />
             </div>

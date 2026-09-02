@@ -74,14 +74,14 @@ export function ReadingPreview() {
 }
 
 /**
- * The Ask Mo exchange.
+ * The Ask Jo exchange.
  *
- * Note what Mo does here: it does not generate. It asks a clarifying question,
+ * Note what Jo does here: it does not generate. It asks a clarifying question,
  * offers two concrete options and an escape hatch, and says what it already
  * knows about the class. That behaviour is the product claim, so the example
  * has to show it rather than showing a finished answer.
  */
-export function MoChat() {
+export function JoChat() {
   return (
     <div className={styles.chat}>
       <div className={styles.line}>
