@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 // No sparkle glyph: the brand bible bans them alongside wands and gradient
 // shimmer, for the same reason it bans the word "AI" in front of a teacher.
 import { Medal, Zap, Clock, X } from "lucide-react";
-import { PLAN_CREDITS } from "@/app/lib/plans";
+import TopUpModal from "@/app/components/v2/TopUpModal";
 
 // Centralised quota prompt. Rather than editing every tool form, this patches
 // window.fetch once and watches for the blocks the server returns when a gate
@@ -29,7 +29,7 @@ interface QuotaBlock {
 
 export default function UpgradeGate() {
   const [block, setBlock] = useState<QuotaBlock | null>(null);
-  const [buying, setBuying] = useState(false);
+  const [topUpOpen, setTopUpOpen] = useState(false);
 
   useEffect(() => {
     const original = window.fetch;
@@ -56,28 +56,10 @@ export default function UpgradeGate() {
     };
   }, []);
 
-  async function handleTopUp() {
-    setBuying(true);
-    try {
-      const res = await fetch("/api/stripe/topup", { method: "POST" });
-      const data = (await res.json()) as { url?: string };
-      if (data.url) {
-        window.location.href = data.url; // hand off to Stripe Checkout
-        return;
-      }
-    } catch {
-      // fall through — re-enable the button so the user can retry
-    }
-    setBuying(false);
-  }
-
   if (!block) return null;
 
   const isTopUp = block.action === "topup";
   const isWait = block.action === "wait" || block.reason === "rate_limited";
-  // Derived, not hardcoded, so changing the credit rate can't leave stale copy
-  // promising an amount the top-up no longer grants.
-  const topUpCredits = PLAN_CREDITS.toLocaleString("en-GB");
   const close = () => setBlock(null);
 
   const title = isWait
@@ -89,14 +71,17 @@ export default function UpgradeGate() {
         : "You've used all your free generations";
 
   // The server writes copy that already names the real numbers and reset time,
-  // so prefer it over anything hardcoded here.
+  // so prefer it over anything hardcoded here. These fallbacks deliberately
+  // name no size or price: the packs and plans on offer are read at the moment
+  // the chooser opens, and a figure written here would be one more place to
+  // forget when either changes.
   const message =
     block.error ??
     (isWait
       ? "You've hit the fair-use limit for this hour. Try again shortly."
       : isTopUp
-        ? `Add ${topUpCredits} credits for £1.50 to keep going — they last until the end of the month.`
-        : "Upgrade to Pro Teacher for £7.99 a month.");
+        ? "Top up to keep going. Extra credits last until the end of the month."
+        : "Upgrade your plan to keep going.");
 
   return (
     <div
@@ -161,23 +146,30 @@ export default function UpgradeGate() {
               Got it
             </button>
           ) : isTopUp ? (
+            /* Opens the chooser rather than buying a fixed pack. The label used
+               to name one size and price, both of which are wrong as soon as a
+               second pack exists — and picking on the teacher's behalf at the
+               moment they are blocked is the worst time to do it. */
             <button
               type="button"
-              onClick={handleTopUp}
-              disabled={buying}
-              className="flex-1 text-center py-2.5 rounded-xl text-sm font-semibold transition-opacity hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
+              onClick={() => setTopUpOpen(true)}
+              className="flex-1 text-center py-2.5 rounded-xl text-sm font-semibold transition-opacity hover:opacity-90"
               style={{ backgroundColor: "var(--j-purple)", color: "#fff" }}
             >
-              {buying ? "Starting checkout…" : `Add ${topUpCredits} credits · £1.50`}
+              Top up credits
             </button>
           ) : (
+            /* "See plans", not "Upgrade to Pro": there is more than one plan to
+               choose from, and this lands on the subscription section where all
+               of them are shown with their real prices. /pricing is the
+               logged-out marketing page and only ever sells Pro. */
             <Link
-              href="/pricing"
+              href="/profile?section=subscription"
               onClick={close}
               className="flex-1 text-center py-2.5 rounded-xl text-sm font-semibold transition-opacity hover:opacity-90"
               style={{ backgroundColor: "var(--j-purple)", color: "#fff" }}
             >
-              Upgrade to Pro
+              See plans
             </Link>
           )}
           {!isWait && (
@@ -192,6 +184,10 @@ export default function UpgradeGate() {
           )}
         </div>
       </div>
+
+      {/* Stacks above this block modal: TopUpModal portals to document.body at
+          z-index 80, and this overlay is z-50 in the normal flow. */}
+      <TopUpModal open={topUpOpen} onClose={() => setTopUpOpen(false)} />
     </div>
   );
 }

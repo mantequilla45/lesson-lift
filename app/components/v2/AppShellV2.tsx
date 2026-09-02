@@ -7,6 +7,7 @@ import TopBarV2 from "@/app/components/v2/TopBarV2";
 import SupportLauncher from "@/app/components/SupportLauncher";
 import AnnouncementBanner from "@/app/components/AnnouncementBanner";
 import { SquircleDefs } from "@/app/components/v2/Squircle";
+import { useAppShellSettings } from "@/app/components/v2/AppShellContext";
 import styles from "./AppShellV2.module.css";
 import appStyles from "./app.module.css";
 
@@ -25,8 +26,14 @@ import appStyles from "./app.module.css";
  */
 
 export interface AppShellV2Props {
-  /** Page title, rendered by TopBarV2. */
-  title: string;
+  /**
+   * Page title, rendered by TopBarV2.
+   *
+   * Optional when the shell is mounted in a layout: the page declares it with
+   * useAppShell() instead, so changing route does not remount the sidebar. A
+   * page that still mounts its own shell passes it as a prop as before.
+   */
+  title?: string;
   children: React.ReactNode;
   /**
    * Extra chrome mounted as a sibling of the nav — in practice <UpgradeGate />,
@@ -53,12 +60,25 @@ export default function AppShellV2({
   title,
   children,
   slot,
-  banner = true,
-  variant = "scroll",
-  launcher = true,
+  banner,
+  // No default here: `= "scroll"` would make the prop always defined and so
+  // always beat the context, leaving Ask Mo and Help scrolling. The fallback
+  // belongs below, after the context has had its say.
+  variant,
+  launcher,
   contentClassName,
 }: AppShellV2Props) {
   const pathname = usePathname();
+
+  // A prop always wins, so a page mounting its own shell behaves exactly as it
+  // did. Under the shared layout there are no props and these come from the
+  // page's useAppShell() call instead.
+  const fromContext = useAppShellSettings();
+  const shellTitle = title ?? fromContext?.title ?? "";
+  const shellBanner = banner ?? fromContext?.banner ?? true;
+  const shellLauncher = launcher ?? fromContext?.launcher ?? true;
+  const shellContentClassName = contentClassName ?? fromContext?.contentClassName;
+  const shellVariant = variant ?? fromContext?.variant ?? "scroll";
 
   // The drawer is open only for the route it was opened on. Storing the
   // pathname rather than a boolean is what closes it on navigation: SideNavV2
@@ -134,7 +154,7 @@ export default function AppShellV2({
     }
   }, [drawerOpen]);
 
-  const fixed = variant === "fixed";
+  const fixed = shellVariant === "fixed";
 
   return (
     // `jooma-v2` is load-bearing: every --j-* token is scoped to it in
@@ -156,7 +176,7 @@ export default function AppShellV2({
         <div onClick={closeNav} aria-hidden="true" className={styles.backdrop} />
       )}
 
-      {launcher && <SupportLauncher />}
+      {shellLauncher && <SupportLauncher />}
 
       {/* min-w-0 is load-bearing: a flex child refuses to shrink below its
           content's intrinsic width, which is why a wide table used to blow out
@@ -173,12 +193,12 @@ export default function AppShellV2({
           and the pin-to-bottom during streaming. */}
       <main className={fixed ? styles.mainFixed : styles.main}>
         <TopBarV2
-          title={title}
+          title={shellTitle}
           onMenuClick={() => setNavOpen(true)}
           menuButtonRef={menuButtonRef}
         />
-        {banner && <AnnouncementBanner />}
-        <div className={contentClassName ?? appStyles.wrap}>{children}</div>
+        {shellBanner && <AnnouncementBanner />}
+        <div className={shellContentClassName ?? appStyles.wrap}>{children}</div>
       </main>
     </div>
   );

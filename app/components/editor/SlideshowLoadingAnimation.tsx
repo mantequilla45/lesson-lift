@@ -33,7 +33,7 @@ export default function SlideshowLoadingAnimation({
             <div
               className="absolute inset-0 rounded-xl bg-white border"
               style={{
-                borderColor: "#DAD8D0",
+                borderColor: "var(--j-line)",
                 boxShadow: "0 8px 32px rgba(0,0,0,0.10)",
                 animation: "float-slideshow-load 1.4s cubic-bezier(0.34, 1.4, 0.64, 1) infinite",
                 animationDelay: `${i * 0.14}s`,

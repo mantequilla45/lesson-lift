@@ -32,9 +32,9 @@ function DrawerBtn({
   title?: string;
 }) {
   const styles: Record<string, React.CSSProperties> = {
-    default: { borderColor: "#DAD8D0", color: "#1a1a1a", backgroundColor: "transparent" },
-    primary: { borderColor: "#1a1a1a", color: "#fff", backgroundColor: "#1a1a1a" },
-    danger: { borderColor: "#EDD3D1", color: "#B3261E", backgroundColor: "transparent" },
+    default: { borderColor: "#EAE6F5", color: "#1D1730", backgroundColor: "transparent" },
+    primary: { borderColor: "#5B2ED6", color: "#fff", backgroundColor: "#5B2ED6" },
+    danger: { borderColor: "#F3D3D0", color: "#B3261E", backgroundColor: "transparent" },
   };
   return (
     <button
@@ -115,10 +115,26 @@ interface RunRow {
 }
 
 const STATUS_STYLE: Record<string, { bg: string; color: string }> = {
-  active: { bg: "#DDF0E2", color: "#1f6b3b" },
-  trialing: { bg: "#E2E8F5", color: "#2a4a8a" },
+  active: { bg: "#E1F5EE", color: "#0F6E56" },
+  trialing: { bg: "#F1ECFC", color: "#5B2ED6" },
   past_due: { bg: "#FBECEB", color: "#B3261E" },
-  canceled: { bg: "#EEECE4", color: "#8a8078" },
+  canceled: { bg: "#F1ECFC", color: "#6D6683" },
+};
+
+/**
+ * Plan → pill colours, mirroring PLAN_TONE in ../ui.tsx (free plain, pro ok,
+ * max ai, school brand) in the inline-hex form the rest of this drawer's pills
+ * use.
+ *
+ * This was a two-branch "free is grey, everything else is green", which gave
+ * Max the same green as Pro and made a £14.99 subscriber indistinguishable from
+ * a £7.99 one at a glance.
+ */
+const PLAN_STYLE: Record<string, { bg: string; color: string }> = {
+  free: { bg: "#F1ECFC", color: "#6D6683" },
+  pro: { bg: "#E1F5EE", color: "#0F6E56" },
+  max: { bg: "#F1ECFC", color: "#5B2ED6" },
+  school: { bg: "#F1ECFC", color: "#5B2ED6" },
 };
 
 function fmtDate(iso: string) {
@@ -319,15 +335,15 @@ export default function TeacherDrawer({ userId, onClose }: { userId: string; onC
       <aside
         className="absolute top-0 right-0 h-screen w-full max-w-md shadow-2xl border-l flex flex-col"
         style={{
-          borderColor: "#DAD8D0",
-          backgroundColor: "#FAF9F5",
+          borderColor: "#EAE6F5",
+          backgroundColor: "#FFFFFF",
           transform: open ? "translateX(0)" : "translateX(100%)",
           transition: "transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1)",
         }}
       >
         {!detail && !error ? (
           <div className="flex-1 flex items-center justify-center">
-            <p className="text-sm" style={{ color: "#8a8078" }}>
+            <p className="text-sm" style={{ color: "#6D6683" }}>
               Loading…
             </p>
           </div>
@@ -340,44 +356,44 @@ export default function TeacherDrawer({ userId, onClose }: { userId: string; onC
               type="button"
               onClick={handleClose}
               className="text-sm font-semibold rounded-xl border px-4 py-2 transition-colors hover:bg-black/5"
-              style={{ borderColor: "#DAD8D0", color: "#1a1a1a" }}
+              style={{ borderColor: "#EAE6F5", color: "#1D1730" }}
             >
               Close
             </button>
           </div>
         ) : (
           <>
-            <div className="flex items-start gap-3 p-5 pb-4 border-b shrink-0" style={{ borderColor: "#DAD8D0" }}>
+            <div className="flex items-start gap-3 p-5 pb-4 border-b shrink-0" style={{ borderColor: "#EAE6F5" }}>
               <div
                 className="w-11 h-11 rounded-full flex items-center justify-center shrink-0 text-sm font-bold"
-                style={{ backgroundColor: "#EEECE4", color: "#1a1a1a" }}
+                style={{ backgroundColor: "#F1ECFC", color: "#1D1730" }}
               >
                 {(name || detail!.email).slice(0, 1).toUpperCase()}
               </div>
               <div className="flex-1 min-w-0">
-                <h2 className="font-bold truncate" style={{ color: "#1a1a1a" }}>
+                <h2 className="font-bold truncate" style={{ color: "#1D1730" }}>
                   {name || detail!.email}
                 </h2>
-                <p className="text-sm truncate" style={{ color: "#8a8078" }}>
+                <p className="text-sm truncate" style={{ color: "#6D6683" }}>
                   {detail!.email}
                 </p>
                 <div className="flex flex-wrap items-center gap-1.5 mt-2">
                   <span
                     className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
-                    style={{ backgroundColor: plan === "free" ? "#EEECE4" : "#DDF0E2", color: plan === "free" ? "#8a8078" : "#1f6b3b" }}
+                    style={PLAN_STYLE[plan] ? { backgroundColor: PLAN_STYLE[plan].bg, color: PLAN_STYLE[plan].color } : { backgroundColor: "#F1ECFC", color: "#6D6683" }}
                   >
                     {p.name}
                   </span>
                   {status && (
                     <span
                       className="text-[11px] font-semibold px-2 py-0.5 rounded-full capitalize"
-                      style={ss ? { backgroundColor: ss.bg, color: ss.color } : { backgroundColor: "#EEECE4", color: "#8a8078" }}
+                      style={ss ? { backgroundColor: ss.bg, color: ss.color } : { backgroundColor: "#F1ECFC", color: "#6D6683" }}
                     >
                       {status.replace("_", " ")}
                     </span>
                   )}
                   {detail!.is_admin && (
-                    <span className="text-[11px] font-semibold px-2 py-0.5 rounded" style={{ backgroundColor: "#1a1a1a", color: "#fff" }}>
+                    <span className="text-[11px] font-semibold px-2 py-0.5 rounded" style={{ backgroundColor: "#1D1730", color: "#fff" }}>
                       ADMIN
                     </span>
                   )}
@@ -396,7 +412,7 @@ export default function TeacherDrawer({ userId, onClose }: { userId: string; onC
                 type="button"
                 onClick={handleClose}
                 className="p-1.5 rounded-lg hover:bg-black/5 shrink-0"
-                style={{ color: "#8a8078" }}
+                style={{ color: "#6D6683" }}
                 aria-label="Close"
               >
                 <X className="w-4 h-4" />
@@ -405,14 +421,14 @@ export default function TeacherDrawer({ userId, onClose }: { userId: string; onC
 
             <div className="flex-1 overflow-y-auto p-5 space-y-6">
               <section>
-                <h3 className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: "#8a8078" }}>
+                <h3 className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: "#6D6683" }}>
                   This month
                 </h3>
-                <div className="rounded-xl border p-3.5 space-y-3" style={{ borderColor: "#DAD8D0", backgroundColor: "#fff" }}>
+                <div className="rounded-xl border p-3.5 space-y-3" style={{ borderColor: "#EAE6F5", backgroundColor: "#fff" }}>
                   {detail!.is_admin && (
                     <div
                       className="rounded-lg px-3 py-2 text-xs"
-                      style={{ backgroundColor: "#F1EDFD", color: "#6B4FD8" }}
+                      style={{ backgroundColor: "#F1ECFC", color: "#5B2ED6" }}
                     >
                       <b>Admin account — bypasses the generation cap.</b> This usage is
                       internal, isn&apos;t billable, and doesn&apos;t count against any plan
@@ -420,14 +436,14 @@ export default function TeacherDrawer({ userId, onClose }: { userId: string; onC
                     </div>
                   )}
                   <div>
-                    <div className="text-sm mb-1.5" style={{ color: "#6b6055" }}>
+                    <div className="text-sm mb-1.5" style={{ color: "#3C3552" }}>
                       Resources
                     </div>
                     {detail!.is_admin ? (
-                      <span className="text-sm tabular-nums" style={{ color: "#1a1a1a" }}>
+                      <span className="text-sm tabular-nums" style={{ color: "#1D1730" }}>
                         {nf.format(allowance?.resources_used ?? detail!.generations_this_month)}{" "}
                         used
-                        <span style={{ color: "#8a8078" }}> · no cap</span>
+                        <span style={{ color: "#6D6683" }}> · no cap</span>
                       </span>
                     ) : (
                       <Meter
@@ -438,7 +454,7 @@ export default function TeacherDrawer({ userId, onClose }: { userId: string; onC
                     )}
                   </div>
                   <div className="flex items-center justify-between text-sm">
-                    <span style={{ color: "#6b6055" }}>AI-image slideshows</span>
+                    <span style={{ color: "#3C3552" }}>AI-image slideshows</span>
                     {/* Note aiImageSlideshows is not enforced anywhere — it
                         appears in meters and the cost model, never in a gate.
                         It's shown as the plan's stated allowance, and a grant
@@ -455,15 +471,15 @@ export default function TeacherDrawer({ userId, onClose }: { userId: string; onC
                       them a spend ceiling they don't have would mislead. */}
                   {ceilingPence !== null && aiSpend && (
                     <div className="flex items-center justify-between text-sm">
-                      <span style={{ color: "#6b6055" }}>AI spend this month</span>
+                      <span style={{ color: "#3C3552" }}>AI spend this month</span>
                       <span
                         className="font-semibold"
-                        style={{ color: spendBlocked ? "#B3261E" : "#1a1a1a" }}
+                        style={{ color: spendBlocked ? "#B3261E" : "#1D1730" }}
                       >
                         {gbp(Number(aiSpend.spend_pence) / 100)} of{" "}
                         {gbp((ceilingPence + Number(aiSpend.credit_pence)) / 100)}
                         {Number(aiSpend.credit_pence) > 0 && (
-                          <span style={{ color: "#8a8078", fontWeight: 400 }}>
+                          <span style={{ color: "#6D6683", fontWeight: 400 }}>
                             {" "}
                             (incl. {gbp(Number(aiSpend.credit_pence) / 100)} credit)
                           </span>
@@ -475,8 +491,8 @@ export default function TeacherDrawer({ userId, onClose }: { userId: string; onC
                     </div>
                   )}
                   <div className="flex items-center justify-between text-sm">
-                    <span style={{ color: "#6b6055" }}>Costs us</span>
-                    <span className="font-semibold" style={{ color: "#1a1a1a" }}>
+                    <span style={{ color: "#3C3552" }}>Costs us</span>
+                    <span className="font-semibold" style={{ color: "#1D1730" }}>
                       {gbpFromUsd(detail!.cost_usd)}
                     </span>
                   </div>
@@ -503,7 +519,7 @@ export default function TeacherDrawer({ userId, onClose }: { userId: string; onC
               </section>
 
               <section>
-                <h3 className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: "#8a8078" }}>
+                <h3 className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: "#6D6683" }}>
                   Account
                 </h3>
                 <dl className="text-sm">
@@ -516,7 +532,7 @@ export default function TeacherDrawer({ userId, onClose }: { userId: string; onC
               </section>
 
               <section>
-                <h3 className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: "#8a8078" }}>
+                <h3 className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: "#6D6683" }}>
                   Subscription
                 </h3>
                 <dl className="text-sm">
@@ -581,33 +597,33 @@ export default function TeacherDrawer({ userId, onClose }: { userId: string; onC
               </section>
 
               <section>
-                <h3 className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: "#8a8078" }}>
+                <h3 className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: "#6D6683" }}>
                   Recent activity
                 </h3>
                 {runs === null ? (
-                  <p className="text-sm" style={{ color: "#8a8078" }}>
+                  <p className="text-sm" style={{ color: "#6D6683" }}>
                     Loading…
                   </p>
                 ) : runs.length === 0 ? (
-                  <p className="text-sm" style={{ color: "#8a8078" }}>
+                  <p className="text-sm" style={{ color: "#6D6683" }}>
                     No generations yet.
                   </p>
                 ) : (
-                  <ol className="relative pl-4" style={{ borderLeft: "1px solid #DAD8D0" }}>
+                  <ol className="relative pl-4" style={{ borderLeft: "1px solid #EAE6F5" }}>
                     {runs.map((r, i) => (
                       <li key={r.id} className="relative pb-4 last:pb-0">
                         <span
                           className="absolute -left-5.25 top-1 w-2.5 h-2.5 rounded-full border-2"
                           style={
                             i === 0
-                              ? { backgroundColor: "#1a1a1a", borderColor: "#1a1a1a" }
-                              : { backgroundColor: "#FAF9F5", borderColor: "#DAD8D0" }
+                              ? { backgroundColor: "#1D1730", borderColor: "#1D1730" }
+                              : { backgroundColor: "#FFFFFF", borderColor: "#EAE6F5" }
                           }
                         />
-                        <p className="text-sm font-medium" style={{ color: "#1a1a1a" }}>
+                        <p className="text-sm font-medium" style={{ color: "#1D1730" }}>
                           {r.title || typeLabel(r.tool_slug)}
                         </p>
-                        <p className="text-xs font-mono" style={{ color: "#8a8078" }}>
+                        <p className="text-xs font-mono" style={{ color: "#6D6683" }}>
                           {typeLabel(r.tool_slug)} ·{" "}
                           <span
                             title={
@@ -630,22 +646,22 @@ export default function TeacherDrawer({ userId, onClose }: { userId: string; onC
                   type="button"
                   onClick={() => setShowActivity(true)}
                   className="text-xs font-semibold mt-1 hover:underline"
-                  style={{ color: "#1a1a1a" }}
+                  style={{ color: "#1D1730" }}
                 >
                   See full activity log →
                 </button>
               </section>
 
               <section>
-                <h3 className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: "#8a8078" }}>
+                <h3 className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: "#6D6683" }}>
                   Support history
                 </h3>
                 {threads === null ? (
-                  <p className="text-sm" style={{ color: "#8a8078" }}>
+                  <p className="text-sm" style={{ color: "#6D6683" }}>
                     Loading…
                   </p>
                 ) : threads.length === 0 ? (
-                  <p className="text-sm" style={{ color: "#8a8078" }}>
+                  <p className="text-sm" style={{ color: "#6D6683" }}>
                     No tickets yet.
                   </p>
                 ) : (
@@ -654,16 +670,16 @@ export default function TeacherDrawer({ userId, onClose }: { userId: string; onC
                       <div
                         key={t.id}
                         className="flex items-center gap-2 py-1.5 border-b last:border-b-0"
-                        style={{ borderColor: "#EEECE4" }}
+                        style={{ borderColor: "#F1ECFC" }}
                       >
                         <div className="flex-1 min-w-0">
                           <div
                             className="text-sm font-medium truncate"
-                            style={{ color: "#1a1a1a" }}
+                            style={{ color: "#1D1730" }}
                           >
                             {t.subject}
                           </div>
-                          <div className="text-xs font-mono" style={{ color: "#8a8078" }}>
+                          <div className="text-xs font-mono" style={{ color: "#6D6683" }}>
                             {t.reference} · {nf.format(Number(t.message_count))} message
                             {Number(t.message_count) === 1 ? "" : "s"} ·{" "}
                             {fmtRelative(t.updated_at)}
@@ -681,14 +697,14 @@ export default function TeacherDrawer({ userId, onClose }: { userId: string; onC
                 <Link
                   href={threads && threads.length > 0 ? `/admin/inbox?thread=${threads[0].id}` : "/admin/inbox"}
                   className="inline-block text-xs font-semibold rounded-lg border px-3 py-1.5 transition-colors hover:bg-black/5"
-                  style={{ borderColor: "#DAD8D0", color: "#1a1a1a" }}
+                  style={{ borderColor: "#EAE6F5", color: "#1D1730" }}
                 >
                   Open inbox
                 </Link>
               </section>
 
               <section>
-                <h3 className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: "#8a8078" }}>
+                <h3 className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: "#6D6683" }}>
                   Internal notes
                 </h3>
                 {notes && notes.length > 0 && (
@@ -697,12 +713,12 @@ export default function TeacherDrawer({ userId, onClose }: { userId: string; onC
                       <div
                         key={n.id}
                         className="rounded-xl border px-3 py-2"
-                        style={{ borderColor: "#EEECE4", backgroundColor: "#F5F3EC" }}
+                        style={{ borderColor: "#F1ECFC", backgroundColor: "#F1ECFC" }}
                       >
-                        <p className="text-sm whitespace-pre-wrap" style={{ color: "#1a1a1a" }}>
+                        <p className="text-sm whitespace-pre-wrap" style={{ color: "#1D1730" }}>
                           {n.body}
                         </p>
-                        <p className="text-xs font-mono mt-1" style={{ color: "#8a8078" }}>
+                        <p className="text-xs font-mono mt-1" style={{ color: "#6D6683" }}>
                           {n.author_email ?? "unknown"} · {fmtRelative(n.created_at)}
                         </p>
                       </div>
@@ -715,8 +731,8 @@ export default function TeacherDrawer({ userId, onClose }: { userId: string; onC
                   rows={3}
                   maxLength={4000}
                   placeholder="Only your team sees this."
-                  className="w-full px-3 py-2.5 border rounded-xl bg-white text-sm placeholder-[#A5A5A5] focus:outline-none focus:border-[#1a1a1a] transition-colors resize-none"
-                  style={{ borderColor: "#DAD8D0" }}
+                  className="w-full px-3 py-2.5 border rounded-xl bg-white text-sm placeholder-[#9A93AD] focus:outline-none focus:border-[#1D1730] transition-colors resize-none"
+                  style={{ borderColor: "#EAE6F5" }}
                 />
                 <div className="mt-2 flex items-center gap-2">
                   <DrawerBtn onClick={saveNote} disabled={!noteText.trim() || savingNote}>
@@ -725,7 +741,7 @@ export default function TeacherDrawer({ userId, onClose }: { userId: string; onC
                   {/* Notes are append-only by design — the table has no UPDATE
                       policy, since editing one would rewrite the record of what
                       staff believed at the time. */}
-                  <span className="text-xs" style={{ color: "#8a8078" }}>
+                  <span className="text-xs" style={{ color: "#6D6683" }}>
                     Notes can&rsquo;t be edited once saved.
                   </span>
                 </div>
@@ -734,10 +750,10 @@ export default function TeacherDrawer({ userId, onClose }: { userId: string; onC
 
             <div
               className="shrink-0 border-t px-5 py-3.5"
-              style={{ borderColor: "#DAD8D0", backgroundColor: "#F1EFE9" }}
+              style={{ borderColor: "#EAE6F5", backgroundColor: "#F7F5FC" }}
             >
               {notice && (
-                <p className="text-xs mb-2" style={{ color: "#A85F0C" }}>
+                <p className="text-xs mb-2" style={{ color: "#8A3C12" }}>
                   {notice}
                 </p>
               )}
@@ -840,9 +856,9 @@ export default function TeacherDrawer({ userId, onClose }: { userId: string; onC
 
 function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="flex items-start justify-between gap-3 py-1.5 border-b" style={{ borderColor: "#EEECE4" }}>
-      <dt style={{ color: "#8a8078" }}>{label}</dt>
-      <dd className="text-right" style={{ color: "#1a1a1a" }}>
+    <div className="flex items-start justify-between gap-3 py-1.5 border-b" style={{ borderColor: "#F1ECFC" }}>
+      <dt style={{ color: "#6D6683" }}>{label}</dt>
+      <dd className="text-right" style={{ color: "#1D1730" }}>
         {value}
       </dd>
     </div>

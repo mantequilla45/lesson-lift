@@ -31,11 +31,33 @@ import {
   isEducationRelated,
   OFF_TOPIC_REPLY,
 } from "@/app/lib/assistant-prompt";
-import { prefillFunctionDef, toolSchemaDigest } from "@/app/lib/assistant-tools";
-import { validatePrefill, type ToolPrefill } from "@/app/lib/toolPrefill";
+import {
+  prefillFunctionDef,
+  clarifyFunctionDef,
+  toolSchemaDigest,
+} from "@/app/lib/assistant-tools";
+import {
+  validatePrefill,
+  validateClarify,
+  type ToolPrefill,
+  type ToolClarify,
+} from "@/app/lib/toolPrefill";
 
 /** Header carrying the prefill decision. Base64 so it is header-safe. */
 const TOOL_HEADER = "x-assistant-tool";
+
+/** Header carrying a clarifying question, when Mo asks one instead. */
+const CLARIFY_HEADER = "x-assistant-clarify";
+
+/**
+ * What the tool-selection pass decided.
+ *
+ * A discriminated union rather than two nullable returns, so the two outcomes
+ * cannot both be set: Mo either opens a tool or asks about it, never both.
+ */
+type ToolDecision =
+  | { kind: "prefill"; prefill: ToolPrefill }
+  | { kind: "clarify"; clarify: ToolClarify };
 
 /** Set when the body is the guardrail's refusal rather than a model answer. */
 const REFUSAL_HEADER = "x-assistant-refusal";
@@ -110,7 +132,12 @@ export async function POST(req: NextRequest) {
   }
 
   // ── 2. Tool selection ──
-  const prefill = await selectTool(history, userId);
+  //
+  // Either a tool to open, or a single question to ask first when a field it
+  // needs is genuinely ambiguous.
+  const decision = await selectTool(history, userId);
+  const prefill = decision?.kind === "prefill" ? decision.prefill : null;
+  const clarify = decision?.kind === "clarify" ? decision.clarify : null;
 
   // ── 3. The reply ──
   const system = assistantSystem({ level, tone, attachment });
@@ -121,7 +148,11 @@ export async function POST(req: NextRequest) {
   // from your request."
   const replyGuidance = prefill
     ? `\n\nYou are opening the ${prefill.slug.replace(/-/g, " ")} for this teacher, prefilled from their request. Tell them so in ONE short sentence. A card linking to the tool is shown directly beneath your message, so do not add a link, do not list the fields you filled in, and do not produce the resource yourself.`
-    : "";
+    : clarify
+      // The chips carry the question, so repeating it in prose would ask
+      // twice. One short line of context, then let the teacher pick.
+      ? `\n\nYou need one detail before building this. The question and its answers are shown as buttons directly beneath your message, so do NOT ask it again and do NOT list the options. Say in ONE short sentence what you are about to make, and nothing else.`
+      : "";
 
   const response = await streamChat({
     toolSlug: "assistant",
@@ -137,15 +168,22 @@ export async function POST(req: NextRequest) {
     safeguardingText: latestUser.content,
   });
 
-  if (!prefill) return response;
+  if (!prefill && !clarify) return response;
 
-  // Re-wrap so the prefill rides along with the stream. The body is passed
+  // Re-wrap so the decision rides along with the stream. The body is passed
   // through untouched, so streamChat's usage recording is unaffected.
   const headers = new Headers(response.headers);
-  headers.set(
-    TOOL_HEADER,
-    Buffer.from(JSON.stringify(prefill), "utf8").toString("base64"),
-  );
+  if (prefill) {
+    headers.set(
+      TOOL_HEADER,
+      Buffer.from(JSON.stringify(prefill), "utf8").toString("base64"),
+    );
+  } else if (clarify) {
+    headers.set(
+      CLARIFY_HEADER,
+      Buffer.from(JSON.stringify(clarify), "utf8").toString("base64"),
+    );
+  }
   return new Response(response.body, { status: response.status, headers });
 }
 
@@ -163,7 +201,7 @@ export async function POST(req: NextRequest) {
 async function selectTool(
   history: { role: "user" | "assistant"; content: string }[],
   userId: string | null,
-): Promise<ToolPrefill | null> {
+): Promise<ToolDecision | null> {
   try {
     const completion = await createCompletion({
       toolSlug: "assistant",
@@ -172,7 +210,7 @@ async function selectTool(
       model: "gpt-4o-mini",
       max_completion_tokens: 400,
       temperature: 0,
-      tools: [prefillFunctionDef()],
+      tools: [prefillFunctionDef(), clarifyFunctionDef()],
       messages: [
         {
           role: "system",
@@ -181,6 +219,10 @@ async function selectTool(
 Call prefill_tool ONLY when the teacher is asking for something to be PRODUCED — a document, resource, plan, report or presentation. The tools available to you, and what each is for, are listed in the prefill_tool description; choose from those.
 
 Do not call it when the teacher is asking a question ABOUT teaching rather than asking for an artefact. "How do I get parents more involved?" is a conversation. "Write a letter to parents about the trip" is the Letter Writer. When in doubt, answer conversationally — a wrong tool is more annoying than no tool.
+
+Call ask_clarifying_question INSTEAD of prefill_tool when you know which tool they want but a field it NEEDS is genuinely ambiguous, and guessing it wrong would waste a generation. Ask about ONE field, offer two or three concrete answers, and pass everything you already understood in the fields argument.
+
+Ask rarely. If the teacher named the year group and the topic, that is enough to build from: infer the rest and call prefill_tool. Never ask about a field the tool does not need, never ask twice in one conversation, and never ask when they have already answered the question earlier in the thread.
 
 ${toolSchemaDigest()}`,
         },
@@ -192,12 +234,21 @@ ${toolSchemaDigest()}`,
 
     const call = completion.choices[0]?.message?.tool_calls?.[0];
     if (!call || call.type !== "function") return null;
-    if (call.function.name !== "prefill_tool") return null;
 
     // Validation is the security boundary as well as the quality one: this
     // rejects unknown tools, drops unknown fields, enforces enums and caps
     // string lengths before any of it reaches a form. See toolPrefill.ts.
-    return validatePrefill(JSON.parse(call.function.arguments));
+    if (call.function.name === "prefill_tool") {
+      const prefill = validatePrefill(JSON.parse(call.function.arguments));
+      return prefill ? { kind: "prefill", prefill } : null;
+    }
+
+    if (call.function.name === "ask_clarifying_question") {
+      const clarify = validateClarify(JSON.parse(call.function.arguments));
+      return clarify ? { kind: "clarify", clarify } : null;
+    }
+
+    return null;
   } catch (err) {
     // Never fatal. A failed tool-selection pass degrades to a normal chat reply,
     // which is a perfectly good answer to most messages.

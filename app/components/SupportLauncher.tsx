@@ -12,11 +12,26 @@
 
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { MessageCircle, X } from "lucide-react";
 import { createClient } from "@/app/lib/auth/client";
-import Conversation from "@/app/help/Conversation";
+
+/*
+ * Loaded on demand, not at module scope.
+ *
+ * This component is mounted by AppShellV2, which now lives in the shared
+ * app/(app)/layout.tsx. A static import would therefore pull /help's whole
+ * conversation view — and its editor and markdown dependencies — into the
+ * layout chunk that EVERY signed-in route waits on, which stalled compilation
+ * of routes that have nothing to do with support.
+ *
+ * The popover is opened by a deliberate click, so paying the load then is free.
+ */
+const Conversation = dynamic(() => import("@/app/(app)/help/Conversation"), {
+  ssr: false,
+});
 
 interface LauncherThread {
   id: string;

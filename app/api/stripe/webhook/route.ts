@@ -108,7 +108,12 @@ function endOfMonthIso(): string {
 }
 
 /**
- * Grant £1.50 of AI credit for a completed one-off Checkout session.
+ * Grant a credit pack for a completed one-off Checkout session.
+ *
+ * The pack bought is named in session metadata (see api/stripe/topup), because
+ * a checkout.session.completed payload does not carry line_items. What is
+ * GRANTED is the pack's unit; what is RECORDED as money is the amount paid.
+ * The two differ under a promotion code.
  *
  * IDEMPOTENCY: Stripe retries on any non-2xx, and this handler deliberately
  * returns 500 on failure to invite those retries — so this must not grant twice
@@ -139,32 +144,56 @@ async function grantTopUpCredit(session: Stripe.Checkout.Session) {
     return;
   }
 
-  const amountPence = session.amount_total ?? TOPUP_PENCE;
+  const paidPence = session.amount_total ?? TOPUP_PENCE;
 
-  // Attribute the sale to the credit pack so the admin console's per-pack sold
-  // and revenue figures are real. Best-effort by design: pack_id is nullable and
-  // the purchase row must never fail to insert just because this lookup did —
-  // the customer has paid, and the credit matters more than the reporting.
-  const { data: creditPack, error: packErr } = await supabaseAdmin
+  // Which pack was bought.
+  //
+  // Stamped into metadata at session creation (see api/stripe/topup) because a
+  // checkout.session.completed payload does NOT carry line_items — the
+  // purchased price is not otherwise knowable here without another Stripe call.
+  //
+  // Falls back to the lowest-sort active pack when absent, which is both what
+  // this did before packs could be chosen AND what settles a session that was
+  // already in flight when this shipped.
+  const metaPackId = session.metadata?.packId ?? null;
+
+  let packQuery = supabaseAdmin
     .from("topup_packs")
-    .select("id")
-    .eq("kind", "credit_gbp")
-    .eq("active", true)
-    .order("sort")
-    .limit(1)
-    .maybeSingle();
+    .select("id, kind, unit")
+    .eq("kind", "credit_gbp");
+
+  packQuery = metaPackId
+    ? packQuery.eq("id", metaPackId)
+    : packQuery.eq("active", true).order("sort").limit(1);
+
+  const { data: creditPack, error: packErr } = await packQuery.maybeSingle();
 
   if (packErr) {
     console.error("[stripe/webhook] credit pack lookup failed", packErr);
   }
 
+  // Grant what the PACK promises, not what was paid.
+  //
+  // These differ under a promotion code: a 50% code on a £5 pack charges £2.50,
+  // and granting the amount paid would hand over half the credits the teacher
+  // was shown on the button they pressed. A discount makes a pack cheaper, not
+  // smaller.
+  //
+  // Falls back to the amount paid when the pack is unknown — an env-price
+  // purchase, or a pack deleted between checkout and this webhook. For the
+  // single £1.50 pack the two are identical, since a credit pack's `unit` is
+  // required to equal its price in pence (see api/admin/topups/pack).
+  const amountPence = creditPack?.unit != null ? Number(creditPack.unit) : paidPence;
+
   // 1. Idempotency gate.
   const { error: purchaseErr } = await supabaseAdmin.from("topup_purchases").insert({
     user_id: userId,
     pack_id: creditPack?.id ?? null,
-    kind: "credit_gbp",
+    kind: creditPack?.kind ?? "credit_gbp",
     units: amountPence, // pence, matching allowance_grants.amount for this kind
-    price_gbp: toMajor(amountPence),
+    // What they actually PAID, which is the figure the invoice and the admin
+    // revenue column must show — not the pack's face value.
+    price_gbp: toMajor(paidPence),
     stripe_payment_intent_id: paymentIntentId,
   });
   if (purchaseErr) {
@@ -196,7 +225,10 @@ async function grantTopUpCredit(session: Stripe.Checkout.Session) {
     reference: session.id,
     user_id: userId,
     type: "topup",
-    amount_gbp: toMajor(amountPence),
+    // The money that actually moved, not the pack's face value: these differ
+    // under a promotion code, and syncRefund() reconciles this row against a
+    // real Stripe charge.
+    amount_gbp: toMajor(paidPence),
     status: "paid",
     paid_at: new Date().toISOString(),
     method: "Card · AI credit top-up",

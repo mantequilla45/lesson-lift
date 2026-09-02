@@ -12,6 +12,7 @@ import {
   C,
   EmptyState,
   Meter,
+  PLAN_TONE,
   PageHead,
   StatusTag,
   Tag,
@@ -424,7 +425,7 @@ export default function InboxView({
                     </div>
                     <div className="flex items-center gap-1 mt-1.5">
                       <StatusTag status={t.status} />
-                      <Tag tone={t.plan === "free" ? "plain" : "brand"}>{t.plan}</Tag>
+                      <Tag tone={PLAN_TONE[t.plan] ?? "plain"}>{t.plan}</Tag>
                       {/* Who the ball is with. The list is sorted by triage need,
                           so this is the fastest read of "does this need me?". */}
                       {t.status !== "closed" && t.last_direction === "inbound" && (
@@ -510,7 +511,7 @@ export default function InboxView({
                           className="px-3 py-2 rounded-xl text-sm border"
                           style={
                             isNote
-                              ? { backgroundColor: C.warnBg, borderColor: "#F0DFC4", color: C.ink }
+                              ? { backgroundColor: C.warnBg, borderColor: "#EFDFB4", color: C.ink }
                               : isUs
                                 ? { backgroundColor: C.ink, borderColor: C.ink, color: "#fff" }
                                 : { backgroundColor: C.white, borderColor: C.border, color: C.ink }
@@ -587,7 +588,7 @@ export default function InboxView({
                   onChange={(e) => setDraft(e.target.value)}
                   rows={3}
                   placeholder={`Reply to ${thread.teacher}…`}
-                  className="w-full px-3 py-2 border rounded-xl bg-white text-sm resize-none focus:outline-none focus:border-[#1a1a1a] transition-colors"
+                  className="w-full px-3 py-2 border rounded-xl bg-white text-sm resize-none focus:outline-none focus:border-[#1D1730] transition-colors"
                   style={{ borderColor: C.border }}
                 />
                 <div className="flex items-center gap-2 mt-2">
@@ -632,7 +633,7 @@ export default function InboxView({
                 {thread.email}
               </div>
               <div className="flex flex-wrap gap-1.5 mb-4">
-                <Tag tone={thread.plan === "free" ? "plain" : "brand"}>{plan.name}</Tag>
+                <Tag tone={PLAN_TONE[thread.plan] ?? "plain"}>{plan.name}</Tag>
                 {thread.school_name && <Tag>{thread.school_name}</Tag>}
               </div>
 

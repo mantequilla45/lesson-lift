@@ -42,10 +42,10 @@ interface BulkRun {
 }
 
 const STATUS_STYLE: Record<string, { bg: string; color: string }> = {
-  active: { bg: "#DDF0E2", color: "#1f6b3b" },
-  trialing: { bg: "#E2E8F5", color: "#2a4a8a" },
+  active: { bg: "#E1F5EE", color: "#0F6E56" },
+  trialing: { bg: "#F1ECFC", color: "#5B2ED6" },
   past_due: { bg: "#FBECEB", color: "#B3261E" },
-  canceled: { bg: "#EEECE4", color: "#8a8078" },
+  canceled: { bg: "#F1ECFC", color: "#6D6683" },
 };
 
 const STATUS_OPTIONS = ["active", "trialing", "past_due", "canceled"];
@@ -235,18 +235,18 @@ export default function AdminTeachersTable({ rows }: { rows: TeacherRow[] }) {
   const hasFilters = q || plan || status || school || margin;
 
   const selectStyle: React.CSSProperties = {
-    borderColor: "#DAD8D0",
+    borderColor: "#EAE6F5",
     backgroundColor: "#fff",
-    color: "#1a1a1a",
+    color: "#1D1730",
   };
 
   return (
     <>
       <div
         className="rounded-2xl border overflow-hidden"
-        style={{ backgroundColor: "#FAF9F5", borderColor: "#DAD8D0" }}
+        style={{ backgroundColor: "#FFFFFF", borderColor: "#EAE6F5" }}
       >
-        <div className="flex flex-wrap items-center gap-2 px-4 py-3 border-b" style={{ borderColor: "#EEECE4" }}>
+        <div className="flex flex-wrap items-center gap-2 px-4 py-3 border-b" style={{ borderColor: "#F1ECFC" }}>
           <input
             type="text"
             value={q}
@@ -262,10 +262,10 @@ export default function AdminTeachersTable({ rows }: { rows: TeacherRow[] }) {
             style={selectStyle}
           >
             <option value="">All plans</option>
-            {/* Only the plans we actually sell. Max is withdrawn and School
-                isn't built, so listing them here reads as bloat — and nobody
-                is on either (checked: 8 free, 2 pro). A teacher somehow
-                holding one still renders their badge correctly below. */}
+            {/* Only the plans we actually sell: currently Free, Pro and Max.
+                School isn't built, so listing it here reads as bloat. A
+                teacher somehow holding it still renders their badge correctly
+                below. */}
             {SELECTABLE_PLANS.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.name}
@@ -315,7 +315,7 @@ export default function AdminTeachersTable({ rows }: { rows: TeacherRow[] }) {
               type="button"
               onClick={clearFilters}
               className="text-sm font-semibold rounded-lg px-3 py-1.5 transition-colors hover:bg-black/5"
-              style={{ color: "#8a8078" }}
+              style={{ color: "#6D6683" }}
             >
               Clear
             </button>
@@ -325,7 +325,7 @@ export default function AdminTeachersTable({ rows }: { rows: TeacherRow[] }) {
 
           <span
             className="text-xs font-semibold px-2 py-1 rounded-full whitespace-nowrap"
-            style={{ backgroundColor: "#EEECE4", color: "#8a8078" }}
+            style={{ backgroundColor: "#F1ECFC", color: "#6D6683" }}
           >
             {nf.format(filtered.length)} shown
           </span>
@@ -344,7 +344,7 @@ export default function AdminTeachersTable({ rows }: { rows: TeacherRow[] }) {
                       : "Download all teachers as a CSV"
                 }
                 className="text-sm font-semibold rounded-lg border px-3 py-1.5 transition-colors hover:bg-black/5 disabled:opacity-40"
-                style={{ borderColor: "#DAD8D0", color: "#1a1a1a" }}
+                style={{ borderColor: "#EAE6F5", color: "#1D1730" }}
               >
                 Export
               </button>
@@ -352,21 +352,21 @@ export default function AdminTeachersTable({ rows }: { rows: TeacherRow[] }) {
                 type="button"
                 onClick={() => setSelecting(true)}
                 className="text-sm font-semibold rounded-lg border px-3 py-1.5 transition-colors hover:bg-black/5"
-                style={{ borderColor: "#DAD8D0", color: "#1a1a1a" }}
+                style={{ borderColor: "#EAE6F5", color: "#1D1730" }}
               >
                 Select
               </button>
             </>
           ) : (
             <>
-              <span className="text-xs font-semibold px-2 py-1 rounded-full" style={{ backgroundColor: "#EEECE4", color: "#8a8078" }}>
+              <span className="text-xs font-semibold px-2 py-1 rounded-full" style={{ backgroundColor: "#F1ECFC", color: "#6D6683" }}>
                 {selected.size} selected
               </span>
               <button
                 type="button"
                 onClick={toggleAll}
                 className="text-sm font-semibold rounded-lg border px-3 py-1.5 transition-colors hover:bg-black/5"
-                style={{ borderColor: "#DAD8D0", color: "#1a1a1a" }}
+                style={{ borderColor: "#EAE6F5", color: "#1D1730" }}
               >
                 {allSelected ? "Clear all" : "Select all"}
               </button>
@@ -374,7 +374,7 @@ export default function AdminTeachersTable({ rows }: { rows: TeacherRow[] }) {
                 type="button"
                 onClick={exitSelect}
                 className="text-sm font-semibold rounded-lg border px-3 py-1.5 transition-colors hover:bg-black/5"
-                style={{ borderColor: "#DAD8D0", color: "#1a1a1a" }}
+                style={{ borderColor: "#EAE6F5", color: "#1D1730" }}
               >
                 Cancel
               </button>
@@ -385,9 +385,9 @@ export default function AdminTeachersTable({ rows }: { rows: TeacherRow[] }) {
         {selecting && selected.size > 0 && (
           <div
             className="flex flex-wrap items-center gap-2 px-4 py-2.5 border-b"
-            style={{ borderColor: "#EEECE4", backgroundColor: "#F1EFE9" }}
+            style={{ borderColor: "#F1ECFC", backgroundColor: "#F7F5FC" }}
           >
-            <span className="text-xs font-semibold" style={{ color: "#4a423a" }}>
+            <span className="text-xs font-semibold" style={{ color: "#3C3552" }}>
               {nf.format(selected.size)} selected
             </span>
 
@@ -395,7 +395,7 @@ export default function AdminTeachersTable({ rows }: { rows: TeacherRow[] }) {
               type="button"
               onClick={() => exportCsv(filtered.filter((u) => selected.has(u.id)), "selected-")}
               className="text-xs font-semibold rounded-lg border px-2.5 py-1 transition-colors hover:bg-black/5"
-              style={{ borderColor: "#DAD8D0", color: "#1a1a1a" }}
+              style={{ borderColor: "#EAE6F5", color: "#1D1730" }}
             >
               Export selected
             </button>
@@ -413,7 +413,7 @@ export default function AdminTeachersTable({ rows }: { rows: TeacherRow[] }) {
                 );
               }}
               className="text-xs font-semibold rounded-lg border px-2.5 py-1 transition-colors hover:bg-black/5 disabled:opacity-40"
-              style={{ borderColor: "#DAD8D0", color: "#1a1a1a" }}
+              style={{ borderColor: "#EAE6F5", color: "#1D1730" }}
             >
               Send password reset
             </button>
@@ -434,7 +434,7 @@ export default function AdminTeachersTable({ rows }: { rows: TeacherRow[] }) {
                 );
               }}
               className="text-xs font-semibold rounded-lg border px-2.5 py-1 transition-colors hover:bg-black/5 disabled:opacity-40"
-              style={{ borderColor: "#EDD3D1", color: "#B3261E" }}
+              style={{ borderColor: "#F3D3D0", color: "#B3261E" }}
             >
               Suspend
             </button>
@@ -452,7 +452,7 @@ export default function AdminTeachersTable({ rows }: { rows: TeacherRow[] }) {
                 );
               }}
               className="text-xs font-semibold rounded-lg border px-2.5 py-1 transition-colors hover:bg-black/5 disabled:opacity-40"
-              style={{ borderColor: "#DAD8D0", color: "#1a1a1a" }}
+              style={{ borderColor: "#EAE6F5", color: "#1D1730" }}
             >
               Unsuspend
             </button>
@@ -460,7 +460,7 @@ export default function AdminTeachersTable({ rows }: { rows: TeacherRow[] }) {
             <div className="flex-1" />
 
             {bulk && (
-              <span className="text-xs" style={{ color: "#6b6055" }}>
+              <span className="text-xs" style={{ color: "#3C3552" }}>
                 {bulk.done < bulk.total
                   ? `${bulk.label}… ${bulk.done} of ${bulk.total}`
                   : bulk.failures.length === 0
@@ -474,7 +474,7 @@ export default function AdminTeachersTable({ rows }: { rows: TeacherRow[] }) {
         {/* Partial failures are listed rather than folded into a count: knowing
             WHICH teacher didn't get their email is the whole point. */}
         {bulk && bulk.done === bulk.total && bulk.failures.length > 0 && (
-          <div className="px-4 py-2.5 border-b" style={{ borderColor: "#EEECE4", backgroundColor: "#FBECEB" }}>
+          <div className="px-4 py-2.5 border-b" style={{ borderColor: "#F1ECFC", backgroundColor: "#FBECEB" }}>
             <p className="text-xs font-semibold mb-1" style={{ color: "#B3261E" }}>
               These didn&rsquo;t go through:
             </p>
@@ -491,7 +491,7 @@ export default function AdminTeachersTable({ rows }: { rows: TeacherRow[] }) {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr style={{ color: "#8a8078" }} className="text-left">
+              <tr style={{ color: "#6D6683" }} className="text-left">
                 {selecting && (
                   <th className="px-4 py-3 w-8">
                     <input type="checkbox" checked={allSelected} onChange={toggleAll} />
@@ -510,7 +510,7 @@ export default function AdminTeachersTable({ rows }: { rows: TeacherRow[] }) {
             <tbody>
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={selecting ? 9 : 8} className="px-4 py-10 text-center" style={{ color: "#8a8078" }}>
+                  <td colSpan={selecting ? 9 : 8} className="px-4 py-10 text-center" style={{ color: "#6D6683" }}>
                     No teachers match that.
                   </td>
                 </tr>
@@ -526,7 +526,7 @@ export default function AdminTeachersTable({ rows }: { rows: TeacherRow[] }) {
                     <tr
                       key={u.id}
                       className="border-t hover:bg-black/2"
-                      style={{ borderColor: "#EEECE4", cursor: selecting ? "default" : "pointer" }}
+                      style={{ borderColor: "#F1ECFC", cursor: selecting ? "default" : "pointer" }}
                       onClick={() => {
                         if (!selecting) setOpenId(u.id);
                       }}
@@ -538,13 +538,13 @@ export default function AdminTeachersTable({ rows }: { rows: TeacherRow[] }) {
                       )}
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
-                          <span className="font-medium whitespace-nowrap" style={{ color: "#1a1a1a" }}>
+                          <span className="font-medium whitespace-nowrap" style={{ color: "#1D1730" }}>
                             {name || u.email}
                           </span>
                           {u.is_admin && (
                             <span
                               className="text-[10px] font-semibold px-1.5 py-0.5 rounded"
-                              style={{ backgroundColor: "#1a1a1a", color: "#fff" }}
+                              style={{ backgroundColor: "#1D1730", color: "#fff" }}
                               title="Admin account — bypasses the monthly generation cap"
                             >
                               ADMIN
@@ -552,7 +552,7 @@ export default function AdminTeachersTable({ rows }: { rows: TeacherRow[] }) {
                           )}
                         </div>
                         {name && (
-                          <div className="text-xs" style={{ color: "#8a8078" }}>
+                          <div className="text-xs" style={{ color: "#6D6683" }}>
                             {u.email}
                           </div>
                         )}
@@ -562,9 +562,9 @@ export default function AdminTeachersTable({ rows }: { rows: TeacherRow[] }) {
                           <Tag tone={PLAN_TONE[p] ?? "plain"}>{p}</Tag>
                         </span>
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap" style={{ color: "#6b6055" }}>
+                      <td className="px-4 py-3 whitespace-nowrap" style={{ color: "#3C3552" }}>
                         {u.school_name ?? (
-                          <span style={{ color: "#8a8078" }}>Individual</span>
+                          <span style={{ color: "#6D6683" }}>Individual</span>
                         )}
                       </td>
                       <td className="px-4 py-3">
@@ -572,9 +572,9 @@ export default function AdminTeachersTable({ rows }: { rows: TeacherRow[] }) {
                           // Admins skip the cap entirely, so metering them
                           // against one would read as "0 left of 5" while they
                           // generate freely. Show the raw count instead.
-                          <span className="text-xs tabular-nums" style={{ color: "#6b6055" }}>
+                          <span className="text-xs tabular-nums" style={{ color: "#3C3552" }}>
                             {nf.format(Number(u.generations_this_month))} used
-                            <span style={{ color: "#8a8078" }}> · no cap</span>
+                            <span style={{ color: "#6D6683" }}> · no cap</span>
                           </span>
                         ) : (
                           <Meter
@@ -605,22 +605,22 @@ export default function AdminTeachersTable({ rows }: { rows: TeacherRow[] }) {
                         ) : st ? (
                           <span
                             className="text-xs font-semibold px-2 py-1 rounded-full capitalize whitespace-nowrap"
-                            style={ss ? { backgroundColor: ss.bg, color: ss.color } : { backgroundColor: "#EEECE4", color: "#8a8078" }}
+                            style={ss ? { backgroundColor: ss.bg, color: ss.color } : { backgroundColor: "#F1ECFC", color: "#6D6683" }}
                           >
                             {st.replace("_", " ")}
                           </span>
                         ) : (
-                          <span style={{ color: "#8a8078" }}>—</span>
+                          <span style={{ color: "#6D6683" }}>—</span>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-right font-semibold whitespace-nowrap" style={{ color: "#1a1a1a" }}>
+                      <td className="px-4 py-3 text-right font-semibold whitespace-nowrap" style={{ color: "#1D1730" }}>
                         {gbpFromUsd(cost)}
                       </td>
                       <td className="px-4 py-3 text-right whitespace-nowrap">
                         {m === null ? (
                           <span
                             className="text-xs font-semibold px-2 py-1 rounded-full"
-                            style={{ backgroundColor: "#EEECE4", color: "#8a8078" }}
+                            style={{ backgroundColor: "#F1ECFC", color: "#6D6683" }}
                           >
                             costs {gbpFromUsd(cost)}
                           </span>
@@ -631,8 +631,8 @@ export default function AdminTeachersTable({ rows }: { rows: TeacherRow[] }) {
                               m < 0
                                 ? { backgroundColor: "#FBECEB", color: "#B3261E" }
                                 : m < 0.35
-                                  ? { backgroundColor: "#FDF3E5", color: "#A85F0C" }
-                                  : { backgroundColor: "#DDF0E2", color: "#1f6b3b" }
+                                  ? { backgroundColor: "#FBF3DF", color: "#8A3C12" }
+                                  : { backgroundColor: "#E1F5EE", color: "#0F6E56" }
                             }
                           >
                             {Math.round(m * 100)}%
@@ -647,7 +647,7 @@ export default function AdminTeachersTable({ rows }: { rows: TeacherRow[] }) {
           </table>
         </div>
 
-        <div className="flex items-center gap-2 px-4 py-3 border-t text-xs" style={{ borderColor: "#EEECE4", color: "#8a8078" }}>
+        <div className="flex items-center gap-2 px-4 py-3 border-t text-xs" style={{ borderColor: "#F1ECFC", color: "#6D6683" }}>
           Showing {nf.format(filtered.length)} of {nf.format(rows.length)} teachers
         </div>
       </div>

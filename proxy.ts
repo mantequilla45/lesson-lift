@@ -114,10 +114,10 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Maintenance mode. Checked here rather than in a layout because the teacher
-  // app isn't under one route group — /tools, /dashboard, /folders, /editor and
-  // the rest are siblings, so a layout check would have to be repeated in each
-  // and would miss the API routes entirely.
+  // Maintenance mode. Checked here rather than in a layout because a layout
+  // would miss the API routes entirely. Most teacher screens now DO share one
+  // layout (app/(app)), but /editor, /admin and every /api route sit outside
+  // it, so the proxy remains the only place that covers all of them.
   //
   // Fails OPEN: publicSettings() never throws, and any failure reports
   // maintenance as off. A database blip must not be able to invent an outage.

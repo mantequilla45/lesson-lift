@@ -29,9 +29,9 @@ if (!process.env.STRIPE_SECRET_KEY) {
 // TypeScript types and the wire behaviour always match.
 export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
-/** The only plan that is self-serve via Stripe Checkout. `free` needs no
- *  payment; `max` is withdrawn from sale; `school` is custom/contact-sales
- *  (per-seat, invoiced, not a self-serve Checkout price). */
+/** The plans that are self-serve via Stripe Checkout. `free` needs no payment;
+ *  `school` is custom/contact-sales (per-seat, invoiced, not a self-serve
+ *  Checkout price). */
 export type PaidPlanId = Extract<PlanId, "pro" | "max">;
 
 /** The plans checkout will sell. Anything else is rejected before Stripe. */
@@ -72,33 +72,70 @@ export async function priceIdFor(plan: PaidPlanId): Promise<string> {
   return priceId;
 }
 
-/**
- * The one-off AI-credit top-up price. Must be a ONE-TIME price — Checkout's
- * `mode: "payment"` rejects recurring prices.
- *
- * Reads the active credit pack, falls back to the env var.
- */
-export async function topUpPriceId(): Promise<string> {
-  const envPriceId = process.env.STRIPE_PRICE_CREDIT_TOP_UP;
+/** A resolved top-up: the Stripe price to charge, and the pack it came from.
+ *  `packId` is null only when falling back to the environment price, which has
+ *  no pack row behind it. */
+export interface ResolvedTopUp {
+  priceId: string;
+  packId: string | null;
+  /** PENCE of credit the pack grants. Null on the env fallback, where the
+   *  amount paid is the only thing we know. */
+  unit: number | null;
+}
 
-  const { data, error } = await supabaseAdmin
+/**
+ * Resolve a one-off AI-credit top-up to charge. Must be a ONE-TIME price —
+ * Checkout's `mode: "payment"` rejects recurring prices.
+ *
+ * With a packId, resolves THAT pack. Without one, falls back to the lowest-sort
+ * active credit pack, which is what every caller did before packs could be
+ * chosen — so an old client that sends no pack still buys the default.
+ *
+ * The env var remains the last resort so local development works with no pack
+ * seeded. Note it is only reachable when no pack matched at all: a pack that
+ * exists but has no stripe_price_id is REFUSED rather than silently charged at
+ * the env price, which would bill £1.50 for a pack advertised at £5.
+ */
+export async function topUpPriceId(packId?: string | null): Promise<ResolvedTopUp> {
+  let query = supabaseAdmin
     .from("topup_packs")
-    .select("stripe_price_id")
+    .select("id, unit, stripe_price_id")
     .eq("kind", "credit_gbp")
-    .eq("active", true)
-    .order("sort")
-    .limit(1)
-    .maybeSingle();
+    .eq("active", true);
+
+  query = packId
+    ? query.eq("id", packId)
+    : query.order("sort").limit(1);
+
+  const { data, error } = await query.maybeSingle();
 
   if (error) {
-    console.error("[stripe] topup pack price lookup failed, using env", error);
+    console.error("[stripe] topup pack lookup failed", error);
   }
 
-  const priceId = data?.stripe_price_id || envPriceId;
-  if (!priceId) {
+  // A named pack that does not exist, is inactive, or is not a credit pack is
+  // an error rather than a reason to sell the default one: the teacher chose a
+  // specific thing and charging them for something else is worse than failing.
+  if (packId && !data) {
+    throw new Error(`No active credit pack with id=${packId}`);
+  }
+  if (packId && !data?.stripe_price_id) {
+    throw new Error(`Pack id=${packId} has no Stripe price configured`);
+  }
+
+  if (data?.stripe_price_id) {
+    return {
+      priceId: data.stripe_price_id,
+      packId: data.id as string,
+      unit: Number(data.unit),
+    };
+  }
+
+  const envPriceId = process.env.STRIPE_PRICE_CREDIT_TOP_UP;
+  if (!envPriceId) {
     throw new Error("No Stripe price configured for the credit top-up");
   }
-  return priceId;
+  return { priceId: envPriceId, packId: null, unit: null };
 }
 
 /**

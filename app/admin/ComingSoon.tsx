@@ -3,17 +3,17 @@
 export default function ComingSoon({ title, blurb }: { title: string; blurb?: string }) {
   return (
     <>
-      <h1 className="text-2xl font-bold tracking-tight mb-1" style={{ color: "#1a1a1a" }}>
+      <h1 className="text-2xl font-bold tracking-tight mb-1" style={{ color: "#1D1730" }}>
         {title}
       </h1>
-      <p className="text-sm mb-6" style={{ color: "#8a8078" }}>
+      <p className="text-sm mb-6" style={{ color: "#6D6683" }}>
         {blurb ?? "Not built yet."}
       </p>
       <div
         className="rounded-2xl border border-dashed p-10 text-center"
-        style={{ borderColor: "#DAD8D0", backgroundColor: "#FAF9F5" }}
+        style={{ borderColor: "#EAE6F5", backgroundColor: "#FFFFFF" }}
       >
-        <p className="text-sm font-medium" style={{ color: "#8a8078" }}>
+        <p className="text-sm font-medium" style={{ color: "#6D6683" }}>
           This section is on the roadmap.
         </p>
       </div>

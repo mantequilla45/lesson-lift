@@ -4,7 +4,13 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/app/lib/auth/client";
 import { COST } from "@/app/lib/costs";
-import { PLAN_CREDITS, toCredits } from "@/app/lib/plans";
+import {
+  PLANS,
+  PLAN_CREDITS,
+  SELECTABLE_PLAN_IDS,
+  asPlanId,
+  toCredits,
+} from "@/app/lib/plans";
 import { fmtDateTime, gbp, nf } from "../format";
 import { RuleRow, type PricingRule } from "../plans/PlansView";
 import {
@@ -19,6 +25,7 @@ import {
   Field,
   Modal,
   Note,
+  PLAN_TONE,
   PageHead,
   Stat,
   StatusTag,
@@ -43,6 +50,8 @@ export interface TopupPack {
   available_to: string[];
   active: boolean;
   stripe_price_id: string | null;
+  /** Display order, and the tie-breaker for the default pack. */
+  sort: number;
   sold: number;
   revenue_gbp: number;
 }
@@ -229,7 +238,7 @@ export default function TopupsView({
                     <Td>
                       <div className="flex flex-wrap gap-1">
                         {p.available_to.map((plan) => (
-                          <Tag key={plan} tone={plan === "free" ? "plain" : "brand"}>
+                          <Tag key={plan} tone={PLAN_TONE[plan] ?? "plain"}>
                             {plan}
                           </Tag>
                         ))}
@@ -355,6 +364,15 @@ function EditPackModal({
   const [price, setPrice] = useState(pack ? String(pack.price_gbp) : "1.50");
   const [unit, setUnit] = useState(pack ? String(pack.unit) : "150");
   const [active, setActive] = useState(pack?.active ?? true);
+  // Which plans may buy this. NOT enforced by RLS — /api/stripe/topup re-checks
+  // it — but it is what the top-up modal offers, so an empty list means nobody
+  // can buy the pack.
+  const [availableTo, setAvailableTo] = useState<string[]>(
+    pack?.available_to ?? SELECTABLE_PLAN_IDS,
+  );
+  // Display order, and the tie-breaker for which pack a caller that names none
+  // gets. Blank on a new pack means "append to the end", which the RPC works out.
+  const [sort, setSort] = useState(pack ? String(pack.sort) : "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -395,6 +413,10 @@ function EditPackModal({
           priceGbp: Number(price),
           unit: Number(unit),
           active,
+          availableTo,
+          // Omitted rather than sent as 0 when blank, so the RPC's "append to
+          // the end" default applies instead of putting every new pack first.
+          ...(sort.trim() === "" ? {} : { sort: Number(sort) }),
         }),
       });
       const json = await res.json();
@@ -485,6 +507,54 @@ function EditPackModal({
           />
         </Field>
       </div>
+
+      {/* Who may buy it, and in what order it appears. Both only matter once
+          there is more than one pack — but both were previously impossible to
+          change after creation, because admin_upsert_topup_pack dropped them
+          from its UPDATE. */}
+      <Field
+        label="Available to"
+        help="Which plans are offered this pack. Unticking every plan hides it from everyone."
+      >
+        <div className="flex flex-wrap gap-2">
+          {SELECTABLE_PLAN_IDS.map((planId) => {
+            const on = availableTo.includes(planId);
+            return (
+              <button
+                key={planId}
+                type="button"
+                onClick={() =>
+                  setAvailableTo((prev) =>
+                    on ? prev.filter((p) => p !== planId) : [...prev, planId],
+                  )
+                }
+                className="px-3 py-1.5 rounded-full text-xs font-semibold capitalize border transition-colors"
+                style={{
+                  backgroundColor: on ? C.brandBg : C.white,
+                  borderColor: on ? C.brand : C.border,
+                  color: on ? C.brand : C.muted,
+                }}
+              >
+                {PLANS[asPlanId(planId)].name}
+              </button>
+            );
+          })}
+        </div>
+      </Field>
+
+      <Field
+        label="Order"
+        help="Lowest first in the top-up list, and the default when no pack is chosen. Leave blank to add at the end."
+      >
+        <input
+          type="number"
+          value={sort}
+          onChange={(e) => setSort(e.target.value)}
+          placeholder={isNew ? "Last" : undefined}
+          className={fieldClass}
+          style={fieldStyle}
+        />
+      </Field>
 
       {/* Credit packs have no margin to model: a £1.50 credit buys £1.50 of
           spend by definition, so the cost sheet has nothing to say about it. */}

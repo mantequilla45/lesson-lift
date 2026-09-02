@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Wand2, X } from "lucide-react";
+import { Pencil, X } from "lucide-react";
 
 interface Props {
   initialTopic: string;
@@ -21,11 +21,11 @@ export default function EditPromptModal({ initialTopic, initialInstructions, onC
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
       <div
         className="relative z-10 w-full max-w-lg rounded-2xl shadow-2xl border overflow-hidden flex flex-col"
-        style={{ borderColor: "#DAD8D0", backgroundColor: "#FAF9F5" }}
+        style={{ borderColor: "#EAE6F5", backgroundColor: "#FFFFFF" }}
       >
-        <div className="flex items-start gap-3 p-6 pb-4 border-b" style={{ borderColor: "#DAD8D0" }}>
-          <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: "#FFCC33" }}>
-            <Wand2 className="w-5 h-5" style={{ color: "#1a1a1a" }} />
+        <div className="flex items-start gap-3 p-6 pb-4 border-b" style={{ borderColor: "#EAE6F5" }}>
+          <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: "var(--j-purple)" }}>
+            <Pencil className="w-5 h-5" style={{ color: "#fff" }} />
           </div>
           <div className="flex-1 min-w-0">
             <h2 className="font-bold text-gray-900">Edit prompt & regenerate</h2>
@@ -48,7 +48,7 @@ export default function EditPromptModal({ initialTopic, initialInstructions, onC
               onChange={(e) => setTopic(e.target.value)}
               placeholder="e.g. The French Revolution"
               className="w-full rounded-xl border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
-              style={{ borderColor: "#DAD8D0", backgroundColor: "#fff" }}
+              style={{ borderColor: "#EAE6F5", backgroundColor: "#fff" }}
             />
           </div>
           <div>
@@ -59,7 +59,7 @@ export default function EditPromptModal({ initialTopic, initialInstructions, onC
               rows={4}
               placeholder="e.g. Pitch it as a children's storybook; keep sentences short and playful."
               className="w-full rounded-xl border px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-black/10"
-              style={{ borderColor: "#DAD8D0", backgroundColor: "#fff" }}
+              style={{ borderColor: "#EAE6F5", backgroundColor: "#fff" }}
             />
           </div>
         </div>
@@ -71,7 +71,7 @@ export default function EditPromptModal({ initialTopic, initialInstructions, onC
               type="button"
               onClick={onClose}
               className="text-sm font-semibold rounded-xl border px-4 py-2 text-gray-700 hover:bg-gray-100 transition-colors"
-              style={{ borderColor: "#DAD8D0" }}
+              style={{ borderColor: "#EAE6F5" }}
             >
               Cancel
             </button>
@@ -80,9 +80,9 @@ export default function EditPromptModal({ initialTopic, initialInstructions, onC
               disabled={!topic.trim()}
               onClick={() => onSubmit({ topic: topic.trim(), additionalInstructions: instructions.trim() })}
               className="inline-flex items-center gap-1.5 text-sm font-semibold rounded-xl px-4 py-2 text-white transition-opacity hover:opacity-90 disabled:opacity-40"
-              style={{ backgroundColor: "#030303" }}
+              style={{ backgroundColor: "var(--j-purple)" }}
             >
-              <Wand2 className="w-3.5 h-3.5" />
+              <Pencil className="w-3.5 h-3.5" />
               Regenerate
             </button>
           </div>

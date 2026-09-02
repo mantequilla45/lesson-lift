@@ -7,11 +7,11 @@ export default function NotBuiltBanner({ children }: { children: React.ReactNode
   return (
     <div
       className="rounded-xl px-4 py-3 mb-5 text-sm font-medium flex items-start gap-2"
-      style={{ backgroundColor: "#3a3a3a", color: "#fff" }}
+      style={{ backgroundColor: "#1D1730", color: "#fff" }}
     >
       <span
         className="text-[10px] font-bold rounded-full px-2 py-0.5 shrink-0 mt-0.5"
-        style={{ backgroundColor: "#fff", color: "#3a3a3a" }}
+        style={{ backgroundColor: "#fff", color: "#1D1730" }}
       >
         NOT BUILT YET
       </span>

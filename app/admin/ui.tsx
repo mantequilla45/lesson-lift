@@ -14,35 +14,41 @@ import { ChevronDown, ChevronRight, X } from "lucide-react";
 import { nf } from "./format";
 
 // ── Palette ──────────────────────────────────────────────────────────────────
+// Mirrors the V2 brand tokens on :root in app/globals.css. Literal hex rather
+// than var(--j-*) because this console styles through inline style={{}}, which
+// takes a value not a custom property reference. Keep the two in step: if a
+// token moves in globals.css, move it here.
 export const C = {
-  page: "#F1EFE3",
-  surface: "#FAF9F5",
+  page: "#F7F5FC", // --j-bg
+  surface: "#FFFFFF", // --j-card
   white: "#FFFFFF",
-  border: "#DAD8D0",
-  divider: "#EEECE4",
-  ink: "#1a1a1a",
-  ink2: "#6b6055",
-  muted: "#8a8078",
-  nav: "#4a423a",
-  ok: "#1f6b3b",
-  okBg: "#DDF0E2",
-  warn: "#A85F0C",
-  warnBg: "#FDF3E5",
+  border: "#EAE6F5", // --j-line
+  divider: "#F1ECFC", // --j-tint
+  ink: "#1D1730", // --j-ink
+  ink2: "#3C3552", // --j-body
+  muted: "#6D6683", // --j-muted
+  nav: "#3C3552", // --j-body
+  // Status colours keep their semantic job — an admin reads these at a glance
+  // in dense tables — and are only retuned to sit beside the purple ramp.
+  ok: "#0F6E56",
+  okBg: "#E1F5EE",
+  warn: "#8A3C12",
+  warnBg: "#FBF3DF",
   danger: "#B3261E",
   dangerBg: "#FBECEB",
   /** Resource consumption. Reserved — never used for anything else. */
-  ai: "#6B4FD8",
-  aiBg: "#F1EDFD",
+  ai: "#5B2ED6", // --j-purple
+  aiBg: "#F1ECFC", // --j-tint
   /** AI-IMAGE credits ONLY. They cost 33x a resource, so they never share a
    *  colour with anything else in the console. */
-  img: "#B4530E",
-  imgBg: "#FBEFE6",
-  brand: "#2a4a8a",
-  brandBg: "#E2E8F5",
+  img: "#C2551F", // --j-orange
+  imgBg: "#FDF1EA", // --j-orange-bg
+  brand: "#5B2ED6", // --j-purple
+  brandBg: "#F1ECFC", // --j-tint
 } as const;
 
 export const fieldClass =
-  "w-full px-3.5 py-2.5 border rounded-xl bg-white text-sm font-medium placeholder-[#A5A5A5] focus:outline-none focus:border-[#1a1a1a] transition-colors";
+  "w-full px-3.5 py-2.5 border rounded-xl bg-white text-sm font-medium placeholder-[#9A93AD] focus:outline-none focus:border-[#5B2ED6] transition-colors";
 export const fieldStyle: React.CSSProperties = { borderColor: C.border };
 
 export const inputClass = "text-sm rounded-lg border px-3 py-1.5";
@@ -412,7 +418,7 @@ export function Btn({
   const styles: Record<string, React.CSSProperties> = {
     default: { borderColor: C.border, color: C.ink, backgroundColor: "transparent" },
     primary: { borderColor: C.ink, color: "#fff", backgroundColor: C.ink },
-    danger: { borderColor: "#EDD3D1", color: C.danger, backgroundColor: "transparent" },
+    danger: { borderColor: "#F3D3D0", color: C.danger, backgroundColor: "transparent" },
     ghost: { borderColor: "transparent", color: C.muted, backgroundColor: "transparent" },
   };
   return (
@@ -506,9 +512,9 @@ export function Note({
   tone?: "brand" | "warn" | "danger";
 }) {
   const map = {
-    brand: { bg: C.brandBg, border: "#C6D3EA" },
-    warn: { bg: C.warnBg, border: "#F0DFC4" },
-    danger: { bg: C.dangerBg, border: "#EDD3D1" },
+    brand: { bg: C.brandBg, border: "#D9CBF7" },
+    warn: { bg: C.warnBg, border: "#EFDFB4" },
+    danger: { bg: C.dangerBg, border: "#F3D3D0" },
   }[tone];
   return (
     <div
@@ -816,7 +822,7 @@ export function DrawerFooter({ children }: { children: React.ReactNode }) {
   return (
     <div
       className="shrink-0 border-t px-5 py-3.5"
-      style={{ borderColor: C.border, backgroundColor: "#F1EFE9" }}
+      style={{ borderColor: C.border, backgroundColor: "#F7F5FC" }}
     >
       <div className="flex flex-wrap items-center gap-2">{children}</div>
     </div>

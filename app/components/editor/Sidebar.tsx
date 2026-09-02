@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Shapes, Type, Image as ImageIcon, Square, Circle, Triangle as TriangleIcon, Minus, X, MoveRight, Star, Hexagon, Sparkles, Loader2, Search, Heart, Cloud, MessageCircle, Plus as PlusIcon, Zap, Pentagon, Octagon, Diamond, Headphones, Film, ListChecks, Volume2, MessagesSquare, HelpCircle, CheckSquare, FormInput, Tags, Images, Brain, ToggleLeft, ToggleRight, ArrowUpDown, Palette, ImagePlay } from "lucide-react";
+import { Pencil, Shapes, Type, Image as ImageIcon, Square, Circle, Triangle as TriangleIcon, Minus, X, MoveRight, Star, Hexagon, Loader2, Search, Heart, Cloud, MessageCircle, Plus as PlusIcon, Zap, Pentagon, Octagon, Diamond, Headphones, Film, ListChecks, Volume2, MessagesSquare, HelpCircle, CheckSquare, FormInput, Tags, Images, Brain, ToggleLeft, ToggleRight, ArrowUpDown, Palette, ImagePlay } from "lucide-react";
 import { parseYouTubeId } from "./youtube";
 import GraphicsPanel from "./GraphicsPanel";
 import PicturesPanel from "./PicturesPanel";
@@ -442,12 +442,12 @@ export default function Sidebar({
     <div
       ref={sidebarRef}
       className="flex shrink-0 relative z-20 [&_button]:cursor-pointer [&_a]:cursor-pointer [&_label]:cursor-pointer"
-      style={{ backgroundColor: "#F1EFE3" }}
+      style={{ backgroundColor: "#F7F5FC" }}
     >
       {/* Vertical icon strip */}
       <div
         className="flex flex-col items-center py-3 gap-1 border-r"
-        style={{ borderColor: "#DAD8D0", width: 72, backgroundColor: "#F1EFE3" }}
+        style={{ borderColor: "#EAE6F5", width: 72, backgroundColor: "#F7F5FC" }}
       >
         {TABS.map((t) => {
           const isActive = active === t.id;
@@ -474,13 +474,13 @@ export default function Sidebar({
       <div
         className="absolute top-0 bottom-0 w-72 border-r shadow-lg flex flex-col"
         style={{
-          borderColor: "#DAD8D0",
-          backgroundColor: "#F1EFE3",
+          borderColor: "#EAE6F5",
+          backgroundColor: "#F7F5FC",
           left: 72,
           display: active ? "flex" : "none",
         }}
       >
-        <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: "#DAD8D0" }}>
+        <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: "#EAE6F5" }}>
           <h3 className="text-sm font-semibold text-gray-800 capitalize">{active ?? ""}</h3>
           <button
             onClick={handleClose}
@@ -707,7 +707,7 @@ export default function Sidebar({
                         e.target.value = "";
                       }}
                     />
-                    <div className="pt-2 border-t" style={{ borderColor: "#DAD8D0" }}>
+                    <div className="pt-2 border-t" style={{ borderColor: "#EAE6F5" }}>
                       <p className="text-[11px] font-semibold text-gray-700 mb-1">Add by URL</p>
                       <div className="flex gap-1.5">
                         <input
@@ -718,13 +718,13 @@ export default function Sidebar({
                           placeholder="https://..."
                           disabled={uploadUrlBusy}
                           className="flex-1 min-w-0 px-2 py-1.5 text-xs bg-white border rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-200 disabled:opacity-60"
-                          style={{ borderColor: "#DAD8D0" }}
+                          style={{ borderColor: "#EAE6F5" }}
                         />
                         <button
                           onClick={handleAddByUrl}
                           disabled={uploadUrlBusy || !uploadUrl.trim()}
                           className="px-3 py-1.5 text-xs font-semibold rounded-lg disabled:opacity-50"
-                          style={{ backgroundColor: "#1a1a1a", color: "#fff" }}
+                          style={{ backgroundColor: "#1D1730", color: "#fff" }}
                         >
                           {uploadUrlBusy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Add"}
                         </button>
@@ -769,7 +769,7 @@ export default function Sidebar({
                   rows={2}
                   disabled={aiBusy}
                   className="w-full px-2.5 py-2 text-xs bg-white border rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-200 disabled:opacity-60 resize-none"
-                  style={{ borderColor: "#DAD8D0" }}
+                  style={{ borderColor: "#EAE6F5" }}
                 />
                 <div className="flex flex-wrap gap-1">
                   {AI_STYLES.map((s) => {
@@ -783,8 +783,8 @@ export default function Sidebar({
                         className="px-2 py-0.5 text-[10px] font-semibold rounded-full border transition-colors"
                         style={
                           selected
-                            ? { backgroundColor: "#1a1a1a", borderColor: "#1a1a1a", color: "#fff" }
-                            : { backgroundColor: "#fff", borderColor: "#DAD8D0", color: "#1a1a1a" }
+                            ? { backgroundColor: "#1D1730", borderColor: "#1D1730", color: "#fff" }
+                            : { backgroundColor: "#fff", borderColor: "#EAE6F5", color: "#1D1730" }
                         }
                       >
                         {s.label}
@@ -797,7 +797,7 @@ export default function Sidebar({
                   onClick={handleAiGenerate}
                   disabled={aiBusy || !aiPrompt.trim()}
                   className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-semibold rounded-lg transition-colors disabled:opacity-50"
-                  style={{ backgroundColor: "#FFCC33", color: "#1a1a1a" }}
+                  style={{ backgroundColor: "var(--j-purple)", color: "#fff" }}
                 >
                   {aiBusy ? (
                     <>
@@ -806,7 +806,7 @@ export default function Sidebar({
                     </>
                   ) : (
                     <>
-                      <Sparkles className="w-3.5 h-3.5" />
+                      <Pencil className="w-3.5 h-3.5" />
                       Generate
                     </>
                   )}
@@ -814,7 +814,7 @@ export default function Sidebar({
                 {aiError && (
                   <p className="text-[10px] text-red-600">{aiError}</p>
                 )}
-                <div className="pt-2 border-t" style={{ borderColor: "#DAD8D0" }}>
+                <div className="pt-2 border-t" style={{ borderColor: "#EAE6F5" }}>
                   <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-500 mb-2">Gallery</p>
                   <div className="relative mb-2">
                     <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400" />
@@ -824,7 +824,7 @@ export default function Sidebar({
                       onChange={(e) => setGallerySearch(e.target.value)}
                       placeholder="Search across all slideshows"
                       className="w-full pl-7 pr-2 py-1.5 text-xs bg-white border rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-200"
-                      style={{ borderColor: "#DAD8D0" }}
+                      style={{ borderColor: "#EAE6F5" }}
                     />
                   </div>
                   {galleryLoading ? (
@@ -889,7 +889,7 @@ export default function Sidebar({
                         setActivityError(null);
                       }}
                       className="text-left rounded-xl border bg-white p-3 hover:border-violet-400 hover:shadow-sm transition-all flex flex-col gap-1.5"
-                      style={{ borderColor: "#DAD8D0" }}
+                      style={{ borderColor: "#EAE6F5" }}
                     >
                       <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-gray-100 text-gray-700">
                         {a.icon}
@@ -937,7 +937,7 @@ export default function Sidebar({
                       data-1p-ignore
                       data-lpignore="true"
                       className="w-full px-3 py-2 text-sm bg-white border rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-200 disabled:opacity-60"
-                      style={{ borderColor: "#DAD8D0" }}
+                      style={{ borderColor: "#EAE6F5" }}
                     />
                   </div>
 
@@ -956,8 +956,8 @@ export default function Sidebar({
                             className="text-xs font-semibold py-2 rounded-lg border transition-colors disabled:opacity-60"
                             style={
                               selected
-                                ? { backgroundColor: "#1a1a1a", borderColor: "#1a1a1a", color: "#fff" }
-                                : { backgroundColor: "#fff", borderColor: "#DAD8D0", color: "#1a1a1a" }
+                                ? { backgroundColor: "#1D1730", borderColor: "#1D1730", color: "#fff" }
+                                : { backgroundColor: "#fff", borderColor: "#EAE6F5", color: "#1D1730" }
                             }
                           >
                             {l}
@@ -982,7 +982,7 @@ export default function Sidebar({
                       </>
                     ) : (
                       <>
-                        <Sparkles className="w-4 h-4" />
+                        <Pencil className="w-4 h-4" />
                         Add activity
                       </>
                     )}
@@ -1008,7 +1008,7 @@ export default function Sidebar({
                     placeholder="E.g. The water cycle"
                     disabled={audioBusy}
                     className="mt-1 w-full px-2.5 py-2 text-xs bg-white border rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-200 disabled:opacity-60"
-                    style={{ borderColor: "#DAD8D0" }}
+                    style={{ borderColor: "#EAE6F5" }}
                   />
                 </label>
                 <label className="block">
@@ -1022,7 +1022,7 @@ export default function Sidebar({
                     rows={4}
                     disabled={audioBusy}
                     className="mt-1 w-full px-2.5 py-2 text-xs bg-white border rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-200 disabled:opacity-60 resize-none"
-                    style={{ borderColor: "#DAD8D0" }}
+                    style={{ borderColor: "#EAE6F5" }}
                   />
                 </label>
                 <div>
@@ -1039,8 +1039,8 @@ export default function Sidebar({
                           className="px-2 py-1 text-[11px] font-semibold rounded-full border transition-colors"
                           style={
                             selected
-                              ? { backgroundColor: "#1a1a1a", borderColor: "#1a1a1a", color: "#fff" }
-                              : { backgroundColor: "#fff", borderColor: "#DAD8D0", color: "#1a1a1a" }
+                              ? { backgroundColor: "#1D1730", borderColor: "#1D1730", color: "#fff" }
+                              : { backgroundColor: "#fff", borderColor: "#EAE6F5", color: "#1D1730" }
                           }
                         >
                           {a.label}
@@ -1060,7 +1060,7 @@ export default function Sidebar({
                     rows={2}
                     disabled={audioBusy}
                     className="mt-1 w-full px-2.5 py-2 text-xs bg-white border rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-200 disabled:opacity-60 resize-none"
-                    style={{ borderColor: "#DAD8D0" }}
+                    style={{ borderColor: "#EAE6F5" }}
                   />
                 </label>
                 <button
@@ -1068,7 +1068,7 @@ export default function Sidebar({
                   onClick={handleAudioGenerate}
                   disabled={audioBusy || (!audioTopic.trim() && !audioScript.trim())}
                   className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-semibold rounded-lg transition-colors disabled:opacity-50"
-                  style={{ backgroundColor: "#FFCC33", color: "#1a1a1a" }}
+                  style={{ backgroundColor: "var(--j-purple)", color: "#fff" }}
                 >
                   {audioBusy ? (
                     <>
@@ -1077,7 +1077,7 @@ export default function Sidebar({
                     </>
                   ) : (
                     <>
-                      <Sparkles className="w-3.5 h-3.5" />
+                      <Pencil className="w-3.5 h-3.5" />
                       Generate audio activity
                     </>
                   )}
@@ -1123,7 +1123,7 @@ export default function Sidebar({
                       placeholder="e.g. how volcanoes erupt"
                       disabled={videoSuggestBusy}
                       className="w-full px-2.5 py-2 text-xs bg-white border rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-200 disabled:opacity-60"
-                      style={{ borderColor: "#DAD8D0" }}
+                      style={{ borderColor: "#EAE6F5" }}
                     />
                     <button
                       type="button"
@@ -1139,7 +1139,7 @@ export default function Sidebar({
                         </>
                       ) : (
                         <>
-                          <Sparkles className="w-3.5 h-3.5" />
+                          <Pencil className="w-3.5 h-3.5" />
                           Suggest a video
                         </>
                       )}
@@ -1157,14 +1157,14 @@ export default function Sidebar({
                       onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleAddYouTube(); } }}
                       placeholder="https://www.youtube.com/watch?v=..."
                       className="w-full px-2.5 py-2 text-xs bg-white border rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-200"
-                      style={{ borderColor: "#DAD8D0" }}
+                      style={{ borderColor: "#EAE6F5" }}
                     />
                     <button
                       type="button"
                       onClick={handleAddYouTube}
                       disabled={!videoUrl.trim()}
                       className="w-full px-3 py-2 text-xs font-semibold rounded-lg disabled:opacity-50"
-                      style={{ backgroundColor: "#1a1a1a", color: "#fff" }}
+                      style={{ backgroundColor: "#1D1730", color: "#fff" }}
                     >
                       Add YouTube video
                     </button>
@@ -1178,7 +1178,7 @@ export default function Sidebar({
                       onClick={() => videoFileRef.current?.click()}
                       disabled={videoUploading}
                       className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-semibold rounded-lg disabled:opacity-50"
-                      style={{ backgroundColor: "#FFCC33", color: "#1a1a1a" }}
+                      style={{ backgroundColor: "var(--j-purple)", color: "#fff" }}
                     >
                       {videoUploading ? (
                         <>

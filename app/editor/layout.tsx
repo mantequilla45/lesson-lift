@@ -14,7 +14,7 @@ export default function EditorLayout({ children }: { children: React.ReactNode }
     <>
       <div
         className="lg:hidden min-h-dvh flex flex-col items-center justify-center px-4 sm:px-6 lg:px-10 text-center gap-4"
-        style={{ backgroundColor: "#F1EFE3" }}
+        style={{ backgroundColor: "#F7F5FC" }}
       >
         <Monitor className="w-10 h-10 text-muted" />
         <h1 className="text-xl font-semibold">The slide editor needs a bigger screen</h1>
@@ -25,7 +25,7 @@ export default function EditorLayout({ children }: { children: React.ReactNode }
         <Link
           href="/dashboard"
           className="px-5 py-2.5 rounded-2xl text-sm font-semibold text-white"
-          style={{ backgroundColor: "#1a1a1a" }}
+          style={{ backgroundColor: "#1D1730" }}
         >
           Back to dashboard
         </Link>

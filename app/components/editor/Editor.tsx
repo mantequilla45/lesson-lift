@@ -3660,14 +3660,14 @@ export default function Editor({ presentation, generationParams }: Props) {
   const slideEntries: SlideEntry[] = slides.map((s) => ({ id: s.id, slide: s }));
 
   return (
-    <div className="relative flex flex-col h-screen overflow-hidden" style={{ backgroundColor: "#F1EFE3" }}>
+    <div className="relative flex flex-col h-screen overflow-hidden" style={{ backgroundColor: "var(--j-bg)" }}>
       {/* Full-screen overlay shown while waiting for OpenAI to respond (pre-meta phase).
           Covers the whole editor so the user sees an engaging animation rather than
           a blank slide + spinner during the 10-20 second AI wait. */}
       {preMeta && (
         <div
           className="absolute inset-0 z-200 flex flex-col items-center justify-center pointer-events-none"
-          style={{ backgroundColor: "#F1EFE3" }}
+          style={{ backgroundColor: "var(--j-bg)" }}
         >
           <SlideshowLoadingAnimation label="Planning your deck…" subtitle="This usually takes about 15 seconds" />
         </div>
@@ -4105,10 +4105,10 @@ export default function Editor({ presentation, generationParams }: Props) {
                               <div className="absolute inset-0 jooma-shimmer" />
                             )}
                             <div className="relative flex flex-col items-center gap-4">
-                              <div className="w-14 h-14 rounded-full bg-white shadow-md border flex items-center justify-center" style={{ borderColor: "#DAD8D0" }}>
+                              <div className="w-14 h-14 rounded-full bg-white shadow-md border flex items-center justify-center" style={{ borderColor: "var(--j-line)" }}>
                                 <div
                                   className="w-7 h-7 rounded-full border-4 animate-spin"
-                                  style={{ borderColor: "#FFCC33", borderTopColor: "transparent" }}
+                                  style={{ borderColor: "var(--j-purple)", borderTopColor: "transparent" }}
                                 />
                               </div>
                               {(() => {
@@ -4300,12 +4300,12 @@ export default function Editor({ presentation, generationParams }: Props) {
               <div className="absolute top-2 right-4 z-50 pointer-events-none">
                 <div
                   className="flex flex-col gap-0.5 rounded-2xl border shadow-lg px-4 py-2 text-sm pointer-events-auto"
-                  style={{ backgroundColor: "#1a1a1a", color: "#fff", borderColor: "#1a1a1a" }}
+                  style={{ backgroundColor: "var(--j-ink)", color: "#fff", borderColor: "var(--j-ink)" }}
                 >
                   <div className="inline-flex items-center gap-3">
                     <span className="relative flex h-2.5 w-2.5">
-                      <span className="absolute inline-flex h-full w-full rounded-full opacity-75 animate-ping" style={{ backgroundColor: "#FFCC33" }} />
-                      <span className="relative inline-flex rounded-full h-2.5 w-2.5" style={{ backgroundColor: "#FFCC33" }} />
+                      <span className="absolute inline-flex h-full w-full rounded-full opacity-75 animate-ping" style={{ backgroundColor: "var(--j-purple)" }} />
+                      <span className="relative inline-flex rounded-full h-2.5 w-2.5" style={{ backgroundColor: "var(--j-purple)" }} />
                     </span>
                     <span className="font-medium">{message}</span>
                     {!imagesLoading && g.total > 0 && (
@@ -4328,7 +4328,7 @@ export default function Editor({ presentation, generationParams }: Props) {
             <div className="absolute top-2 left-1/2 -translate-x-1/2 z-50 pointer-events-none">
               <div
                 className="inline-flex items-center gap-2 rounded-2xl border shadow-lg px-4 py-2 text-sm pointer-events-auto"
-                style={{ backgroundColor: "#1a1a1a", color: "#fff", borderColor: "#1a1a1a" }}
+                style={{ backgroundColor: "var(--j-ink)", color: "#fff", borderColor: "var(--j-ink)" }}
               >
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
                 <span className="font-medium">

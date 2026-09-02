@@ -9,7 +9,7 @@ import {
   ChevronDown,
   FlipHorizontal2,
   FlipVertical2,
-  Sparkles,
+  Sun,
   Lock,
   LockOpen,
   Trash2,
@@ -180,7 +180,7 @@ export default function ContextMenu({
 
     if (onToggleShadow) {
       items.push({
-        icon: <Sparkles className="w-3.5 h-3.5" />,
+        icon: <Sun className="w-3.5 h-3.5" />,
         label: "Drop shadow",
         active: !!state.shadow,
         onClick: click(onToggleShadow),

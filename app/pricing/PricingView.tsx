@@ -4,10 +4,15 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ArrowLeft } from "lucide-react";
-import { PLANS } from "@/app/lib/plans";
+import { PLANS, PRICEABLE_PLAN_IDS, planCredits, type PlanId } from "@/app/lib/plans";
 import type { CopyMap } from "@/app/lib/copy";
 
-const MONTHLY_PRO = PLANS.pro.priceMonthly ?? 7.99;
+// The plans on sale, cheapest first. Derived rather than listed: this page used
+// to hardcode a Free and a Pro card and POST to checkout with no body, so it
+// could not sell Max at all once Max went back on sale.
+const SELLABLE: PlanId[] = PRICEABLE_PLAN_IDS.slice().sort(
+  (a, b) => (PLANS[a].priceMonthly ?? 0) - (PLANS[b].priceMonthly ?? 0),
+);
 
 const FREE_FEATURES = [
   "1 generation a day, 5 a month",
@@ -19,21 +24,34 @@ const FREE_FEATURES = [
   "PDF & DOC export, watermarked",
 ];
 
-// NB: "unlimited" would be a promise we don't keep — Pro carries a monthly
-// fair-use allowance and blocks (with a top-up offer) when it runs out.
-const PRO_FEATURES = [
-  "Generate as you need, fair use",
-  "Top up any time if you run out",
-  "Full curriculum alignment",
-  "Editable outputs",
-  // Not "PDF & DOC export" — Free has that too, so listing it here read as a
-  // Pro-only benefit that isn't one. The real export difference is the
-  // watermark coming off.
-  "Export without the watermark",
-  "AI assistant",
-  "Save library",
-  "Priority support",
-];
+// Per paid plan. The CREDIT line is not written here — it is derived from
+// planCredits() below, so what is advertised cannot drift from the ceiling
+// actually enforced.
+//
+// NB: "unlimited" would be a promise we don't keep — every paid plan carries a
+// monthly allowance and blocks (with a top-up offer) when it runs out.
+/** Button label per plan. The badge above already carries the full plan name,
+ *  so "Choose Pro Teacher" says it twice. */
+const PAID_CTA: Record<string, string> = {
+  pro: "Go Pro",
+  max: "Choose Max",
+};
+
+const PAID_FEATURES: Record<string, string[]> = {
+  pro: [
+    "Top up any time if you run out",
+    "Full curriculum alignment",
+    "Editable outputs",
+    // Not "PDF & DOC export" — Free has that too, so listing it here read as a
+    // paid-only benefit that isn't one. The real export difference is the
+    // watermark coming off.
+    "Export without the watermark",
+    "Assistant built in",
+    "Save library",
+    "Priority support",
+  ],
+  max: ["Priority building", "Everything in Pro"],
+};
 
 // Prices come from PLANS; only the wording around them is editable in
 // /admin/copy. The two strings arrive as props because this component needs
@@ -45,31 +63,39 @@ export default function PricingView({
   copy: Pick<CopyMap, "pricing.headline" | "pricing.sub">;
 }) {
   const router = useRouter();
-  const [upgrading, setUpgrading] = useState(false);
+  const [upgrading, setUpgrading] = useState<PlanId | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  async function handleUpgrade() {
-    setUpgrading(true);
+  async function handleUpgrade(plan: PlanId) {
+    setUpgrading(plan);
     setError(null);
     try {
-      // Billing is monthly-only, and the route sells exactly one thing, so the
-      // request needs no body.
-      const res = await fetch("/api/stripe/checkout", { method: "POST" });
+      // Billing is monthly-only, but the plan MUST be named: without a body the
+      // route falls back to Pro, which is how this page silently sold Pro to
+      // anyone who pressed the Max button.
+      const res = await fetch("/api/stripe/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan }),
+      });
       if (res.status === 401) {
         router.push("/login?next=/pricing");
         return;
       }
       const data = (await res.json()) as { url?: string; error?: string };
       if (data.url) {
-        window.location.href = data.url; // hand off to Stripe Checkout
+        // Hand off to Stripe Checkout. assign(), not `location.href =`, which
+        // the React compiler reads as mutating a value from outside the
+        // component.
+        window.location.assign(data.url);
         return;
       }
       setError(data.error ?? "Something went wrong. Please try again.");
     } catch {
       setError("Network error. Please try again.");
-    } finally {
-      setUpgrading(false);
     }
+    // Only reached if checkout did not open, so the button can be retried.
+    setUpgrading(null);
   }
 
   return (
@@ -95,12 +121,18 @@ export default function PricingView({
           </p>
         </div>
 
-        {/* Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-3xl mx-auto">
+        {/* Cards. One per sellable plan plus Free, so adding a tier needs no
+            change here. */}
+        <div
+          className="grid grid-cols-1 gap-5 max-w-5xl mx-auto"
+          style={{
+            gridTemplateColumns: `repeat(auto-fit, minmax(15rem, 1fr))`,
+          }}
+        >
 
           {/* Free */}
           <PlanCard
-            badge="Free Plan"
+            badge={PLANS.free.name}
             badgeBg="var(--j-tint)"
             badgeInk="var(--j-faint)"
             price="£0"
@@ -117,25 +149,44 @@ export default function PricingView({
             bulletInk="#3a2f28"
           />
 
-          {/* Pro Teacher */}
-          <PlanCard
-            badge="Pro Teacher"
-            badgeBg="#FAD4C8"
-            badgeInk="#c25034"
-            price={`£${MONTHLY_PRO}`}
-            priceSuffix="/month"
-            cardBg="#FDE8E1"
-            cardBorder="#F7D3C7"
-            cta={upgrading ? "Starting checkout…" : "Go Pro"}
-            onCtaClick={handleUpgrade}
-            ctaDisabled={upgrading}
-            ctaBg="#E0463F"
-            ctaInk="#fff"
-            features={PRO_FEATURES}
-            featureInk="#3a1a10"
-            includesInk="var(--j-purple)"
-            bulletInk="#3a1a10"
-          />
+          {SELLABLE.map((id) => {
+            const plan = PLANS[id];
+            const credits = planCredits(id);
+            // The credit line leads: it is the difference between the paid
+            // plans, and it is derived rather than written down.
+            const features = [
+              ...(credits !== null
+                ? [`${credits.toLocaleString("en-GB")} credits a month`]
+                : []),
+              ...(PAID_FEATURES[id] ?? []),
+            ];
+
+            return (
+              <PlanCard
+                key={id}
+                badge={plan.name}
+                badgeBg="var(--j-tint)"
+                badgeInk="var(--j-purple)"
+                price={`£${plan.priceMonthly?.toFixed(2)}`}
+                priceSuffix="/month"
+                cardBg="var(--j-card)"
+                cardBorder="var(--j-line)"
+                cta={
+                  upgrading === id
+                    ? "Starting checkout…"
+                    : (PAID_CTA[id] ?? `Choose ${plan.name}`)
+                }
+                onCtaClick={() => handleUpgrade(id)}
+                ctaDisabled={upgrading !== null}
+                ctaBg="var(--j-purple)"
+                ctaInk="#fff"
+                features={features}
+                featureInk="#3a2f28"
+                includesInk="var(--j-purple)"
+                bulletInk="#3a2f28"
+              />
+            );
+          })}
 
         </div>
 

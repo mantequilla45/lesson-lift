@@ -68,7 +68,7 @@ function LandingHero({ region, children }: WireframeProps) {
         "eyebrow",
         <span
           className="inline-block text-[10px] px-2 py-1 rounded-full"
-          style={{ backgroundColor: "#EAEFF7", color: "#3B6FF5" }}
+          style={{ backgroundColor: "#F1ECFC", color: "#5B2ED6" }}
         >
           {children}
         </span>,
@@ -79,7 +79,7 @@ function LandingHero({ region, children }: WireframeProps) {
         "h1",
         <p
           className="text-base font-bold leading-tight text-balance"
-          style={{ color: "#030303" }}
+          style={{ color: "#1D1730" }}
         >
           {children}
         </p>,
@@ -88,7 +88,7 @@ function LandingHero({ region, children }: WireframeProps) {
       {slot(
         region,
         "sub",
-        <p className="text-[11px] leading-snug" style={{ color: "#6b6055" }}>
+        <p className="text-[11px] leading-snug" style={{ color: "#3C3552" }}>
           {children}
         </p>,
         "56%",
@@ -98,7 +98,7 @@ function LandingHero({ region, children }: WireframeProps) {
         "cta",
         <span
           className="inline-block text-[11px] font-semibold px-3.5 py-1.5 rounded-lg text-white"
-          style={{ backgroundColor: "#030303" }}
+          style={{ backgroundColor: "#1D1730" }}
         >
           {children}
         </span>,
@@ -107,7 +107,7 @@ function LandingHero({ region, children }: WireframeProps) {
       {slot(
         region,
         "reassure",
-        <p className="text-[10px]" style={{ color: "#9a8f85" }}>
+        <p className="text-[10px]" style={{ color: "#6D6683" }}>
           {children}
         </p>,
         "148px",
@@ -120,9 +120,9 @@ function PricingHeader({ region, children }: WireframeProps) {
   return (
     <div
       className="rounded-xl border p-5 text-center space-y-2.5"
-      style={{ borderColor: C.border, backgroundColor: "#F1EFE3" }}
+      style={{ borderColor: C.border, backgroundColor: "#F7F5FC" }}
     >
-      <p className="text-[11px] font-semibold" style={{ color: "#a8a39a" }}>
+      <p className="text-[11px] font-semibold" style={{ color: "#9A93AD" }}>
         Jooma
       </p>
       {slot(
@@ -130,7 +130,7 @@ function PricingHeader({ region, children }: WireframeProps) {
         "h1",
         <p
           className="text-sm font-bold leading-tight text-balance"
-          style={{ color: "#1a1a1a" }}
+          style={{ color: "#1D1730" }}
         >
           {children}
         </p>,
@@ -139,7 +139,7 @@ function PricingHeader({ region, children }: WireframeProps) {
       {slot(
         region,
         "sub",
-        <p className="text-[10.5px] leading-snug" style={{ color: "#8a8078" }}>
+        <p className="text-[10.5px] leading-snug" style={{ color: "#6D6683" }}>
           {children}
         </p>,
         "52%",
@@ -150,7 +150,7 @@ function PricingHeader({ region, children }: WireframeProps) {
           <div
             key={p}
             className="rounded-lg border p-2.5 text-left"
-            style={{ borderColor: C.border, backgroundColor: "#FAF9F5" }}
+            style={{ borderColor: C.border, backgroundColor: "#FFFFFF" }}
           >
             <div className="text-[10px] font-semibold" style={{ color: C.ink }}>
               {p}
@@ -170,11 +170,11 @@ function DashEmpty({ region, children }: WireframeProps) {
   return (
     <div
       className="rounded-xl border p-4"
-      style={{ borderColor: C.border, backgroundColor: "#F1EFE3" }}
+      style={{ borderColor: C.border, backgroundColor: "#F7F5FC" }}
     >
       <div
         className="rounded-lg border p-4"
-        style={{ borderColor: C.border, backgroundColor: "#FAF9F5" }}
+        style={{ borderColor: C.border, backgroundColor: "#FFFFFF" }}
       >
         <div className="text-[11px] font-medium mb-3" style={{ color: C.ink }}>
           Recently added

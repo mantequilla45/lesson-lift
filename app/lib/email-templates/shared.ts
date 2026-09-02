@@ -23,19 +23,19 @@ export function button(text: string, href: string): string {
   return `
 <table cellpadding="0" cellspacing="0" style="margin:24px 0;">
   <tr>
-    <td style="background-color:#1a1a1a;border-radius:12px;padding:13px 30px;">
-      <a href="${href}" style="color:#ffffff;text-decoration:none;font-weight:600;font-size:14px;display:inline-block;">${text}</a>
+    <td style="background-color:#5B2ED6;border-radius:12px;padding:13px 30px;">
+      <a href="${href}" style="color:#ffffff;text-decoration:none;font-weight:800;font-size:14px;display:inline-block;">${text}</a>
     </td>
   </tr>
 </table>`;
 }
 
-export const H1 = 'style="margin:0 0 10px 0;font-size:22px;font-weight:700;color:#1a1a1a;"';
-export const P = 'style="margin:0 0 16px 0;color:#6b6055;font-size:15px;line-height:1.6;"';
-export const SMALL = 'style="margin:0;color:#8a8078;font-size:13px;line-height:1.6;"';
+export const H1 = 'style="margin:0 0 10px 0;font-size:22px;font-weight:800;color:#1D1730;"';
+export const P = 'style="margin:0 0 16px 0;color:#3C3552;font-size:15px;line-height:1.6;"';
+export const SMALL = 'style="margin:0;color:#6D6683;font-size:13px;line-height:1.6;"';
 export const DIVIDER = `
 <table cellpadding="0" cellspacing="0" style="width:100%;margin:8px 0 18px 0;">
-  <tr><td style="border-top:1px solid #DAD8D0;font-size:0;line-height:0;height:1px;">&nbsp;</td></tr>
+  <tr><td style="border-top:1px solid #EAE6F5;font-size:0;line-height:0;height:1px;">&nbsp;</td></tr>
 </table>`;
 
 /**

@@ -136,7 +136,7 @@ export default function SlideTray({ slides, activeIndex, onSelect, onAdd, onDele
             {canDrag && dropIndex === i && dragIndex !== null && (
               <div
                 className="absolute -left-2 top-0 bottom-0 w-1 rounded-full"
-                style={{ backgroundColor: "#FFCC33" }}
+                style={{ backgroundColor: "var(--j-purple)" }}
               />
             )}
             <button
@@ -163,7 +163,7 @@ export default function SlideTray({ slides, activeIndex, onSelect, onAdd, onDele
                   {isActiveGenerate && <div className="absolute inset-0 jooma-shimmer" />}
                   <div
                     className="relative w-5 h-5 rounded-full border-2 animate-spin"
-                    style={{ borderColor: "#FFCC33", borderTopColor: "transparent" }}
+                    style={{ borderColor: "var(--j-purple)", borderTopColor: "transparent" }}
                   />
                 </div>
               )}
@@ -191,7 +191,7 @@ export default function SlideTray({ slides, activeIndex, onSelect, onAdd, onDele
             {canDrag && dropIndex === slides.length && i === slides.length - 1 && dragIndex !== null && (
               <div
                 className="absolute -right-2 top-0 bottom-0 w-1 rounded-full"
-                style={{ backgroundColor: "#FFCC33" }}
+                style={{ backgroundColor: "var(--j-purple)" }}
               />
             )}
           </div>

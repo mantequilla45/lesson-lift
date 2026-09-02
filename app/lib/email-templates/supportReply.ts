@@ -36,13 +36,13 @@ export function supportReplyTemplate(
       // be replaceable by a template setting.
       prose(bodyOverride) ??
       `<p ${P}>
-      About <strong style="color:#1a1a1a;">${subject}</strong>:
+      About <strong style="color:#1D1730;">${subject}</strong>:
     </p>`
     }
 
-    <table cellpadding="0" cellspacing="0" style="width:100%;margin:0 0 8px 0;background-color:#F1EFE9;border-radius:12px;">
+    <table cellpadding="0" cellspacing="0" style="width:100%;margin:0 0 8px 0;background-color:#F1ECFC;border-radius:12px;">
       <tr><td style="padding:16px 18px;">
-        <p style="margin:0;color:#1a1a1a;font-size:15px;line-height:1.6;white-space:pre-wrap;">${body}</p>
+        <p style="margin:0;color:#1D1730;font-size:15px;line-height:1.6;white-space:pre-wrap;">${body}</p>
       </td></tr>
     </table>
 

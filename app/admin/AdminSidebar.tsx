@@ -121,10 +121,10 @@ export default function AdminSidebar({
   return (
     <aside
       className="shrink-0 w-72 h-screen sticky top-0 border-r flex flex-col"
-      style={{ backgroundColor: "#FAF9F5", borderColor: "#DAD8D0" }}
+      style={{ backgroundColor: "#FFFFFF", borderColor: "#EAE6F5" }}
     >
       <div className="px-5 py-5">
-        <p className="text-lg font-bold tracking-tight" style={{ color: "#1a1a1a" }}>
+        <p className="text-lg font-bold tracking-tight" style={{ color: "#1D1730" }}>
           Jooma Admin
         </p>
       </div>
@@ -134,7 +134,7 @@ export default function AdminSidebar({
           <div key={group.label}>
             <p
               className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider"
-              style={{ color: "#8a8078" }}
+              style={{ color: "#6D6683" }}
             >
               {group.label}
             </p>
@@ -154,13 +154,13 @@ export default function AdminSidebar({
                       aria-disabled="true"
                       title="Not built yet — the School plan has no pricing set"
                       className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium cursor-not-allowed select-none"
-                      style={{ color: "#b8b2aa" }}
+                      style={{ color: "#9A93AD" }}
                     >
                       <Icon className="w-4 h-4 shrink-0" />
                       <span className="truncate">{label}</span>
                       <span
                         className="ml-auto text-[10px] font-semibold rounded-full px-1.5 py-0.5"
-                        style={{ backgroundColor: "#EEECE4", color: "#8a8078" }}
+                        style={{ backgroundColor: "#F1ECFC", color: "#6D6683" }}
                       >
                         Soon
                       </span>
@@ -173,7 +173,7 @@ export default function AdminSidebar({
                     key={href}
                     href={href}
                     className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-colors"
-                    style={active ? { backgroundColor: "#1a1a1a", color: "#fff" } : { color: "#4a423a" }}
+                    style={active ? { backgroundColor: "#5B2ED6", color: "#fff" } : { color: "#3C3552" }}
                   >
                     <Icon className="w-4 h-4 shrink-0" />
                     <span className="truncate">{label}</span>
@@ -182,7 +182,7 @@ export default function AdminSidebar({
                         className="ml-auto text-[10px] font-bold rounded-full px-1.5 py-0.5"
                         style={
                           active
-                            ? { backgroundColor: "#fff", color: "#1a1a1a" }
+                            ? { backgroundColor: "#fff", color: "#5B2ED6" }
                             : { backgroundColor: "#B3261E", color: "#fff" }
                         }
                       >
@@ -197,11 +197,11 @@ export default function AdminSidebar({
         ))}
       </nav>
 
-      <div className="px-3 py-4 border-t" style={{ borderColor: "#EEECE4" }}>
+      <div className="px-3 py-4 border-t" style={{ borderColor: "#F1ECFC" }}>
         <Link
           href="/tools"
           className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-colors hover:bg-black/5"
-          style={{ color: "#8a8078" }}
+          style={{ color: "#6D6683" }}
         >
           <ArrowLeft className="w-4 h-4" />
           Back to app

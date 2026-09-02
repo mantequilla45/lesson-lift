@@ -1225,6 +1225,81 @@ export function prefillFunctionDef() {
 }
 
 /**
+ * The clarifying question.
+ *
+ * Mo asks one when a field a tool NEEDS is genuinely ambiguous, offering two or
+ * three concrete options rather than guessing. The handover calls this out as
+ * one of the two behaviours that make Mo feel like an assistant rather than a
+ * slot machine: guessing wrong burns a generation and teaches teachers not to
+ * trust it.
+ *
+ * Deliberately bounded:
+ *
+ *   - ONE question, never a chain. The failure this guards against is Mo
+ *     interrogating a teacher who was already perfectly clear.
+ *   - The tool and the fields parsed so far travel WITH the question, so
+ *     answering an option resolves straight to a prefill without a second
+ *     round trip to the model.
+ *   - The escape hatch is added by the client, not the model, so it is always
+ *     present and always worded the same.
+ */
+export function clarifyFunctionDef() {
+  return {
+    type: "function" as const,
+    function: {
+      name: "ask_clarifying_question",
+      description:
+        "Ask the teacher ONE short question when a field the chosen tool needs " +
+        "is genuinely ambiguous and guessing it wrong would waste a generation. " +
+        "Do NOT call this when the request is already clear enough to act on, " +
+        "and do NOT call it for a field the tool does not need. Prefer " +
+        "prefill_tool whenever you can reasonably infer the answer.",
+      parameters: {
+        type: "object",
+        properties: {
+          slug: {
+            type: "string",
+            enum: ASSISTANT_TOOLS.map((t) => t.slug),
+            description: "The tool this question is about.",
+          },
+          question: {
+            type: "string",
+            description:
+              "The question, in one short sentence. No preamble, no apology.",
+          },
+          field: {
+            type: "string",
+            description: "Which form field the answer fills in.",
+          },
+          options: {
+            type: "array",
+            description:
+              "Two or three concrete answers the teacher can pick. Each must be " +
+              "a real value for the field, not a description of one.",
+            items: {
+              type: "object",
+              properties: {
+                label: { type: "string", description: "What the teacher sees." },
+                value: { type: "string", description: "The value to put in the field." },
+              },
+              required: ["label", "value"],
+            },
+          },
+          fields: {
+            type: "object",
+            description:
+              "Everything already understood from the request, so answering the " +
+              "question completes the form rather than restarting it.",
+            additionalProperties: true,
+          },
+        },
+        required: ["slug", "question", "field", "options", "fields"],
+      },
+    },
+  };
+}
+
+/**
  * The traps a tool-selecting model needs told, once.
  *
  * Deliberately NOT a per-tool field dump. With 34 tools, listing every field and

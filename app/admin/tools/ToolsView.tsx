@@ -26,6 +26,7 @@ import {
   FilterBar,
   Modal,
   Note,
+  PLAN_TONE,
   PageHead,
   Stat,
   Table,
@@ -93,14 +94,14 @@ function projectedCostUsd(tool: ToolRow, model: ModelId): number | null {
   return (inTok / 1_000_000) * p.input + (outTok / 1_000_000) * p.output;
 }
 
-// Only the plans that can actually be sold — free and pro. `max` is retired
-// (no Stripe price) and `school` is unbuilt (no seats, no pooled allowances),
-// so offering either here would let an admin scope a tool to a plan nobody can
-// be on. SELECTABLE_PLANS is the same filter the teacher-facing plan pickers
-// use, so the two cannot drift.
+// Only the plans that can actually be sold — currently free, pro and max.
+// `school` is unbuilt (no seats, no pooled allowances), so offering it here
+// would let an admin scope a tool to a plan nobody can be on. SELECTABLE_PLANS
+// is the same filter the teacher-facing plan pickers use, so the two cannot
+// drift — and a plan going on or off sale updates this list with it.
 // Widened to string[] deliberately: tool_settings.plans is a free text[] in the
 // database and can hold values outside the PlanId union (the seed still lists
-// 'max' and 'school'), so comparisons against it must not assume otherwise.
+// 'school'), so comparisons against it must not assume otherwise.
 const ALL_PLANS: string[] = SELECTABLE_PLANS.map((p) => p.id);
 
 export default function ToolsView({
@@ -396,17 +397,17 @@ export default function ToolsView({
                           </Tag>
                         ) : ALL_PLANS.every((p) => t.plans.includes(p)) ? (
                           // Covers every SELLABLE plan — tested by coverage, not
-                          // by count. The seeded rows still list retired/unbuilt
-                          // plans too, so comparing lengths would never match.
+                          // by count. The seeded rows still list unbuilt plans
+                          // too, so comparing lengths would never match.
                           <Tag>all plans</Tag>
                         ) : (
                           // Only show plans that can actually be sold; a
-                          // lingering 'max'/'school' entry is noise, not a
+                          // lingering 'school' entry is noise, not a
                           // restriction anyone can act on.
                           t.plans
                             .filter((p) => ALL_PLANS.includes(p))
                             .map((p) => (
-                              <Tag key={p} tone={p === "free" ? "plain" : "brand"}>
+                              <Tag key={p} tone={PLAN_TONE[p] ?? "plain"}>
                                 {p}
                               </Tag>
                             ))
@@ -484,9 +485,9 @@ function EditToolModal({
   const baseline = projectedCostUsd(tool, currentModel);
 
   // Only the sellable plans get a button, but `plans` is seeded from the row as
-  // it is — so any lingering 'max'/'school' entry is carried through a save
-  // untouched rather than being silently dropped by an edit that never showed
-  // it. Don't "simplify" this to rebuild the array from ALL_PLANS.
+  // it is — so any lingering 'school' entry is carried through a save untouched
+  // rather than being silently dropped by an edit that never showed it. Don't
+  // "simplify" this to rebuild the array from ALL_PLANS.
   const togglePlan = (plan: string) =>
     setPlans((prev) =>
       prev.includes(plan) ? prev.filter((p) => p !== plan) : [...prev, plan],

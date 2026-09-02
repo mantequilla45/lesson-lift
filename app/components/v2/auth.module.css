@@ -10,7 +10,7 @@
 .label {
   display: block;
   font-size: 0.83rem;
-  font-weight: 700;
+  font-weight: 800;
   color: var(--j-ink);
   margin-bottom: 7px;
 }
@@ -120,7 +120,7 @@
   padding: 12px;
   font-family: inherit;
   font-size: 0.9rem;
-  font-weight: 700;
+  font-weight: 800;
   color: var(--j-body);
   cursor: pointer;
   transition:
@@ -181,7 +181,7 @@
 
 .check a {
   color: var(--j-purple);
-  font-weight: 700;
+  font-weight: 800;
 }
 
 .check a:hover {
@@ -289,7 +289,7 @@
 
 .trustTitle {
   font-size: 0.86rem;
-  font-weight: 700;
+  font-weight: 800;
   color: var(--j-ink);
 }
 

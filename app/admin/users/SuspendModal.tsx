@@ -10,8 +10,8 @@ import { X } from "lucide-react";
 // teacher would confuse more than it explains.
 
 const fieldClass =
-  "w-full px-3.5 py-2.5 border rounded-xl bg-white text-sm font-medium placeholder-[#A5A5A5] focus:outline-none focus:border-[#1a1a1a] transition-colors";
-const fieldStyle = { borderColor: "#DAD8D0" };
+  "w-full px-3.5 py-2.5 border rounded-xl bg-white text-sm font-medium placeholder-[#9A93AD] focus:outline-none focus:border-[#1D1730] transition-colors";
+const fieldStyle = { borderColor: "#EAE6F5" };
 
 export default function SuspendModal({
   userId,
@@ -64,14 +64,14 @@ export default function SuspendModal({
       <form
         onSubmit={submit}
         className="relative z-10 w-full max-w-md rounded-2xl shadow-2xl border overflow-hidden"
-        style={{ borderColor: "#DAD8D0", backgroundColor: "#FAF9F5" }}
+        style={{ borderColor: "#EAE6F5", backgroundColor: "#FFFFFF" }}
       >
-        <div className="flex items-start gap-3 p-5 pb-4 border-b" style={{ borderColor: "#DAD8D0" }}>
+        <div className="flex items-start gap-3 p-5 pb-4 border-b" style={{ borderColor: "#EAE6F5" }}>
           <div className="flex-1 min-w-0">
-            <h2 className="font-bold" style={{ color: "#1a1a1a" }}>
+            <h2 className="font-bold" style={{ color: "#1D1730" }}>
               {suspend ? "Suspend account" : "Lift suspension"}
             </h2>
-            <p className="text-sm mt-0.5 truncate" style={{ color: "#8a8078" }}>
+            <p className="text-sm mt-0.5 truncate" style={{ color: "#6D6683" }}>
               {name}
             </p>
           </div>
@@ -79,7 +79,7 @@ export default function SuspendModal({
             type="button"
             onClick={onClose}
             className="p-1.5 rounded-lg hover:bg-black/5"
-            style={{ color: "#8a8078" }}
+            style={{ color: "#6D6683" }}
             aria-label="Close"
           >
             <X className="w-4 h-4" />
@@ -90,8 +90,8 @@ export default function SuspendModal({
           <div
             className="rounded-xl px-3 py-2.5 text-sm"
             style={{
-              backgroundColor: suspend ? "#FBECEB" : "#F1EFE9",
-              color: suspend ? "#B3261E" : "#6b6055",
+              backgroundColor: suspend ? "#FBECEB" : "#F7F5FC",
+              color: suspend ? "#B3261E" : "#3C3552",
             }}
           >
             {suspend
@@ -102,7 +102,7 @@ export default function SuspendModal({
           {suspend && (
             <>
               <div>
-                <label className="block text-xs font-semibold mb-1.5" style={{ color: "#4a423a" }}>
+                <label className="block text-xs font-semibold mb-1.5" style={{ color: "#3C3552" }}>
                   Reason
                 </label>
                 <input
@@ -115,7 +115,7 @@ export default function SuspendModal({
                 />
               </div>
 
-              <label className="flex items-start gap-2 text-sm" style={{ color: "#4a423a" }}>
+              <label className="flex items-start gap-2 text-sm" style={{ color: "#3C3552" }}>
                 <input
                   type="checkbox"
                   checked={notify}
@@ -124,7 +124,7 @@ export default function SuspendModal({
                 />
                 <span>
                   Email them about it
-                  {reason.trim() && <span style={{ color: "#8a8078" }}> — the reason above is included</span>}
+                  {reason.trim() && <span style={{ color: "#6D6683" }}> — the reason above is included</span>}
                 </span>
               </label>
             </>
@@ -142,7 +142,7 @@ export default function SuspendModal({
             type="button"
             onClick={onClose}
             className="text-sm font-semibold rounded-xl border px-4 py-2 transition-colors hover:bg-black/5"
-            style={{ borderColor: "#DAD8D0", color: "#1a1a1a" }}
+            style={{ borderColor: "#EAE6F5", color: "#1D1730" }}
           >
             Cancel
           </button>
@@ -150,7 +150,7 @@ export default function SuspendModal({
             type="submit"
             disabled={saving}
             className="text-sm font-semibold rounded-xl px-4 py-2 text-white transition-opacity hover:opacity-90 disabled:opacity-40"
-            style={{ backgroundColor: suspend ? "#B3261E" : "#1a1a1a" }}
+            style={{ backgroundColor: suspend ? "#B3261E" : "#1D1730" }}
           >
             {saving ? "Working…" : suspend ? "Suspend" : "Lift suspension"}
           </button>

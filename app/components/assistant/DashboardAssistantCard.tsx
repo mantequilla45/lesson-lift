@@ -89,8 +89,10 @@ export default function DashboardAssistantCard() {
             Ask anything about your teaching week, and have the assistant set up your
             tools for you. Part of Jooma Pro.
           </p>
+          {/* Their subscription page, not the logged-out /pricing marketing
+              page — see the note in AssistantLocked. */}
           <Link
-            href="/pricing"
+            href="/profile?section=subscription"
             className="rounded-xl bg-(--j-purple) px-5 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90"
           >
             Upgrade to Pro

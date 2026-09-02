@@ -20,7 +20,7 @@ export default function AdminTeachersHeaderActions() {
           type="button"
           onClick={() => setShowInvite(true)}
           className="inline-flex items-center gap-1.5 text-sm font-semibold rounded-xl border px-4 py-2 transition-colors hover:bg-black/5"
-          style={{ borderColor: "#DAD8D0", color: "#1a1a1a" }}
+          style={{ borderColor: "#EAE6F5", color: "#1D1730" }}
         >
           <UserPlus className="w-4 h-4" />
           Invite teachers
@@ -29,7 +29,7 @@ export default function AdminTeachersHeaderActions() {
           type="button"
           onClick={() => setShowAdd(true)}
           className="inline-flex items-center gap-1.5 text-sm font-semibold rounded-xl px-4 py-2 text-white transition-opacity hover:opacity-90"
-          style={{ backgroundColor: "#1a1a1a" }}
+          style={{ backgroundColor: "#5B2ED6" }}
         >
           <Plus className="w-4 h-4" />
           Add teacher

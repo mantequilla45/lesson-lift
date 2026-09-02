@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight, Trash2, ChevronDown, ImagePlus, X, Frame as FrameIcon, Spline, Droplet, Brush, List, ListOrdered, Lock, LockOpen, Maximize2, Square as SquareIcon, Rows3, Pencil, RefreshCw, Eraser, Loader2, Sparkles, ArrowUp } from "lucide-react";
+import { Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight, Trash2, ChevronDown, ImagePlus, X, Frame as FrameIcon, Spline, Droplet, Brush, List, ListOrdered, Lock, LockOpen, Maximize2, Square as SquareIcon, Rows3, Pencil, RefreshCw, Eraser, Loader2, ArrowUp } from "lucide-react";
 import { SLIDE_W, SLIDE_H } from "./constants";
 import FramePicker from "./FramePicker";
 import { type FrameShape } from "./frames";
@@ -77,7 +77,7 @@ function ColorPopover({
         {title && tooltipPos && !open && (
           <span
             className="fixed -translate-x-1/2 px-2.5 py-1 rounded-md border text-[11px] font-medium whitespace-nowrap z-100 pointer-events-none shadow-md"
-            style={{ left: tooltipPos.x, top: tooltipPos.y, backgroundColor: "#F1EFE3", borderColor: "#DAD8D0", color: "#030303" }}
+            style={{ left: tooltipPos.x, top: tooltipPos.y, backgroundColor: "#F7F5FC", borderColor: "#EAE6F5", color: "#030303" }}
           >
             {title}
           </span>
@@ -110,7 +110,7 @@ function ColorPopover({
         <div
           ref={popoverRef}
           className="fixed bg-white rounded-xl shadow-lg p-3 z-100 border"
-          style={{ left: popoverPos.x, top: popoverPos.y, width: 260, borderColor: "#DAD8D0" }}
+          style={{ left: popoverPos.x, top: popoverPos.y, width: 260, borderColor: "#EAE6F5" }}
         >
           <ColorPicker
             value={isTransparent ? "#FFFFFF" : value}
@@ -204,7 +204,7 @@ function IconPopover({
       {tooltipPos && !open && (
         <span
           className="fixed -translate-x-1/2 px-2.5 py-1 rounded-md border text-[11px] font-medium whitespace-nowrap z-100 pointer-events-none shadow-md"
-          style={{ left: tooltipPos.x, top: tooltipPos.y, backgroundColor: "#F1EFE3", borderColor: "#DAD8D0", color: "#030303" }}
+          style={{ left: tooltipPos.x, top: tooltipPos.y, backgroundColor: "#F7F5FC", borderColor: "#EAE6F5", color: "#030303" }}
         >
           {label}
         </span>
@@ -213,7 +213,7 @@ function IconPopover({
         <div
           ref={popoverRef}
           className="fixed bg-white rounded-xl shadow-lg p-3 z-100 border"
-          style={{ left: popoverPos.x, top: popoverPos.y, width: widthPx, borderColor: "#DAD8D0" }}
+          style={{ left: popoverPos.x, top: popoverPos.y, width: widthPx, borderColor: "#EAE6F5" }}
         >
           {children(() => setOpen(false))}
         </div>
@@ -466,7 +466,7 @@ function ToolbarButton({
       {tooltipPos && (
         <span
           className="fixed -translate-x-1/2 px-2.5 py-1 rounded-md border text-[11px] font-medium whitespace-nowrap z-100 pointer-events-none shadow-md"
-          style={{ left: tooltipPos.x, top: tooltipPos.y, backgroundColor: "#F1EFE3", borderColor: "#DAD8D0", color: "#030303" }}
+          style={{ left: tooltipPos.x, top: tooltipPos.y, backgroundColor: "#F7F5FC", borderColor: "#EAE6F5", color: "#030303" }}
         >
           {label}
         </span>
@@ -578,17 +578,17 @@ function AiTextEdit({ text, onApply }: { text: string; onApply: (next: string) =
           open ? "bg-violet-100 border-violet-300 text-violet-700" : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
         }`}
       >
-        <Sparkles className="w-3.5 h-3.5 text-violet-600" />
+        <Pencil className="w-3.5 h-3.5 text-violet-600" />
         Edit
       </button>
       {open && pos && (
         <div
           ref={popoverRef}
           className="fixed bg-white rounded-xl shadow-xl border p-2 z-100"
-          style={{ left: pos.x, top: pos.y, width: WIDTH, borderColor: "#E9E6DC" }}
+          style={{ left: pos.x, top: pos.y, width: WIDTH, borderColor: "#EAE6F5" }}
         >
           <div className="relative flex items-center">
-            <Sparkles className="absolute left-2.5 w-3.5 h-3.5 text-violet-500 pointer-events-none" />
+            <Pencil className="absolute left-2.5 w-3.5 h-3.5 text-violet-500 pointer-events-none" />
             <input
               ref={inputRef}
               value={instruction}
@@ -604,7 +604,7 @@ function AiTextEdit({ text, onApply }: { text: string; onApply: (next: string) =
               disabled={busy || !instruction.trim()}
               title="Apply"
               className="absolute right-1 h-7 w-7 flex items-center justify-center rounded-lg text-white transition-colors disabled:opacity-30"
-              style={{ backgroundColor: "#1a1a1a" }}
+              style={{ backgroundColor: "#1D1730" }}
             >
               {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ArrowUp className="w-3.5 h-3.5" />}
             </button>

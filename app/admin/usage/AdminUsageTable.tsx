@@ -100,7 +100,7 @@ export default function AdminUsageTable({ rows }: { rows: AdminUsageRow[] }) {
             type="button"
             onClick={() => setSelecting(true)}
             className="text-sm font-semibold rounded-lg border px-3 py-1.5 transition-colors hover:bg-black/5"
-            style={{ borderColor: "#DAD8D0", color: "#1a1a1a" }}
+            style={{ borderColor: "#EAE6F5", color: "#1D1730" }}
           >
             Select
           </button>
@@ -110,7 +110,7 @@ export default function AdminUsageTable({ rows }: { rows: AdminUsageRow[] }) {
               type="button"
               onClick={toggleAll}
               className="text-sm font-semibold rounded-lg border px-3 py-1.5 transition-colors hover:bg-black/5"
-              style={{ borderColor: "#DAD8D0", color: "#1a1a1a" }}
+              style={{ borderColor: "#EAE6F5", color: "#1D1730" }}
             >
               {allSelected ? "Clear all" : "Select all"}
             </button>
@@ -119,7 +119,7 @@ export default function AdminUsageTable({ rows }: { rows: AdminUsageRow[] }) {
               onClick={handleReset}
               disabled={selected.size === 0 || busy}
               className="inline-flex items-center gap-1.5 text-sm font-semibold rounded-lg px-3 py-1.5 text-white transition-opacity hover:opacity-90 disabled:opacity-40"
-              style={{ backgroundColor: "#E0463F" }}
+              style={{ backgroundColor: "#B3261E" }}
             >
               {busy && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
               Reset{selected.size > 0 ? ` (${selected.size})` : ""}
@@ -129,7 +129,7 @@ export default function AdminUsageTable({ rows }: { rows: AdminUsageRow[] }) {
               onClick={exitSelect}
               disabled={busy}
               className="text-sm font-semibold rounded-lg border px-3 py-1.5 transition-colors hover:bg-black/5 disabled:opacity-40"
-              style={{ borderColor: "#DAD8D0", color: "#1a1a1a" }}
+              style={{ borderColor: "#EAE6F5", color: "#1D1730" }}
             >
               Cancel
             </button>
@@ -139,11 +139,11 @@ export default function AdminUsageTable({ rows }: { rows: AdminUsageRow[] }) {
 
       <div
         className="rounded-2xl border overflow-hidden"
-        style={{ backgroundColor: "#FAF9F5", borderColor: "#DAD8D0" }}
+        style={{ backgroundColor: "#FFFFFF", borderColor: "#EAE6F5" }}
       >
         <table className="w-full text-sm">
           <thead>
-            <tr style={{ color: "#8a8078" }} className="text-left">
+            <tr style={{ color: "#6D6683" }} className="text-left">
               {selecting && <th className="px-4 py-3 w-10" />}
               <th className="font-semibold px-4 py-3">Tool</th>
               <th className="font-semibold px-4 py-3 text-right">Generations</th>
@@ -166,7 +166,7 @@ export default function AdminUsageTable({ rows }: { rows: AdminUsageRow[] }) {
                 <Fragment key={r.tool_slug}>
                   <tr
                     className="border-t"
-                    style={{ borderColor: "#EEECE4", backgroundColor: isOn ? "#F1EFE3" : undefined }}
+                    style={{ borderColor: "#F1ECFC", backgroundColor: isOn ? "#F7F5FC" : undefined }}
                     onClick={selectable ? () => toggle(r.tool_slug) : undefined}
                   >
                     {selecting && (
@@ -175,8 +175,8 @@ export default function AdminUsageTable({ rows }: { rows: AdminUsageRow[] }) {
                           <span
                             className="flex items-center justify-center w-4 h-4 rounded border"
                             style={{
-                              borderColor: isOn ? "#E0463F" : "#C9C5B8",
-                              backgroundColor: isOn ? "#E0463F" : "transparent",
+                              borderColor: isOn ? "#B3261E" : "#DDD6EE",
+                              backgroundColor: isOn ? "#B3261E" : "transparent",
                             }}
                           >
                             {isOn && <Check className="w-3 h-3 text-white" />}
@@ -184,7 +184,7 @@ export default function AdminUsageTable({ rows }: { rows: AdminUsageRow[] }) {
                         )}
                       </td>
                     )}
-                    <td className="px-4 py-3 font-medium" style={{ color: unused ? "#8a8078" : "#1a1a1a" }}>
+                    <td className="px-4 py-3 font-medium" style={{ color: unused ? "#6D6683" : "#1D1730" }}>
                       <div className="flex items-center gap-1.5">
                         {hasChildren ? (
                           <button
@@ -214,22 +214,22 @@ export default function AdminUsageTable({ rows }: { rows: AdminUsageRow[] }) {
                         </Link>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-right" style={{ color: "#6b6055" }}>
+                    <td className="px-4 py-3 text-right" style={{ color: "#3C3552" }}>
                       {nf.format(r.generations)}
                     </td>
-                    <td className="px-4 py-3 text-right whitespace-nowrap" style={{ color: "#8a8078" }}>
+                    <td className="px-4 py-3 text-right whitespace-nowrap" style={{ color: "#6D6683" }}>
                       {fmtDateTime(r.last_used)}
                     </td>
-                    <td className="px-4 py-3 text-right font-semibold" style={{ color: unused ? "#8a8078" : "#1a1a1a" }}>
+                    <td className="px-4 py-3 text-right font-semibold" style={{ color: unused ? "#6D6683" : "#1D1730" }}>
                       {usd(r.cost_usd)}
                     </td>
-                    <td className="px-4 py-3 text-right" style={{ color: "#6b6055" }}>
+                    <td className="px-4 py-3 text-right" style={{ color: "#3C3552" }}>
                       {usd(each)}
                     </td>
-                    <td className="px-4 py-3 text-right" style={{ color: "#6b6055" }}>
+                    <td className="px-4 py-3 text-right" style={{ color: "#3C3552" }}>
                       {usd(each * 10)}
                     </td>
-                    <td className="px-4 py-3 text-right" style={{ color: "#6b6055" }}>
+                    <td className="px-4 py-3 text-right" style={{ color: "#3C3552" }}>
                       {usd(each * 100)}
                     </td>
                   </tr>
@@ -239,9 +239,9 @@ export default function AdminUsageTable({ rows }: { rows: AdminUsageRow[] }) {
                       const childEach =
                         c.generations && c.generations > 0 ? c.cost_usd / c.generations : null;
                       return (
-                        <tr key={`${r.tool_slug}:${c.label}:${i}`} style={{ backgroundColor: "#F6F4EC" }}>
+                        <tr key={`${r.tool_slug}:${c.label}:${i}`} style={{ backgroundColor: "#F1ECFC" }}>
                           {selecting && <td />}
-                          <td className="pl-10 pr-4 py-2 text-sm" style={{ color: "#6b6055" }}>
+                          <td className="pl-10 pr-4 py-2 text-sm" style={{ color: "#3C3552" }}>
                             {c.tool_slug ? (
                               <Link
                                 href={`/admin/usage/${c.tool_slug}`}
@@ -254,27 +254,27 @@ export default function AdminUsageTable({ rows }: { rows: AdminUsageRow[] }) {
                               c.label
                             )}
                           </td>
-                          <td className="px-4 py-2 text-right text-sm" style={{ color: "#8a8078" }}>
+                          <td className="px-4 py-2 text-right text-sm" style={{ color: "#6D6683" }}>
                             {c.generations != null ? nf.format(c.generations) : ""}
                           </td>
                           <td
                             className="px-4 py-2 text-right text-sm whitespace-nowrap"
-                            style={{ color: "#8a8078" }}
+                            style={{ color: "#6D6683" }}
                           >
                             {c.last_used !== undefined ? fmtDateTime(c.last_used) : ""}
                           </td>
-                          <td className="px-4 py-2 text-right text-sm" style={{ color: "#6b6055" }}>
+                          <td className="px-4 py-2 text-right text-sm" style={{ color: "#3C3552" }}>
                             {usd(c.cost_usd)}
                           </td>
                           {childEach !== null ? (
                             <>
-                              <td className="px-4 py-2 text-right text-sm" style={{ color: "#6b6055" }}>
+                              <td className="px-4 py-2 text-right text-sm" style={{ color: "#3C3552" }}>
                                 {usd(childEach)}
                               </td>
-                              <td className="px-4 py-2 text-right text-sm" style={{ color: "#6b6055" }}>
+                              <td className="px-4 py-2 text-right text-sm" style={{ color: "#3C3552" }}>
                                 {usd(childEach * 10)}
                               </td>
-                              <td className="px-4 py-2 text-right text-sm" style={{ color: "#6b6055" }}>
+                              <td className="px-4 py-2 text-right text-sm" style={{ color: "#3C3552" }}>
                                 {usd(childEach * 100)}
                               </td>
                             </>
@@ -289,25 +289,25 @@ export default function AdminUsageTable({ rows }: { rows: AdminUsageRow[] }) {
             })}
           </tbody>
           <tfoot>
-            <tr className="border-t-2" style={{ borderColor: "#DAD8D0" }}>
+            <tr className="border-t-2" style={{ borderColor: "#EAE6F5" }}>
               {selecting && <td className="px-4 py-3" />}
-              <td className="px-4 py-3 font-bold" style={{ color: "#1a1a1a" }}>
+              <td className="px-4 py-3 font-bold" style={{ color: "#1D1730" }}>
                 Total
               </td>
-              <td className="px-4 py-3 text-right font-semibold" style={{ color: "#1a1a1a" }}>
+              <td className="px-4 py-3 text-right font-semibold" style={{ color: "#1D1730" }}>
                 {nf.format(totals.generations)}
               </td>
               <td className="px-4 py-3" />
-              <td className="px-4 py-3 text-right font-bold" style={{ color: "#1a1a1a" }}>
+              <td className="px-4 py-3 text-right font-bold" style={{ color: "#1D1730" }}>
                 {usd(totals.cost_usd)}
               </td>
-              <td className="px-4 py-3 text-right font-semibold" style={{ color: "#1a1a1a" }}>
+              <td className="px-4 py-3 text-right font-semibold" style={{ color: "#1D1730" }}>
                 {usd(totalEach)}
               </td>
-              <td className="px-4 py-3 text-right font-semibold" style={{ color: "#1a1a1a" }}>
+              <td className="px-4 py-3 text-right font-semibold" style={{ color: "#1D1730" }}>
                 {usd(totalEach * 10)}
               </td>
-              <td className="px-4 py-3 text-right font-semibold" style={{ color: "#1a1a1a" }}>
+              <td className="px-4 py-3 text-right font-semibold" style={{ color: "#1D1730" }}>
                 {usd(totalEach * 100)}
               </td>
             </tr>

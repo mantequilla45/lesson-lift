@@ -162,13 +162,13 @@ export const PLANS: Record<PlanId, Plan> = {
   max: {
     id: "max",
     name: "Max Teacher",
-    // BACK ON SALE. Max was withdrawn (retired: true, plan_config
-    // status='retired') and is being reinstated as the step up from Pro:
-    // 2,500 credits against Pro's 1,000, for £14.99.
+    // ON SALE. Max was once withdrawn (retired: true, plan_config
+    // status='retired') and is now the step up from Pro: 2,500 credits against
+    // Pro's 1,000, for £14.99.
     //
-    // Selling it needs STRIPE_PRICE_MAX_MONTHLY set in the environment and the
-    // plan_config row returned to status='live' — see the accompanying
-    // migration. Until the price exists, checkout for Max throws rather than
+    // The Stripe price is configured in plan_config.stripe_price_monthly, with
+    // STRIPE_PRICE_MAX_MONTHLY as the fallback. Both are set in staging and
+    // production. If neither exists, priceIdFor('max') throws rather than
     // silently charging the wrong thing.
     priceMonthly: 14.99,
     priceYearlyPerMonth: 12.42,
@@ -244,9 +244,9 @@ export const DEFAULT_PLAN: PlanId = "free";
 /**
  * The plans an admin may actually put someone on, in display order.
  *
- * Excludes `school` (not built: no seats, no pooled allowances, no central
- * billing). Offering it in a dropdown would let an admin move a teacher onto a
- * plan that does not function.
+ * Currently free, pro and max. Excludes `school` (not built: no seats, no
+ * pooled allowances, no central billing). Offering it in a dropdown would let
+ * an admin move a teacher onto a plan that does not function.
  *
  * `school` stays fully defined in PLANS: an account already holding it still
  * resolves real limits and still renders the right badge. This is a
@@ -255,6 +255,51 @@ export const DEFAULT_PLAN: PlanId = "free";
 export const SELECTABLE_PLANS: Plan[] = Object.values(PLANS).filter(
   (p) => !p.retired && !p.hidden,
 );
+
+/** The ids of SELECTABLE_PLANS, for the several places that need the bare
+ *  strings — DB `text[]` columns such as topup_packs.available_to, and filter
+ *  lists. Derived, so a plan returning to or leaving sale updates them all. */
+export const SELECTABLE_PLAN_IDS: PlanId[] = SELECTABLE_PLANS.map((p) => p.id);
+
+/**
+ * Plans sold through Stripe Checkout, and therefore the only ones that can have
+ * a real Stripe price set from the admin console.
+ *
+ * Derived rather than listed, so reinstating or withdrawing a plan is a single
+ * edit to PLANS. Free has nothing to charge (priceMonthly 0) and School is
+ * `hidden` and invoiced per seat rather than sold self-serve, so both fall out
+ * naturally.
+ *
+ * ONE constant, deliberately. This was previously written out twice — as a
+ * literal Set in the pricing route and again in the Plans admin screen — and
+ * the two drifted: both still said Pro only, long after Max went back on sale.
+ * The client uses it to decide whether to offer a price field; the route uses
+ * it as the server-side allowlist. They must agree.
+ */
+export const PRICEABLE_PLAN_IDS: PlanId[] = SELECTABLE_PLANS.filter(
+  (p) => (p.priceMonthly ?? 0) > 0,
+).map((p) => p.id);
+
+/**
+ * The next plan up from this one, or null at the top of the ladder.
+ *
+ * Ordered by price so the ladder follows PLANS rather than a hardcoded
+ * "pro means max": adding a tier above Max makes the upgrade button offer it
+ * with no further change. Only priced, self-serve plans are candidates —
+ * `school` is contact-sales and is never somewhere a teacher upgrades to on
+ * their own.
+ *
+ * Returns null for Free: a teacher with no subscription has nothing to swap,
+ * so they go through Checkout, not the upgrade route.
+ */
+export function nextPlanUp(plan: PlanId): PlanId | null {
+  const ladder = PRICEABLE_PLAN_IDS.slice().sort(
+    (a, b) => (PLANS[a].priceMonthly ?? 0) - (PLANS[b].priceMonthly ?? 0),
+  );
+  const price = PLANS[plan].priceMonthly;
+  if (price === null) return null;
+  return ladder.find((id) => (PLANS[id].priceMonthly ?? 0) > price) ?? null;
+}
 
 // ── AI spend ceiling ─────────────────────────────────────────────────────────
 /**

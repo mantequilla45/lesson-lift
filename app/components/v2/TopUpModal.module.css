@@ -36,6 +36,14 @@
   margin: 0 0 20px;
 }
 
+.packs {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* The SELECTED pack. A single pack is always selected, so one pack looks
+   exactly as it did before packs could be chosen. */
 .pack {
   display: flex;
   justify-content: space-between;
@@ -44,6 +52,21 @@
   border: 1px solid #5b2ed6;
   border-radius: 14px;
   padding: 14px 16px;
+  width: 100%;
+  font-family: inherit;
+  text-align: left;
+}
+
+/* Offered but not chosen. Same box, muted, so the selected one is obvious at a
+   glance without the row moving. */
+.packIdle {
+  background: #fff;
+  border-color: #ddd6ee;
+  cursor: pointer;
+}
+
+.packIdle:hover {
+  border-color: #b7a6ec;
 }
 
 .packName,
@@ -51,6 +74,25 @@
   color: #3a1c8f;
   font-weight: 800;
   font-size: 0.95rem;
+}
+
+.packIdle .packName,
+.packIdle .packPrice {
+  color: #3c3552;
+}
+
+.packSub {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #6d6683;
+  margin-top: 2px;
+}
+
+.save:disabled,
+.cancel:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .note {

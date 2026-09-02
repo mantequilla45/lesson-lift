@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Sparkles, Loader2, X } from "lucide-react";
+import { Pencil, Loader2, X } from "lucide-react";
 
 const STYLES: { id: "photographic" | "illustration" | "storybook" | "painted" | "line-drawing" | "comic-book"; label: string }[] = [
   { id: "photographic", label: "Photo" },
@@ -66,17 +66,17 @@ export default function RegenerateImageDialog({ initialPrompt = "", frameWidth, 
       />
       <div
         className="relative rounded-2xl shadow-2xl w-full max-w-md border overflow-hidden flex flex-col"
-        style={{ borderColor: "#DAD8D0", backgroundColor: "#FAF9F5" }}
+        style={{ borderColor: "#EAE6F5", backgroundColor: "#FFFFFF" }}
       >
-        <div className="flex items-center gap-3 px-5 py-4 border-b" style={{ borderColor: "#DAD8D0" }}>
+        <div className="flex items-center gap-3 px-5 py-4 border-b" style={{ borderColor: "#EAE6F5" }}>
           <div
             className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
-            style={{ backgroundColor: "#FFCC33" }}
+            style={{ backgroundColor: "var(--j-purple)" }}
           >
-            <Sparkles className="w-4 h-4" style={{ color: "#1a1a1a" }} />
+            <Pencil className="w-4 h-4" style={{ color: "#1D1730" }} />
           </div>
           <div className="flex-1 min-w-0">
-            <h2 className="text-sm font-semibold" style={{ color: "#1a1a1a" }}>Regenerate image</h2>
+            <h2 className="text-sm font-semibold" style={{ color: "#1D1730" }}>Regenerate image</h2>
             <p className="text-xs text-gray-500">Describe the new image and we&apos;ll replace this one.</p>
           </div>
           <button
@@ -104,7 +104,7 @@ export default function RegenerateImageDialog({ initialPrompt = "", frameWidth, 
             disabled={busy}
             autoFocus
             className="w-full px-3 py-2 text-sm bg-white border rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-200 disabled:opacity-60 resize-none"
-            style={{ borderColor: "#DAD8D0" }}
+            style={{ borderColor: "#EAE6F5" }}
           />
           <div className="flex flex-wrap gap-1.5">
             {STYLES.map((s) => {
@@ -118,8 +118,8 @@ export default function RegenerateImageDialog({ initialPrompt = "", frameWidth, 
                   className="px-2.5 py-1 text-xs font-semibold rounded-full border transition-colors"
                   style={
                     selected
-                      ? { backgroundColor: "#1a1a1a", borderColor: "#1a1a1a", color: "#fff" }
-                      : { backgroundColor: "#fff", borderColor: "#DAD8D0", color: "#1a1a1a" }
+                      ? { backgroundColor: "#1D1730", borderColor: "#1D1730", color: "#fff" }
+                      : { backgroundColor: "#fff", borderColor: "#EAE6F5", color: "#1D1730" }
                   }
                 >
                   {s.label}
@@ -130,7 +130,7 @@ export default function RegenerateImageDialog({ initialPrompt = "", frameWidth, 
           {error && <p className="text-xs text-red-600">{error}</p>}
         </div>
 
-        <div className="flex items-center justify-end gap-2 px-5 py-3 border-t" style={{ borderColor: "#DAD8D0" }}>
+        <div className="flex items-center justify-end gap-2 px-5 py-3 border-t" style={{ borderColor: "#EAE6F5" }}>
           <button
             type="button"
             onClick={onClose}
@@ -144,7 +144,7 @@ export default function RegenerateImageDialog({ initialPrompt = "", frameWidth, 
             onClick={handleGenerate}
             disabled={busy || !prompt.trim()}
             className="px-4 py-2 text-sm font-semibold rounded-lg disabled:opacity-50 flex items-center gap-2 min-w-32 justify-center"
-            style={{ backgroundColor: "#FFCC33", color: "#1a1a1a" }}
+            style={{ backgroundColor: "var(--j-purple)", color: "#fff" }}
           >
             {busy ? (
               <>
@@ -153,7 +153,7 @@ export default function RegenerateImageDialog({ initialPrompt = "", frameWidth, 
               </>
             ) : (
               <>
-                <Sparkles className="w-4 h-4" />
+                <Pencil className="w-4 h-4" />
                 Generate
               </>
             )}

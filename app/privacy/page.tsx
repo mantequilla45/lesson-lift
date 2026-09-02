@@ -3,7 +3,7 @@ export default function PrivacyPage() {
     <div className="min-h-screen" style={{ backgroundColor: "var(--j-tint)" }}>
       <div className="max-w-3xl mx-auto px-6 py-16">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/logo/logo.svg" alt="Jooma" className="mb-10" style={{ height: 30, width: "auto" }} />
+        <img src="/logo/logo-v2.svg" alt="Jooma" className="mb-10" style={{ height: 30, width: "auto" }} />
 
         <h1 className="text-4xl font-semibold tracking-tight mb-2" style={{ color: "var(--j-purple)" }}>
           Privacy Policy
@@ -122,7 +122,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   return (
     <section>
       <h2 className="text-lg font-semibold mb-3" style={{ color: "var(--j-purple)" }}>{title}</h2>
-      <div className="space-y-3 text-sm leading-relaxed" style={{ color: "#3a2814" }}>
+      <div className="space-y-3 text-sm leading-relaxed" style={{ color: "var(--j-body)" }}>
         {children}
       </div>
     </section>
@@ -135,9 +135,9 @@ function Table({ rows }: { rows: [string, string][] }) {
       <table className="w-full text-sm">
         <tbody>
           {rows.map(([label, value], i) => (
-            <tr key={i} style={{ backgroundColor: i % 2 === 0 ? "#f5f3ec" : "#faf9f5" }}>
+            <tr key={i} style={{ backgroundColor: i % 2 === 0 ? "var(--j-tint)" : "var(--j-card)" }}>
               <td className="px-4 py-2.5 font-semibold w-2/5 align-top" style={{ color: "var(--j-purple)" }}>{label}</td>
-              <td className="px-4 py-2.5 align-top" style={{ color: "#3a2814" }}>{value}</td>
+              <td className="px-4 py-2.5 align-top" style={{ color: "var(--j-body)" }}>{value}</td>
             </tr>
           ))}
         </tbody>

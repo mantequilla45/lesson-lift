@@ -16,7 +16,7 @@ export default function MaintenancePage() {
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="/logo/logo.svg"
+          src="/logo/logo-v2.svg"
           alt="Jooma"
           className="mx-auto mb-7"
           style={{ height: 34, width: "auto" }}
@@ -26,7 +26,7 @@ export default function MaintenancePage() {
         </h1>
         <p className="text-sm leading-relaxed" style={{ color: "var(--j-body)" }}>
           We&apos;re making a quick update to Jooma. Nothing you&apos;ve made has been
-          affected — your resources will all be here when we&apos;re done.
+          affected. Your resources will all be here when we&apos;re done.
         </p>
         <p className="text-sm mt-4" style={{ color: "var(--j-faint)" }}>
           Try refreshing in a few minutes.

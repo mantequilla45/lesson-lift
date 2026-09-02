@@ -3,7 +3,7 @@ export default function TermsPage() {
     <div className="min-h-screen" style={{ backgroundColor: "var(--j-tint)" }}>
       <div className="max-w-3xl mx-auto px-6 py-16">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/logo/logo.svg" alt="Jooma" className="mb-10" style={{ height: 30, width: "auto" }} />
+        <img src="/logo/logo-v2.svg" alt="Jooma" className="mb-10" style={{ height: 30, width: "auto" }} />
 
         <h1 className="text-4xl font-semibold tracking-tight mb-2" style={{ color: "var(--j-purple)" }}>
           Terms of Service

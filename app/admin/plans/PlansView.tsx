@@ -7,6 +7,7 @@ import { COST, ONBOARD_FEE, SEAT_BANDS, marginTone, worstCase } from "@/app/lib/
 import {
   AI_SPEND_CEILING_PENCE,
   PLAN_CREDITS,
+  PRICEABLE_PLAN_IDS,
   toCredits,
   type PlanId,
 } from "@/app/lib/plans";
@@ -62,8 +63,13 @@ export interface PricingRule {
 }
 
 /** Plans sold through Stripe Checkout, and therefore able to have a real price
- *  changed from here. Free has nothing to charge; School isn't built. */
-const PRICEABLE = new Set(["pro"]);
+ *  changed from here. Free has nothing to charge; School isn't built.
+ *
+ *  Imported rather than redeclared: this screen and /api/admin/plans/price must
+ *  agree on which plans are priceable, and when the list lived in both places
+ *  they drifted — the screen went on offering "display only" for Max after Max
+ *  was back on sale. */
+const PRICEABLE = new Set<string>(PRICEABLE_PLAN_IDS);
 
 export default function PlansView({
   plans,
@@ -153,7 +159,7 @@ export default function PlansView({
                         className="ml-2 text-xs font-semibold px-2 py-0.5 rounded-full align-middle"
                         // Deliberately high-contrast: the card around it is
                         // greyscaled, so a pale badge would disappear.
-                        style={{ backgroundColor: "#3a3a3a", color: "#fff" }}
+                        style={{ backgroundColor: "#1D1730", color: "#fff" }}
                       >
                         NOT BUILT YET
                       </span>
@@ -355,7 +361,7 @@ export default function PlansView({
               School seat ladder
               <span
                 className="ml-2 text-xs font-semibold px-2 py-0.5 rounded-full align-middle"
-                style={{ backgroundColor: "#3a3a3a", color: "#fff" }}
+                style={{ backgroundColor: "#1D1730", color: "#fff" }}
               >
                 NOT BUILT YET
               </span>
@@ -517,7 +523,7 @@ export function RuleRow({
               {rule.label}
               <span
                 className="ml-2 text-xs font-semibold px-2 py-0.5 rounded-full align-middle"
-                style={{ backgroundColor: "#EEECE4", color: "#8a8078" }}
+                style={{ backgroundColor: "#F1ECFC", color: "#6D6683" }}
               >
                 Not wired up
               </span>
