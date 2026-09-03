@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import NextImage from "next/image";
 import { Sparkles, Loader2, X, Target, Key, Image as ImageIcon, ChevronLeft, ChevronRight, Headphones, Video as VideoIcon, BookOpen, HelpCircle, FileUp, FolderSymlink, Link as LinkIcon, CheckCircle2, ChevronDown, GraduationCap, Layers, Info } from "lucide-react";
 import { createPresentation } from "@/app/lib/presentations";
+import { parseYouTubeId } from "@/app/components/editor/youtube";
 import ResourceLibraryModal from "./ResourceLibraryModal";
 import { THEME_CATEGORIES, getThemesByCategory, DEFAULT_THEME_ID, ART_STYLES, getThemeArt, DEFAULT_ART_STYLE, type ArtStyleId } from "@/app/lib/slideshowThemes";
 import { COUNTRIES, CURRICULA, getCurriculaForCountry, getSubjectsForCurriculum, getStrandsForSubject } from "@/app/lib/curriculum";
@@ -31,7 +32,19 @@ export interface GenerationParams {
   vocabulary?: string[];
   includeAudio?: boolean;
   includeYouTube?: boolean;
+  /** Only read by the shelved video search (see YOUTUBE_SEARCH_ENABLED).
+   *  Meaningless for a link the teacher picked themselves. */
   youtubeLength?: YoutubeLength;
+  /** A YouTube video the teacher chose and pasted in. When set, the generator
+   *  uses this video instead of searching for one. */
+  youtubeVideoId?: string;
+  /** The real title, from /api/lookup-youtube. Gives the deck prompt something
+   *  concrete to write the video slide's heading around. */
+  youtubeVideoTitle?: string;
+  /** Optional note on where the video belongs in the lesson, e.g. "play this
+   *  at the end as a recap". Steers both where the video slide lands and the
+   *  heading copy on it. */
+  youtubeNote?: string;
   imageSource?: "auto" | "ai" | "web";
   /** Auto mode only: how many of every 10 images come from web search (the rest
    *  are AI-generated). Default 8 → 8 web : 2 AI. */
@@ -78,6 +91,12 @@ const READING_LEVELS = [
 ];
 
 const SLIDE_COUNTS = [5, 6, 8, 10, 12, 14];
+
+// Video search (YouTube Data API) is built and working, but shelved: teachers
+// paste their own link so a human has vetted what plays in a lesson. Flip to
+// true to bring the search UI, and the video-length filter it drives, back.
+// The API route and the editor's video panel are untouched by this.
+const YOUTUBE_SEARCH_ENABLED = false;
 
 type ImageSource = "auto" | "ai" | "web";
 type ImageStyle = "storybook" | "illustration" | "photographic" | "painted" | "line-drawing" | "comic-book";
@@ -156,7 +175,17 @@ export default function GenerateModal({ onClose }: Props) {
   const [resourceBusy, setResourceBusy] = useState(false);
   const [resourceError, setResourceError] = useState<string | null>(null);
   const [youtubeLength, setYoutubeLength] = useState<"short" | "medium" | "long" | "any">("short");
-  const [imageSource, setImageSource] = useState<ImageSource>("auto");
+  // The pasted link, and what YouTube tells us about it. `youtubeVideo` is only
+  // set once the video is confirmed playable in an embed, so its presence is
+  // what gates sending a video to the generator at all.
+  const [youtubeUrl, setYoutubeUrl] = useState("");
+  const [youtubeVideo, setYoutubeVideo] = useState<
+    { videoId: string; title: string; channel: string; thumbnail: string; duration?: string } | null
+  >(null);
+  const [youtubeLookupBusy, setYoutubeLookupBusy] = useState(false);
+  const [youtubeError, setYoutubeError] = useState<string | null>(null);
+  const [youtubeNote, setYoutubeNote] = useState("");
+  const [imageSource, setImageSource] = useState<ImageSource>("web");
   // Auto mode web:AI split (web parts out of 10). Default 8 → 8 web : 2 AI.
   const [imageMixWeb, setImageMixWeb] = useState(8);
   // Default to "illustration" — works better for classroom decks than realistic
@@ -205,6 +234,52 @@ export default function GenerateModal({ onClose }: Props) {
     })();
     return () => { cancelled = true; };
   }, [alignCurriculum, topic, curCurriculumId, curSubject]);
+
+  // Resolve the pasted YouTube link: parse the id locally, then confirm with
+  // YouTube that it exists and will actually play in an embed. Catching a dead
+  // or non-embeddable link here means the teacher finds out now rather than
+  // after waiting for a whole deck to build around it.
+  useEffect(() => {
+    const raw = youtubeUrl.trim();
+    if (!raw) {
+      setYoutubeVideo(null);
+      setYoutubeError(null);
+      setYoutubeLookupBusy(false);
+      return;
+    }
+    const id = parseYouTubeId(raw);
+    if (!id) {
+      setYoutubeVideo(null);
+      setYoutubeError("That does not look like a YouTube link.");
+      setYoutubeLookupBusy(false);
+      return;
+    }
+    let cancelled = false;
+    setYoutubeError(null);
+    setYoutubeLookupBusy(true);
+    const timer = setTimeout(async () => {
+      try {
+        const r = await fetch(`/api/lookup-youtube?id=${encodeURIComponent(id)}`);
+        const json = await r.json().catch(() => ({}));
+        if (cancelled) return;
+        if (!r.ok) {
+          setYoutubeVideo(null);
+          setYoutubeError(json.error ?? "We could not check that video.");
+          return;
+        }
+        setYoutubeVideo(json);
+        setYoutubeError(null);
+      } catch {
+        if (!cancelled) {
+          setYoutubeVideo(null);
+          setYoutubeError("We could not check that video. Try again in a moment.");
+        }
+      } finally {
+        if (!cancelled) setYoutubeLookupBusy(false);
+      }
+    }, 400);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [youtubeUrl]);
 
   const handleGenerateOutline = async () => {
     if (!topic.trim() || !year || outlineBusy) return;
@@ -325,8 +400,15 @@ export default function GenerateModal({ onClose }: Props) {
           ? vocabTerms.filter((v) => v.checked).map((v) => v.term)
           : undefined,
         includeAudio,
-        includeYouTube,
-        youtubeLength: includeYouTube ? youtubeLength : undefined,
+        // Only ask for a video when the teacher's link actually resolved to a
+        // playable video. Without the search, an unresolved link means no video.
+        includeYouTube: includeYouTube && !!youtubeVideo,
+        youtubeLength:
+          YOUTUBE_SEARCH_ENABLED && includeYouTube ? youtubeLength : undefined,
+        youtubeVideoId: includeYouTube ? youtubeVideo?.videoId : undefined,
+        youtubeVideoTitle: includeYouTube ? youtubeVideo?.title : undefined,
+        youtubeNote:
+          includeYouTube && youtubeVideo ? youtubeNote.trim() || undefined : undefined,
         imageSource,
         imageMixWeb: imageSource === "auto" ? imageMixWeb : undefined,
         imageStyle: imageSource === "web" ? undefined : imageStyle,
@@ -861,7 +943,7 @@ export default function GenerateModal({ onClose }: Props) {
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold" style={{ color: "var(--j-purple)" }}>YouTube video</p>
-                        <p className="text-xs text-gray-500 truncate">We&apos;ll include a relevant video for you</p>
+                        <p className="text-xs text-gray-500 truncate">Paste a link to add it as a slide</p>
                       </div>
                       <div
                         className="w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0"
@@ -880,22 +962,106 @@ export default function GenerateModal({ onClose }: Props) {
                     </button>
                     {includeYouTube && (
                       <div
-                        className="px-3 pb-3 pt-2 flex items-center gap-3"
+                        className="px-3 pb-3 pt-3 space-y-3"
                         style={{ borderTop: "1px solid #F0EFE8" }}
                       >
-                        <p className="text-xs font-semibold text-gray-700 shrink-0">Video length</p>
-                        <select
-                          value={youtubeLength}
-                          onChange={(e) => setYoutubeLength(e.target.value as typeof youtubeLength)}
-                          disabled={busy}
-                          className="flex-1 px-2.5 py-1.5 text-xs bg-white border rounded-lg focus:outline-none disabled:opacity-60"
-                          style={{ borderColor: "var(--j-line)" }}
-                        >
-                          <option value="short">Under 5 mins</option>
-                          <option value="medium">5 – 20 mins</option>
-                          <option value="long">20+ mins</option>
-                          <option value="any">Any length</option>
-                        </select>
+                        <div>
+                          <label htmlFor="youtube-url" className="block text-xs font-semibold text-gray-700 mb-1.5">
+                            Video URL
+                          </label>
+                          <div className="relative">
+                            <input
+                              id="youtube-url"
+                              type="url"
+                              value={youtubeUrl}
+                              onChange={(e) => setYoutubeUrl(e.target.value)}
+                              disabled={busy}
+                              placeholder="https://www.youtube.com/watch?v=..."
+                              autoComplete="off"
+                              spellCheck={false}
+                              className="w-full pl-3 pr-9 py-2 text-sm bg-white border rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-200 disabled:opacity-60"
+                              style={{ borderColor: youtubeError ? "#DC2626" : "var(--j-line)" }}
+                            />
+                            {youtubeLookupBusy && (
+                              <Loader2 className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 animate-spin" />
+                            )}
+                          </div>
+                          {youtubeError && (
+                            <p className="text-xs text-red-600 mt-1.5">{youtubeError}</p>
+                          )}
+                        </div>
+
+                        {youtubeVideo && (
+                          <div
+                            className="flex items-center gap-2.5 p-2 rounded-lg"
+                            style={{ backgroundColor: "var(--j-tint)" }}
+                          >
+                            {youtubeVideo.thumbnail && (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src={youtubeVideo.thumbnail}
+                                alt=""
+                                className="w-16 h-10 object-cover rounded shrink-0"
+                              />
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-semibold text-gray-800 truncate">{youtubeVideo.title}</p>
+                              <p className="text-[11px] text-gray-500 truncate">
+                                {youtubeVideo.channel}
+                                {youtubeVideo.duration ? ` · ${youtubeVideo.duration}` : ""}
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setYoutubeUrl("")}
+                              disabled={busy}
+                              title="Remove this video"
+                              aria-label="Remove this video"
+                              className="shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-gray-500 hover:bg-white/70 disabled:opacity-60"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        )}
+
+                        {youtubeVideo && (
+                          <div>
+                            <label htmlFor="youtube-note" className="block text-xs font-semibold text-gray-700 mb-1.5">
+                              Where does this fit? <span className="font-normal text-gray-400">(optional)</span>
+                            </label>
+                            <input
+                              id="youtube-note"
+                              type="text"
+                              value={youtubeNote}
+                              onChange={(e) => setYoutubeNote(e.target.value)}
+                              disabled={busy}
+                              placeholder="E.g. play at the end as a recap"
+                              className="w-full px-3 py-2 text-sm bg-white border rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-200 disabled:opacity-60"
+                              style={{ borderColor: "var(--j-line)" }}
+                            />
+                            <p className="text-[10px] text-gray-400 mt-1">
+                              We use this to place the video and write its slide.
+                            </p>
+                          </div>
+                        )}
+
+                        {YOUTUBE_SEARCH_ENABLED && (
+                          <div className="flex items-center gap-3">
+                            <p className="text-xs font-semibold text-gray-700 shrink-0">Video length</p>
+                            <select
+                              value={youtubeLength}
+                              onChange={(e) => setYoutubeLength(e.target.value as typeof youtubeLength)}
+                              disabled={busy}
+                              className="flex-1 px-2.5 py-1.5 text-xs bg-white border rounded-lg focus:outline-none disabled:opacity-60"
+                              style={{ borderColor: "var(--j-line)" }}
+                            >
+                              <option value="short">Under 5 mins</option>
+                              <option value="medium">5 to 20 mins</option>
+                              <option value="long">20+ mins</option>
+                              <option value="any">Any length</option>
+                            </select>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -926,7 +1092,7 @@ export default function GenerateModal({ onClose }: Props) {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <p className="text-sm font-semibold" style={{ color: "var(--j-purple)" }}>Image source</p>
-                        {imageSource === "auto" && imageMixWeb === 8 && imageStyle === "illustration" && (
+                        {imageSource === "web" && (
                           <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full" style={{ backgroundColor: "var(--j-tint)", color: "var(--j-faint)" }}>
                             Default
                           </span>
@@ -972,6 +1138,22 @@ export default function GenerateModal({ onClose }: Props) {
                       );
                     })}
                   </div>
+
+                  {/* Generated images cost real money per image; web search is
+                      free. No number here: there isn't enough usage data yet to
+                      quote one honestly. */}
+                  {(imageSource === "ai" || (imageSource === "auto" && imageMixWeb < 10)) && (
+                    <div
+                      className="flex gap-2 p-2.5 rounded-lg"
+                      style={{ backgroundColor: "var(--j-orange-bg)" }}
+                    >
+                      <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" style={{ color: "var(--j-orange-ink)" }} />
+                      <p className="text-[11px] leading-relaxed" style={{ color: "var(--j-orange-ink)" }}>
+                        <span className="font-semibold">Generated images use more credits.</span>{" "}
+                        Web search images are free, and are the default.
+                      </p>
+                    </div>
+                  )}
 
                   {imageSource === "auto" && (
                     <div>
@@ -1025,7 +1207,7 @@ export default function GenerateModal({ onClose }: Props) {
                         })}
                       </div>
                       {imageSource === "ai" && (
-                        <p className="text-[10px] text-gray-400 mt-2">AI generation adds a few seconds per slide.</p>
+                        <p className="text-[10px] text-gray-400 mt-2">Generating images adds a few seconds per slide.</p>
                       )}
                     </div>
                   )}

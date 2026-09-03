@@ -16,7 +16,7 @@ type TabId = "elements" | "text" | "activities" | "pictures" | "gif" | "audio" |
 type PictureSubTab = "stock" | "web" | "upload" | "ai";
 const PICTURE_SUB_TAB_LABELS: Record<PictureSubTab, string> = {
   stock: "Images",
-  web: "Web",
+  web: "Google",
   upload: "Upload",
   ai: "AI generate",
 };
@@ -28,10 +28,15 @@ const VIDEO_SUB_TAB_LABELS: Record<VideoSubTab, string> = {
   upload: "Upload",
 };
 
-// Web image search (Google CSE) is built but hidden until the Google Cloud
-// project has Custom Search billing set up. Flip to true — or gate on
-// `!!process.env.NEXT_PUBLIC_GOOGLE_CSE_CX` — to re-enable the "Web" tab.
-const WEB_SEARCH_ENABLED = false;
+// Google image search (Custom Search). Gated on the search-engine id rather
+// than a hardcoded flag, so the tab simply doesn't appear where the project
+// isn't configured instead of rendering a setup error at teachers.
+const WEB_SEARCH_ENABLED = !!process.env.NEXT_PUBLIC_GOOGLE_CSE_CX;
+
+// GIFs, same arrangement: the panel is built and works, it just has no key
+// yet. Shelved rather than removed, so adding NEXT_PUBLIC_GIPHY_KEY brings the
+// tab straight back with no code change.
+const GIF_ENABLED = !!process.env.NEXT_PUBLIC_GIPHY_KEY;
 
 // Activity catalogue — the 12 kinds the picker offers. Each runs its own AI
 // generation when added: the teacher picks a kind, optionally types a topic
@@ -113,7 +118,7 @@ const AI_STYLES: { id: "photographic" | "illustration" | "storybook" | "painted"
   { id: "comic-book", label: "Comic" },
 ];
 
-const TABS: { id: TabId; label: string; icon: React.ReactNode }[] = [
+const ALL_TABS: { id: TabId; label: string; icon: React.ReactNode }[] = [
   { id: "elements", label: "Elements", icon: <Shapes className="w-5 h-5" /> },
   { id: "text", label: "Text", icon: <Type className="w-5 h-5" /> },
   { id: "activities", label: "Activities", icon: <ListChecks className="w-5 h-5" /> },
@@ -122,6 +127,8 @@ const TABS: { id: TabId; label: string; icon: React.ReactNode }[] = [
   { id: "audio", label: "Audio", icon: <Headphones className="w-5 h-5" /> },
   { id: "video", label: "Video", icon: <Film className="w-5 h-5" /> },
 ];
+
+const TABS = ALL_TABS.filter((t) => t.id !== "gif" || GIF_ENABLED);
 
 type ElementSubTab = "shapes" | "graphics" | "frames";
 
@@ -866,7 +873,9 @@ export default function Sidebar({
               </div>
             )}
 
-            {active === "gif" && (
+            {/* Kept behind GIF_ENABLED alongside its tab, so the panel and the
+                way in are shelved and restored together. */}
+            {GIF_ENABLED && active === "gif" && (
               <div className="space-y-3">
                 <PicturesPanel onAdd={onAddImage} onlyProvider="giphy" />
               </div>

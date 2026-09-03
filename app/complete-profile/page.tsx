@@ -124,7 +124,9 @@ export default function CompleteProfilePage() {
     sessionStorage.removeItem("jooma:auth-email");
     sessionStorage.removeItem("jooma:auth-token");
     sessionStorage.removeItem("jooma:auth-refresh");
-    router.push("/tools");
+    // Both signup paths (email and Google) end here, and signing in does not,
+    // so this is the one place a brand new teacher passes through exactly once.
+    router.push("/welcome");
     router.refresh();
   };
 

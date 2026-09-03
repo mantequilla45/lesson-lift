@@ -241,6 +241,14 @@ export default function Editor({ presentation, generationParams }: Props) {
     const t = setTimeout(() => setRemoveBgError(null), 6000);
     return () => clearTimeout(t);
   }, [removeBgError]);
+  // An image that arrived but would not decode. Separate from removeBgError so
+  // the message names what actually went wrong, sharing the same banner below.
+  const [imageAddError, setImageAddError] = useState<string | null>(null);
+  useEffect(() => {
+    if (!imageAddError) return;
+    const t = setTimeout(() => setImageAddError(null), 6000);
+    return () => clearTimeout(t);
+  }, [imageAddError]);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [zoom, setZoom] = useState(1);
   const [fontPanelOpen, setFontPanelOpen] = useState(false);
@@ -1312,6 +1320,13 @@ export default function Editor({ presentation, generationParams }: Props) {
       };
       mutateActiveSlide((s2) => ({ ...s2, images: [...s2.images, newImage] }));
       handleImageSelect(newImage.id);
+    };
+    // Bytes that don't decode fire onerror and NEVER onload, so without this
+    // the image was dropped in silence: nothing on the slide, nothing saved,
+    // and no reason given. A server lying about its content-type gets this far
+    // because /api/fetch-image can only check the header, not the pixels.
+    img.onerror = () => {
+      setImageAddError("That image could not be opened. Try a different link.");
     };
     img.src = src;
   }, [mutateActiveSlide, handleImageSelect]);
@@ -4337,13 +4352,13 @@ export default function Editor({ presentation, generationParams }: Props) {
               </div>
             </div>
           )}
-          {removeBgError && (
+          {(removeBgError || imageAddError) && (
             <div className="absolute top-2 left-1/2 -translate-x-1/2 z-50 pointer-events-none">
               <div
                 className="inline-flex items-center gap-2 rounded-2xl border shadow-lg px-4 py-2 text-sm pointer-events-auto max-w-md"
                 style={{ backgroundColor: "#E0463F", color: "#fff", borderColor: "#E0463F" }}
               >
-                <span className="font-medium">{removeBgError}</span>
+                <span className="font-medium">{removeBgError ?? imageAddError}</span>
               </div>
             </div>
           )}

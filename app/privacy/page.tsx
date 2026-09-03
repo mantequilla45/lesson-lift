@@ -8,7 +8,7 @@ export default function PrivacyPage() {
         <h1 className="text-4xl font-semibold tracking-tight mb-2" style={{ color: "var(--j-purple)" }}>
           Privacy Policy
         </h1>
-        <p className="text-sm mb-10" style={{ color: "#7a604a" }}>Last updated: 1 June 2026</p>
+        <p className="text-sm mb-10" style={{ color: "#7a604a" }}>Last updated: 3 September 2026</p>
 
         <div className="rounded-2xl p-8 space-y-8" style={{ backgroundColor: "var(--j-card)" }}>
 
@@ -54,15 +54,19 @@ export default function PrivacyPage() {
             <p>We share personal data only with trusted third parties needed to deliver the service:</p>
             <Table rows={[
               ["Supabase", "Database, authentication, and file storage — hosted in the EU"],
-              ["OpenAI", "AI content generation — your prompts are sent to OpenAI's API. See openai.com/privacy"],
+              ["OpenAI", "AI content generation — your prompts are sent to OpenAI’s API. See openai.com/privacy"],
+              ["Anthropic", "AI content generation — your prompts are sent to Anthropic’s API. See anthropic.com/legal/privacy"],
               ["Stripe", "Payment processing — see stripe.com/gb/privacy"],
+              ["Twilio SendGrid", "Delivery of account and service emails — operated by Twilio Inc. See twilio.com/en-us/legal/privacy"],
+              ["Sentry", "Error monitoring and diagnostics, which may record your IP address and account identifier when something goes wrong — operated by Functional Software, Inc. See sentry.io/privacy"],
               ["Vercel", "Hosting and edge delivery — see vercel.com/legal/privacy-policy"],
             ]} />
             <p>We do not sell your personal data. We do not share it with third parties for their own marketing purposes.</p>
           </Section>
 
           <Section title="6. AI and Your Content">
-            <p>When you use Jooma's AI features, your prompts and inputs are sent to OpenAI for processing. OpenAI does not use API data to train its models by default. However, we encourage you to review <a href="https://openai.com/privacy" className="underline" target="_blank" rel="noreferrer">OpenAI's privacy policy</a> for full details.</p>
+            <p>When you use Jooma&apos;s AI features, your prompts and inputs are sent to one of our model providers for processing. Depending on the feature, that provider is either OpenAI or Anthropic.</p>
+            <p>OpenAI does not use API data to train its models by default, and Anthropic&apos;s commercial terms state that it does not train models on customer content submitted through its API. We encourage you to review <a href="https://openai.com/privacy" className="underline" target="_blank" rel="noreferrer">OpenAI&apos;s privacy policy</a> and <a href="https://www.anthropic.com/legal/privacy" className="underline" target="_blank" rel="noreferrer">Anthropic&apos;s privacy policy</a> for full details.</p>
             <p>Do not include sensitive personal data about pupils or third parties in your prompts.</p>
           </Section>
 
@@ -94,7 +98,7 @@ export default function PrivacyPage() {
           </Section>
 
           <Section title="11. International Transfers">
-            <p>Some of our service providers (including OpenAI) may process data outside the UK/EEA. Where this occurs, we rely on appropriate safeguards such as the UK International Data Transfer Agreement (IDTA) or Standard Contractual Clauses.</p>
+            <p>Some of the service providers named in section 5 (including OpenAI, Anthropic, Twilio SendGrid and Sentry) are based in the United States and may process data outside the UK/EEA. Where this occurs, we rely on appropriate safeguards such as the UK International Data Transfer Agreement (IDTA) or Standard Contractual Clauses.</p>
           </Section>
 
           <Section title="12. Changes to This Policy">
