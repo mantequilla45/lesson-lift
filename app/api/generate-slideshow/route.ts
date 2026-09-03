@@ -36,7 +36,16 @@ interface RequestBody {
   vocabulary?: string[];
   includeAudio?: boolean;
   includeYouTube?: boolean;
+  /** Only used by the shelved video search (see YOUTUBE_SEARCH_ENABLED in
+   *  GenerateModal). Ignored when the teacher pasted their own link. */
   youtubeLength?: "short" | "medium" | "long" | "any";
+  /** A YouTube video the teacher chose themselves, already confirmed playable
+   *  by /api/lookup-youtube. When set we use it directly and never search. */
+  youtubeVideoId?: string;
+  youtubeVideoTitle?: string;
+  /** The teacher's note on where the video belongs, e.g. "play at the end as a
+   *  recap". Steers the video slide's position and its heading copy. */
+  youtubeNote?: string;
   imageSource?: ImageSource;
   /** Auto mode: web parts out of 10 (rest AI). Default 8 → 8 web : 2 AI. */
   imageMixWeb?: number;
@@ -181,6 +190,34 @@ const slideshowSchema = {
     },
   },
 } as const;
+
+// When the teacher pastes their own video, the deck call also writes that
+// slide's heading and subtitle, and says where the video belongs in the
+// running order. Folded into THIS schema rather than a second model call: one
+// request, and the heading gets written with the whole deck in view.
+//
+// Strict mode requires every property to be listed in `required`, so these are
+// only added when there actually is a video — otherwise the model would be
+// forced to invent a heading for a slide that does not exist.
+function schemaFor(body: RequestBody) {
+  if (!body.youtubeVideoId) return slideshowSchema;
+  const base = slideshowSchema.schema;
+  return {
+    ...slideshowSchema,
+    schema: {
+      ...base,
+      required: [...base.required, "videoSlideHeading", "videoSlideSubtitle", "videoSlideAfter"],
+      properties: {
+        ...base.properties,
+        videoSlideHeading: { type: "string" },
+        videoSlideSubtitle: { type: "string" },
+        // 1-based index of the content slide the video should follow. 0 means
+        // "no preference", and we fall back to the default slot.
+        videoSlideAfter: { type: "integer" },
+      },
+    },
+  };
+}
 
 interface AISlideSpec {
   layout: SlideLayout;
@@ -389,6 +426,29 @@ class SlideStreamParser {
   private objStart = -1;
   /** First non-empty match for the top-level `"title": "..."` field. */
   title: string | null = null;
+  /** Copy for the teacher's own video slide, and where they want it. Only
+   *  present when a video was pasted (see schemaFor). The prompt asks for
+   *  these BEFORE "slides", so they are readable by the time the first slide
+   *  arrives and the reserved slot has to be placed. */
+  videoSlideHeading: string | null = null;
+  videoSlideSubtitle: string | null = null;
+  videoSlideAfter: number | null = null;
+
+  /** True once the `"slides"` array has started. Callers waiting on a
+   *  top-level field use this to know it is never coming. */
+  sawSlides(): boolean {
+    return this.inSlides;
+  }
+
+  /** Pull a top-level string field out of the buffer. Anchored on `^|\{|,` so
+   *  it can't match the same key nested inside a slide object. */
+  private matchTopLevelString(key: string): string | null {
+    const m = this.buffer.match(
+      new RegExp(`(?:^|[{,])\\s*"${key}"\\s*:\\s*"((?:[^"\\\\]|\\\\.)*)"`),
+    );
+    if (!m) return null;
+    try { return JSON.parse(`"${m[1]}"`); } catch { return null; }
+  }
 
   /** Feeds a chunk of text into the parser and returns any newly-completed
    *  slide objects. */
@@ -403,6 +463,16 @@ class SlideStreamParser {
       if (m) {
         try { this.title = JSON.parse(`"${m[1]}"`); } catch { /* ignore */ }
       }
+    }
+    if (this.videoSlideHeading === null) {
+      this.videoSlideHeading = this.matchTopLevelString("videoSlideHeading");
+    }
+    if (this.videoSlideSubtitle === null) {
+      this.videoSlideSubtitle = this.matchTopLevelString("videoSlideSubtitle");
+    }
+    if (this.videoSlideAfter === null) {
+      const m = this.buffer.match(/(?:^|[{,])\s*"videoSlideAfter"\s*:\s*(\d+)/);
+      if (m) this.videoSlideAfter = Number(m[1]);
     }
 
     if (!this.inSlides) {
@@ -510,6 +580,27 @@ Slide 2 MUST be a "paper-image-right" or "paper-image-left" content slide dedica
    · calloutVariant: "key", calloutBody: a one-sentence motivating summary of the session
 
 DO NOT leave bullets empty. DO NOT put the objectives in body. This slide's WHOLE PURPOSE is the bulleted list of objectives.`
+    : "";
+  // The teacher pasted their own video. The deck itself is still about the
+  // topic — this only tells the model to write that one slide's copy and say
+  // where the video belongs, so the deck is built around the video rather than
+  // having it bolted on at a fixed position.
+  const videoBlock = body.youtubeVideoId
+    ? `
+═══════════════════════════════════════════════════
+THE TEACHER'S VIDEO
+═══════════════════════════════════════════════════
+The teacher has chosen a YouTube video to show in this lesson${body.youtubeVideoTitle ? `, titled "${body.youtubeVideoTitle}"` : ""}.${
+        body.youtubeNote?.trim()
+          ? `\n★ THE TEACHER SAYS WHERE IT FITS: "${body.youtubeNote.trim()}" — follow this literally.`
+          : ""
+      }
+It gets its own slide, which is added for you AFTER your slides. Do NOT emit a slide for the video yourself. Instead return these three top-level fields, placed BEFORE "slides" in your JSON object (this matters — they are read while the deck is still streaming):
+- "videoSlideHeading" — a short ALL-CAPS heading starting with "WATCH:", under 40 characters, that previews what pupils are about to see. Write it to match the teacher's note where they gave one.
+- "videoSlideSubtitle" — one warm sentence, under 90 characters, setting up why they are watching it at this point in the lesson.
+- "videoSlideAfter" — the 1-based number of the content slide the video should come after, so it lands where the teacher asked. Use 0 if they gave no preference. A recap or plenary video belongs near the end; a hook or introduction belongs early.
+Where the video's subject overlaps a slide you were going to write, still write that slide: the video supports the lesson, it does not replace teaching.
+`
     : "";
   const curatedVocab = (body.vocabulary ?? []).map((t) => t.trim()).filter(Boolean);
   // When includeVocab is on, the deck MUST emit a "paper-vocab-grid" slide.
@@ -735,7 +826,7 @@ TONE & LANGUAGE
 ${objectivesLine}
 
 ${vocabLine}
-
+${videoBlock}
 ═══════════════════════════════════════════════════
 DECK TITLE
 ═══════════════════════════════════════════════════
@@ -966,13 +1057,40 @@ export async function POST(req: NextRequest) {
             reserved.push({ kind: "audio-answer", index: cursor++ });
           }
           if (body.includeYouTube) {
+            // When the teacher pasted a video, this default position may be
+            // overridden once the model says where they asked for it. See
+            // placeVideoSlot below, which runs before any placeholder is sent.
             reserved.push({ kind: "video", index: cursor++ });
           }
         }
-        const reservedSet = new Set(reserved.map((r) => r.index));
+        // Move the reserved video slot to sit after the content slide the model
+        // nominated, so a "play at the end as a recap" note actually lands at
+        // the end. Runs once, before placeholders are emitted, so the slot never
+        // visibly jumps. Audio keeps its slot; the video shuffles around it.
+        const placeVideoSlot = (after: number | null) => {
+          const slot = reserved.find((r) => r.kind === "video");
+          if (!slot || !after || after < 1) return;
+          // `after` is a 1-based content-slide number. Convert to a final index
+          // that clears the audio slots, then clamp inside the deck.
+          const audioBefore = reserved.filter(
+            (r) => r.kind !== "video" && r.index <= after,
+          ).length;
+          const last = expectedTotalAi + reserved.length - 1;
+          let target = Math.min(last, after + audioBefore);
+          // Step past an audio slot rather than giving up on the placement: the
+          // audio pair is contiguous, so at most two steps, and landing one
+          // slide later still honours "after the mitosis slide".
+          while (target < last && reserved.some((r) => r.kind !== "video" && r.index === target)) {
+            target++;
+          }
+          if (reserved.some((r) => r.kind !== "video" && r.index === target)) return;
+          slot.index = target;
+        };
+        // Rebuilt after placeVideoSlot moves the video, since content slides
+        // are routed around whatever is in here.
+        let reservedSet = new Set(reserved.map((r) => r.index));
         const audioIndex = reserved.find((r) => r.kind === "audio")?.index;
         const answerIndex = reserved.find((r) => r.kind === "audio-answer")?.index;
-        const videoIndex = reserved.find((r) => r.kind === "video")?.index;
         // Walks final positions for content slides, skipping the reserved slots.
         let contentCursor = 0;
         const nextContentIndex = () => {
@@ -1091,7 +1209,7 @@ export async function POST(req: NextRequest) {
             { role: "system", content: "You are a senior pedagogical lesson designer creating UK classroom slideshows. Your output is structured JSON. Your style is vivid, specific, and memorable — every slide should feel like it was designed by a thoughtful teacher who understands their audience." },
             { role: "user", content: buildPrompt(body) },
           ],
-          response_format: { type: "json_schema", json_schema: slideshowSchema },
+          response_format: { type: "json_schema", json_schema: schemaFor(body) },
           stream: true,
           // Ask for token usage in the final stream chunk so we can log the
           // exact cost of each generation (see cost summary after the loop).
@@ -1120,6 +1238,13 @@ export async function POST(req: NextRequest) {
         const sendMetaIfReady = () => {
           if (metaSent) return;
           if (!parser.title) return;
+          // Wait for the video's placement too, so the placeholder is emitted
+          // at its final position rather than jumping later. The prompt asks
+          // for these fields before "slides", so this resolves almost at once;
+          // the guard below stops a model that ignored that from stalling meta.
+          if (body.youtubeVideoId && parser.videoSlideAfter === null && !parser.sawSlides()) return;
+          placeVideoSlot(parser.videoSlideAfter);
+          reservedSet = new Set(reserved.map((r) => r.index));
           metaSent = true;
           send("meta", {
             title: parser.title,
@@ -1328,7 +1453,38 @@ export async function POST(req: NextRequest) {
         let youtubeCostUsd = 0;
 
         const videoTask: Promise<void> = (async () => {
+          // Read the slot now: placeVideoSlot may have moved it once the model
+          // said where the teacher wanted the video.
+          const videoIndex = reserved.find((r) => r.kind === "video")?.index;
           if (!(body.includeYouTube && videoIndex !== undefined)) return;
+
+          // The teacher pasted their own link. No search, no model call, so
+          // nothing to charge: /api/lookup-youtube already confirmed it plays,
+          // and the deck call wrote this slide's copy alongside everything else.
+          if (body.youtubeVideoId) {
+            send("video", {
+              index: videoIndex,
+              headingColor: theme.palette.headingColor ?? theme.palette.accent,
+              bodyFont: theme.fonts.body,
+              video: {
+                videoId: body.youtubeVideoId,
+                title: body.youtubeVideoTitle ?? "",
+                channel: "",
+                description: "",
+                slideHeading: parser.videoSlideHeading?.trim() || `WATCH: ${body.topic.toUpperCase()}`,
+                slideSubtitle:
+                  parser.videoSlideSubtitle?.trim() ||
+                  "Let's watch this together to deepen our understanding.",
+              },
+              slideBg: theme.palette.background,
+              titleColor: theme.palette.accent,
+              mutedColor: theme.palette.muted,
+              accent: theme.palette.accent,
+              headingFont: theme.fonts.heading,
+            });
+            return;
+          }
+
           try {
             send("status", { message: "Finding a YouTube video..." });
             const ytRes = await fetch(`${req.nextUrl.origin}/api/find-youtube`, {

@@ -1,0 +1,145 @@
+/*
+ * The welcome screen.
+ *
+ * Values reference the brand tokens on :root, never literal hexes. This page
+ * renders outside the app shell, so it paints its own background rather than
+ * inheriting one.
+ */
+
+.page {
+  min-height: 100vh;
+  background: var(--j-bg);
+  color: var(--j-body);
+  font-family: var(--font-jakarta), system-ui, sans-serif;
+  display: grid;
+  place-items: center;
+  padding: 48px 20px 64px;
+}
+
+.shell {
+  width: 100%;
+  max-width: 720px;
+  text-align: center;
+}
+
+.mark {
+  display: inline-block;
+  color: var(--j-purple);
+  margin-bottom: 28px;
+}
+
+.title {
+  font-size: clamp(28px, 5vw, 40px);
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  color: var(--j-ink);
+  margin: 0 0 12px;
+  /* A long first name must not force a mid-word break in the greeting. */
+  text-wrap: balance;
+}
+
+.lede {
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.6;
+  color: var(--j-muted);
+  margin: 0 auto;
+  max-width: 46ch;
+  text-wrap: pretty;
+}
+
+.grid {
+  list-style: none;
+  margin: 36px 0 32px;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  text-align: left;
+}
+
+@media (max-width: 560px) {
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  height: 100%;
+  padding: 16px;
+  background: var(--j-card);
+  border: 1px solid var(--j-line);
+  border-radius: var(--j-r-lg);
+  text-decoration: none;
+  transition:
+    border-color 0.18s var(--j-ease),
+    transform 0.18s var(--j-ease);
+}
+
+.card:hover {
+  border-color: var(--j-lilac-2);
+  transform: translateY(-2px);
+}
+
+.cardText {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.cardName {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--j-ink);
+  letter-spacing: -0.01em;
+}
+
+.cardDesc {
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.45;
+  color: var(--j-muted);
+}
+
+.cta {
+  display: inline-block;
+  padding: 13px 30px;
+  background: var(--j-purple);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 800;
+  border-radius: var(--j-pill);
+  text-decoration: none;
+  transition:
+    background 0.18s var(--j-ease),
+    transform 0.18s var(--j-ease);
+}
+
+.cta:hover {
+  background: var(--j-deep);
+  transform: translateY(-1px);
+}
+
+.foot {
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--j-faint);
+  margin: 14px 0 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card,
+  .cta {
+    transition: none;
+  }
+
+  .card:hover,
+  .cta:hover {
+    transform: none;
+  }
+}

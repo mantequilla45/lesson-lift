@@ -37,7 +37,7 @@ const PROVIDER_LABELS: Record<Provider, string> = {
   unsplash: "Unsplash",
   pixabay: "Pixabay",
   giphy: "GIPHY",
-  web: "Web",
+  web: "Google",
 };
 
 const PROVIDER_KEYS: Record<Provider, string | undefined> = {
@@ -404,7 +404,7 @@ export default function PicturesPanel({ onAdd, onlyProvider }: Props) {
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder={isGif ? "Search GIFs..." : isWeb ? "Search the web..." : "Search photos..."}
+            placeholder={isGif ? "Search GIFs..." : isWeb ? "Search Google Images..." : "Search photos..."}
             className="w-full pl-8 pr-3 py-2 text-sm bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-200 focus:border-violet-400"
           />
           {loading && (

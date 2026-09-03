@@ -9,6 +9,8 @@ onto a solid purple disc, writing:
     app/favicon.ico       multi-resolution, 16 -> 256
     app/apple-icon.png    180x180, for iOS home screens
     public/logo/icon-v2.svg   the same mark as vector
+    public/logo/jooma-v2-{n}.png  512/1024/2048 flat exports of the same mark,
+                                  for slide decks, app stores and print
 
 Why a script rather than a checked-in binary someone hand-exported: the mark is
 derived from the real path data, so if the logo changes the icons can be
@@ -49,6 +51,10 @@ INSET = 0.10  # padding around the mark, as a fraction of the canvas
 # Sizes that go into the .ico. 16/32 get the simplified mark.
 ICO_SIZES = [16, 24, 32, 48, 64, 128, 256]
 SIMPLIFY_AT_OR_BELOW = 32
+
+# Standalone PNGs of the full mark, for anywhere the favicon is too small to
+# use: decks, store listings, press, print. Always the four-stroke version.
+PNG_SIZES = [512, 1024, 2048]
 
 TOKEN = re.compile(r"([MmLlHhVvCcSsZz])|(-?\d*\.?\d+(?:e-?\d+)?)")
 
@@ -152,7 +158,10 @@ def flatten(d, steps=24):
 
 def render(size, paths, simplified=False):
     """One square icon: white J knocked out of a purple disc."""
-    s = size * SS
+    # Supersampling past ~2000px buys nothing visible and costs a lot of
+    # memory, so taper the factor on the large PNG exports.
+    ss = max(2, min(SS, 2048 // size)) if size > 256 else SS
+    s = size * ss
     mask = Image.new("L", (s, s), 0)
     md = ImageDraw.Draw(mask)
 
@@ -202,6 +211,11 @@ def main():
     apple = os.path.join(ROOT, "app", "apple-icon.png")
     render(180, paths).save(apple, format="PNG")
     print("wrote %s (180x180)" % apple)
+
+    for n in PNG_SIZES:
+        png = os.path.join(ROOT, "public", "logo", "jooma-v2-%d.png" % n)
+        render(n, paths).save(png, format="PNG")
+        print("wrote %s (%dx%d)" % (png, n, n))
 
     out_svg = os.path.join(ROOT, "public", "logo", "icon-v2.svg")
     body = "\n".join('<path d="%s" fill="#FFFFFF"/>' % d for d in paths)
