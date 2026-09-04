@@ -82,6 +82,24 @@ export function layout(content: string): string {
 }
 
 /**
+ * Who an email comes from, when the default is wrong for it.
+ *
+ * SENDGRID_FROM_EMAIL is noreply@jooma.ai, which is correct for automated mail
+ * and wrong for a human reply to a school: "noreply" tells the reader not to
+ * respond, and with no Reply-To header a mail client aims Reply at the From
+ * address, so their answer would land in a mailbox nobody reads.
+ *
+ * Both fields are optional and no existing caller passes either, so every email
+ * that predates this is byte-identical. Only enquiry replies override it.
+ */
+export interface EmailSender {
+  /** Overrides SENDGRID_FROM_EMAIL. Must be a verified sender in SendGrid. */
+  from?: string;
+  /** Where Reply lands. Omitted from the payload entirely when absent. */
+  replyTo?: string;
+}
+
+/**
  * The only place that talks to SendGrid.
  *
  * Catches and logs; never throws. Every caller here mutates the database first
@@ -90,18 +108,33 @@ export function layout(content: string): string {
  * email bounced can be re-invited; an auth user created and then rolled back
  * because the mail failed is the worse outcome.
  */
-async function send(to: string, subject: string, html: string): Promise<boolean> {
+async function send(
+  to: string,
+  subject: string,
+  html: string,
+  sender?: EmailSender,
+): Promise<boolean> {
   if (!init()) {
     console.warn("[email] SENDGRID_API_KEY not set — skipping send", { to, subject });
     return false;
   }
-  const from = process.env.SENDGRID_FROM_EMAIL;
+  // The override still falls back to the env var, so a missing
+  // ENQUIRY_FROM_EMAIL degrades to the normal sender rather than to no email.
+  const from = sender?.from || process.env.SENDGRID_FROM_EMAIL;
   if (!from) {
     console.warn("[email] SENDGRID_FROM_EMAIL not set — skipping send", { to, subject });
     return false;
   }
   try {
-    await sgMail.send({ to, from: { email: from, name: "Jooma" }, subject, html });
+    await sgMail.send({
+      to,
+      from: { email: from, name: "Jooma" },
+      // Spread rather than `replyTo: undefined`: SendGrid rejects the key when
+      // it is present and empty, so it must be absent, not blank.
+      ...(sender?.replyTo ? { replyTo: sender.replyTo } : {}),
+      subject,
+      html,
+    });
     return true;
   } catch (err) {
     console.error("[email] send failed", { to, subject }, err);
@@ -165,6 +198,8 @@ export async function sendTemplate(
   key: EmailTemplateKey,
   to: string,
   params: Record<string, string>,
+  /** Only set where the default noreply@ sender is wrong. See EmailSender. */
+  sender?: EmailSender,
 ): Promise<boolean> {
   const render = TEMPLATES[key];
   if (!render) {
@@ -185,5 +220,5 @@ export async function sendTemplate(
 
   const { subject: defaultSubject, html } = render(params, override);
   const subject = settings.subject ? interpolate(settings.subject, params) : defaultSubject;
-  return send(to, subject, layout(html));
+  return send(to, subject, layout(html), sender);
 }

@@ -6,16 +6,19 @@ import { teacherInviteTemplate } from "./teacherInvite";
 import { passwordResetTemplate } from "./passwordReset";
 import { accountSuspendedTemplate } from "./accountSuspended";
 import { supportReplyTemplate } from "./supportReply";
+import { enquiryReplyTemplate } from "./enquiryReply";
 
 export type EmailTemplateKey =
   | "teacher_invite"
   | "password_reset"
   | "account_suspended"
-  | "support_reply";
+  | "support_reply"
+  | "enquiry_reply";
 
 export const TEMPLATES: Record<EmailTemplateKey, EmailRenderer> = {
   teacher_invite: teacherInviteTemplate,
   password_reset: passwordResetTemplate,
   account_suspended: accountSuspendedTemplate,
   support_reply: supportReplyTemplate,
+  enquiry_reply: enquiryReplyTemplate,
 };

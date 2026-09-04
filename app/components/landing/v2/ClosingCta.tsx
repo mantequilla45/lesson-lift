@@ -15,9 +15,9 @@ export default function ClosingCta() {
           <Link href="/signup" className={`${shared.btn} ${shared.btnW}`}>
             Start free
           </Link>
-          <a href="mailto:schools@jooma.ai" className={`${shared.btn} ${shared.btnO}`}>
+          <Link href="/contact?type=school" className={`${shared.btn} ${shared.btnO}`}>
             Book a school demo
-          </a>
+          </Link>
         </div>
         <small>Set up in under a minute</small>
       </Reveal>

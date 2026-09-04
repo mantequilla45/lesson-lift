@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { PLANS, planCredits, type PlanId } from "@/app/lib/plans";
 
 // The plans a teacher can buy, shown inside the Subscription section.
@@ -160,13 +161,15 @@ export default function PlanPicker({
           profiles to bill against, so this is an enquiry, not a card. */}
       <p className="text-sm mt-4" style={{ color: "var(--j-faint)" }}>
         Running a whole school?{" "}
-        <a
-          href="mailto:schools@jooma.ai"
+        {/* Already signed in, so this goes to the in-app form rather than the
+            public page: the name and email prefill from their profile. */}
+        <Link
+          href="/help?tab=school"
           className="font-semibold underline transition-opacity hover:opacity-70"
           style={{ color: "var(--j-purple)" }}
         >
           Talk to us
-        </a>{" "}
+        </Link>{" "}
         about school pricing.
       </p>
     </div>

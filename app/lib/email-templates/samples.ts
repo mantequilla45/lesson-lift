@@ -38,4 +38,14 @@ export const SAMPLE_PARAMS: Record<EmailTemplateKey, Record<string, string>> = {
     reference: "TK-1042",
     threadId: "00000000-0000-0000-0000-000000000000",
   },
+
+  // app/api/enquiries/reply/route.ts — replyTo is filled in because the whole
+  // point of this email is that it comes back to a real mailbox, and a preview
+  // with the line missing would not show that.
+  enquiry_reply: {
+    name: "Priya Shah",
+    body: "Thanks for getting in touch. For 25 teachers we'd look at a school licence, which pools credits across your staff and bills on one invoice. Happy to walk you through it on a call this week.",
+    reference: "EN-1042",
+    replyTo: "info@jooma.ai",
+  },
 };

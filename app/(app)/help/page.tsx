@@ -10,10 +10,10 @@ export default async function HelpPage({
   searchParams,
 }: {
   // ?thread= deep-links one conversation — used by the reply email and by the
-  // launcher's "See all conversations".
-  searchParams: Promise<{ thread?: string }>;
+  // launcher's "See all conversations". ?tab= picks the sub-branch.
+  searchParams: Promise<{ thread?: string; tab?: string }>;
 }) {
-  const { thread } = await searchParams;
+  const { thread, tab } = await searchParams;
   const supabase = await createClient();
 
   const {
@@ -23,12 +23,23 @@ export default async function HelpPage({
   // never called with no session.
   if (!user) redirect("/login");
 
-  const { data: threads } = await supabase.rpc("my_threads");
+  // Both in one round trip. The profile is only for prefilling the contact and
+  // enquiry forms: we know who this is, so asking them to retype their name is
+  // friction that buys nothing.
+  const [{ data: threads }, { data: profile }] = await Promise.all([
+    supabase.rpc("my_threads"),
+    supabase.from("profiles").select("first_name, surname").eq("id", user.id).maybeSingle(),
+  ]);
+
+  const fullName = `${profile?.first_name ?? ""} ${profile?.surname ?? ""}`.trim();
 
   return (
     <HelpView
       initialThreads={(threads ?? []) as MyThread[]}
       initialOpenId={thread ?? null}
+      initialTab={tab ?? null}
+      knownName={fullName || null}
+      knownEmail={user.email ?? null}
     />
   );
 }

@@ -76,7 +76,12 @@ export default function AppShellV2({
   const fromContext = useAppShellSettings();
   const shellTitle = title ?? fromContext?.title ?? "";
   const shellBanner = banner ?? fromContext?.banner ?? true;
-  const shellLauncher = launcher ?? fromContext?.launcher ?? true;
+  // SHELVED, not removed. The floating bubble reads as a chat assistant rather
+  // than a way to reach a person, and /help is now the single entry point for
+  // all three of Help, Contact and School enquiry. SupportLauncher.tsx and its
+  // QuickCompose are left intact and still imported below, so bringing it back
+  // is changing this `false` to `true` and nothing else.
+  const shellLauncher = launcher ?? fromContext?.launcher ?? false;
   const shellContentClassName = contentClassName ?? fromContext?.contentClassName;
   const shellVariant = variant ?? fromContext?.variant ?? "scroll";
 
