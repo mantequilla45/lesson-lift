@@ -41,6 +41,12 @@ const PUBLIC_PATHS = [
   "/terms",
   "/privacy",
   "/pricing",
+  // A school asking about licences has no account yet, and making them sign up
+  // to ask about pricing loses the enquiry. The form posts to /api/enquiries,
+  // which must be public for the same reason; it carries its own honeypot and
+  // IP throttle rather than relying on the session it does not have.
+  "/contact",
+  "/api/enquiries",
   // An invited teacher has no account yet, so the invite lookup behind the
   // /signup banner has to work while signed out. It only ever reveals the
   // address a valid token was already emailed to, and grants nothing —

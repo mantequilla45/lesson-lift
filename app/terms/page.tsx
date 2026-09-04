@@ -22,7 +22,7 @@ export default function TermsPage() {
           </Section>
 
           <Section title="3. Your Account">
-            <p>You are responsible for keeping your login credentials secure and for all activity that occurs under your account. Notify us immediately at <a href="mailto:support@jooma.ai" className="underline">support@jooma.ai</a> if you suspect unauthorised access.</p>
+            <p>You are responsible for keeping your login credentials secure and for all activity that occurs under your account. Notify us immediately at <a href="mailto:info@jooma.ai" className="underline">info@jooma.ai</a> if you suspect unauthorised access.</p>
             <p>You must provide accurate information when registering and keep it up to date. We reserve the right to suspend or delete accounts that contain false information or violate these Terms.</p>
           </Section>
 
@@ -68,7 +68,7 @@ export default function TermsPage() {
           </Section>
 
           <Section title="10. Termination">
-            <p>You may close your account at any time by contacting <a href="mailto:support@jooma.ai" className="underline">support@jooma.ai</a>. We may suspend or terminate your account if you breach these Terms, without liability to you.</p>
+            <p>You may close your account at any time by contacting <a href="mailto:info@jooma.ai" className="underline">info@jooma.ai</a>. We may suspend or terminate your account if you breach these Terms, without liability to you.</p>
             <p>On termination, your right to use Jooma ceases immediately. We will retain your data as set out in our Privacy Policy.</p>
           </Section>
 
@@ -80,7 +80,7 @@ export default function TermsPage() {
             <p>If you have questions about these Terms, please contact us at:</p>
             <p>
               Jooma Ltd<br />
-              Email: <a href="mailto:legal@jooma.ai" className="underline">legal@jooma.ai</a>
+              Email: <a href="mailto:info@jooma.ai" className="underline">info@jooma.ai</a>
             </p>
           </Section>
 

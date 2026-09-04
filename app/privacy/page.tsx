@@ -14,7 +14,7 @@ export default function PrivacyPage() {
 
           <Section title="1. Who We Are">
             <p>Jooma Ltd (&quot;Jooma&quot;, &quot;we&quot;, &quot;us&quot;) is the data controller for personal data processed through our service. We are registered in England and Wales.</p>
-            <p>If you have any questions about how we handle your data, contact our team at <a href="mailto:privacy@jooma.ai" className="underline">privacy@jooma.ai</a>.</p>
+            <p>If you have any questions about how we handle your data, contact our team at <a href="mailto:info@jooma.ai" className="underline">info@jooma.ai</a>.</p>
           </Section>
 
           <Section title="2. Data We Collect">
@@ -86,7 +86,7 @@ export default function PrivacyPage() {
               <li><strong>Object</strong> — object to processing based on legitimate interests.</li>
               <li><strong>Withdraw consent</strong> — where processing is based on consent, withdraw it at any time.</li>
             </ul>
-            <p>To exercise any of these rights, email <a href="mailto:privacy@jooma.ai" className="underline">privacy@jooma.ai</a>. We will respond within 30 days. You also have the right to lodge a complaint with the <a href="https://ico.org.uk" className="underline" target="_blank" rel="noreferrer">Information Commissioner&apos;s Office (ICO)</a>.</p>
+            <p>To exercise any of these rights, email <a href="mailto:info@jooma.ai" className="underline">info@jooma.ai</a>. We will respond within 30 days. You also have the right to lodge a complaint with the <a href="https://ico.org.uk" className="underline" target="_blank" rel="noreferrer">Information Commissioner&apos;s Office (ICO)</a>.</p>
           </Section>
 
           <Section title="9. Cookies">
@@ -108,7 +108,7 @@ export default function PrivacyPage() {
           <Section title="13. Contact">
             <p>
               Jooma Ltd<br />
-              Email: <a href="mailto:privacy@jooma.ai" className="underline">privacy@jooma.ai</a>
+              Email: <a href="mailto:info@jooma.ai" className="underline">info@jooma.ai</a>
             </p>
           </Section>
 

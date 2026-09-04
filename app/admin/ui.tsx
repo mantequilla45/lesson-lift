@@ -265,6 +265,11 @@ export const STATUS_TONE: Record<string, { tone: Tone; label: string }> = {
   review: { tone: "warn", label: "Needs review" },
   confirmed: { tone: "danger", label: "Confirmed" },
   cleared: { tone: "ok", label: "Cleared" },
+  // Enquiries. "new" is brand rather than warn: an unanswered lead is the thing
+  // to pick up next, not a problem, and warn is already carrying past_due and
+  // paused elsewhere in the console.
+  new: { tone: "brand", label: "New" },
+  in_progress: { tone: "warn", label: "In progress" },
 };
 
 /**

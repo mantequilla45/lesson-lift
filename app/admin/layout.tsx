@@ -20,6 +20,12 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const awaiting = Number(flags?.[0]?.awaiting_review ?? 0);
   if (awaiting > 0) badges["/admin/flags"] = awaiting;
 
+  // Unanswered enquiries only. One that someone has already picked up is not a
+  // thing the badge should keep nagging about.
+  const { data: enquiries } = await supabase.rpc("admin_enquiry_summary");
+  const fresh = Number(enquiries?.[0]?.new_count ?? 0);
+  if (fresh > 0) badges["/admin/enquiries"] = fresh;
+
   return (
     <div className="flex min-h-screen" style={{ backgroundColor: "#F7F5FC" }}>
       <AdminSidebar badges={badges} />

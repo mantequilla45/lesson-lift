@@ -98,7 +98,7 @@ function pricingPlans(): PlanCard[] {
         "One invoice, one renewal",
       ],
       cta: "Talk to us",
-      href: "mailto:schools@jooma.ai",
+      href: "/contact?type=school",
     },
   ];
 }

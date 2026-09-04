@@ -198,13 +198,13 @@ export default function PricingView({
         {/* Schools are sold hands-on, not self-serve. */}
         <p className="text-center text-sm mt-6" style={{ color: "var(--j-faint)" }}>
           Running a whole school?{" "}
-          <a
-            href="mailto:sales@jooma.ai"
+          <Link
+            href="/contact?type=school"
             className="font-semibold underline transition-opacity hover:opacity-70"
             style={{ color: "var(--j-purple)" }}
           >
             Talk to us
-          </a>{" "}
+          </Link>{" "}
           about school pricing.
         </p>
 

@@ -17,6 +17,7 @@ import {
   Inbox,
   PenSquare,
   Mail,
+  MailQuestionMark,
   Megaphone,
   UsersRound,
   ScrollText,
@@ -83,7 +84,12 @@ const NAV: NavGroup[] = [
   },
   {
     label: "Support",
-    items: [{ href: "/admin/inbox", label: "Inbox", icon: Inbox }],
+    items: [
+      { href: "/admin/inbox", label: "Inbox", icon: Inbox },
+      // Contact and school enquiries. Separate from the inbox because a ticket
+      // comes from a teacher with an account and an enquiry usually does not.
+      { href: "/admin/enquiries", label: "Enquiries", icon: MailQuestionMark },
+    ],
   },
   {
     label: "Content",

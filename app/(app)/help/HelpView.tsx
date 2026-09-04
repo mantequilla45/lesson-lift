@@ -1,10 +1,13 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, Plus } from "lucide-react";
 import { useAppShell } from "@/app/components/v2/AppShellContext";
 import { createClient } from "@/app/lib/auth/client";
+import ContactForm from "@/app/components/enquiry/ContactForm";
+import SchoolEnquiryForm from "@/app/components/enquiry/SchoolEnquiryForm";
 import Conversation from "./Conversation";
 // Shared with /profile's "Submit ticket" section — see the header comment there
 // for why it is one component and not two.
@@ -29,6 +32,26 @@ const STATUS_LABEL: Record<string, string> = {
   closed: "Resolved",
 };
 
+/**
+ * The three ways to reach us, in one place.
+ *
+ * Help raises a support ticket, which a teacher answers and follows inside the
+ * app. Contact and School enquiry write to `enquiries`, which staff work from
+ * /admin/enquiries and answer by email. The split matters: a ticket belongs to
+ * an account and a school enquiry usually does not.
+ */
+const TABS = [
+  { id: "help", label: "Help" },
+  { id: "contact", label: "Contact" },
+  { id: "school", label: "School enquiry" },
+] as const;
+
+type Tab = (typeof TABS)[number]["id"];
+
+function asTab(v: string | null | undefined): Tab {
+  return v === "contact" || v === "school" ? v : "help";
+}
+
 function fmtRelative(iso: string): string {
   const mins = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
   if (mins < 1) return "just now";
@@ -43,9 +66,15 @@ function fmtRelative(iso: string): string {
 export default function HelpView({
   initialThreads,
   initialOpenId,
+  initialTab,
+  knownName,
+  knownEmail,
 }: {
   initialThreads: MyThread[];
   initialOpenId: string | null;
+  initialTab: string | null;
+  knownName: string | null;
+  knownEmail: string | null;
 }) {
   useAppShell({
     title: "Help",
@@ -58,6 +87,11 @@ export default function HelpView({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+
+  // In the URL so a refresh keeps the tab, and so the pricing page can link
+  // straight to /help?tab=school. `help` is the default and is left out of the
+  // URL rather than written into it.
+  const tab = asTab(searchParams.get("tab") ?? initialTab);
 
   const [threads, setThreads] = useState(initialThreads);
   // The open thread lives in the URL so it survives a refresh, is shareable,
@@ -88,19 +122,77 @@ export default function HelpView({
     setComposing(false);
   };
 
+  /** href for one tab. Drops ?thread= when leaving Help, so coming back does
+   *  not reopen a conversation the teacher had moved on from, and omits
+   *  ?tab=help entirely so the default URL stays clean. */
+  const tabHref = (id: Tab) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (id === "help") params.delete("tab");
+    else {
+      params.set("tab", id);
+      params.delete("thread");
+    }
+    const qs = params.toString();
+    return qs ? `${pathname}?${qs}` : pathname;
+  };
+
   return (
     /* No banner here, unlike the other app pages: the panel below is sized
        against the viewport, so a banner would push its bottom edge off screen
        rather than compressing it. Teachers still see notifications everywhere
        else, at /notifications, and in the bell. */
     <>
-          {/* Two columns at `lg`, one below it. dvh rather than vh because
+          {/* Real links, not buttons: these are navigations, and the URL is what
+              makes a refresh, a shared link and the back button all behave.
+              Same reasoning as SettingsNav on /profile. */}
+          <nav
+            className="inline-flex gap-1 p-1 rounded-2xl mb-4"
+            style={{ backgroundColor: "var(--j-tint)" }}
+            aria-label="How to reach us"
+          >
+            {TABS.map((t) => {
+              const active = tab === t.id;
+              return (
+                <Link
+                  key={t.id}
+                  href={tabHref(t.id)}
+                  scroll={false}
+                  aria-current={active ? "page" : undefined}
+                  className="px-4 py-2 rounded-xl text-sm font-semibold transition-colors"
+                  style={
+                    active
+                      ? { backgroundColor: "var(--j-purple)", color: "#fff" }
+                      : { color: "var(--j-muted)" }
+                  }
+                >
+                  {t.label}
+                </Link>
+              );
+            })}
+          </nav>
+
+          {tab !== "help" ? (
+            /* The forms are a single card, not a two-pane panel: there is no
+               list to sit beside them. Height is left to the content rather than
+               pinned to the viewport, so a long form scrolls the page normally. */
+            <div
+              className="rounded-3xl border p-6 sm:p-8"
+              style={{ backgroundColor: "var(--j-card)", borderColor: "var(--j-line)" }}
+            >
+              {tab === "school" ? (
+                <SchoolEnquiryForm knownName={knownName} knownEmail={knownEmail} />
+              ) : (
+                <ContactForm knownName={knownName} knownEmail={knownEmail} />
+              )}
+            </div>
+          ) : (
+          /* Two columns at `lg`, one below it. dvh rather than vh because
               100vh on mobile includes the collapsing URL bar, which pushed the
-              panel's bottom edge below the fold. */}
+              panel's bottom edge below the fold. */
           <div
             className="rounded-3xl border overflow-hidden grid
               grid-cols-1 lg:grid-cols-[minmax(240px,320px)_minmax(0,1fr)]
-              h-[calc(100dvh-9rem)] lg:h-[calc(100dvh-190px)] min-h-0 lg:min-h-110"
+              h-[calc(100dvh-12rem)] lg:h-[calc(100dvh-250px)] min-h-0 lg:min-h-110"
             style={{ backgroundColor: "var(--j-card)", borderColor: "var(--j-line)" }}
           >
             {/* ── Conversation list ─────────────────────────────────────
@@ -240,6 +332,7 @@ export default function HelpView({
               )}
             </div>
           </div>
+          )}
     </>
   );
 }
