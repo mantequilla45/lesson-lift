@@ -118,6 +118,7 @@ function Library() {
   const [draft, setDraft] = useState<Draft | null>(null);
   const [moving, setMoving] = useState<ToolRun | null>(null);
   const [sharing, setSharing] = useState<ToolRun | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<ToolRun | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [dropTarget, setDropTarget] = useState<Selection | undefined>(undefined);
   const [draggingId, setDraggingId] = useState<string | null>(null);
@@ -219,20 +220,33 @@ function Library() {
     [runs],
   );
 
-  const remove = useCallback(async (runId: string) => {
-    setDeletingId(runId);
+  /*
+   * Deleting asks first.
+   *
+   * It did not used to: one click on the menu item destroyed the resource with
+   * no prompt and no undo. There is no soft delete anywhere in the schema, so
+   * "deleted" means gone, and it now also removes the images and audio the
+   * resource owned. That is too much to hang on a single click, especially in a
+   * menu whose neighbouring item is Edit.
+   */
+  const remove = useCallback(async () => {
+    const run = pendingDelete;
+    if (!run) return;
+    setDeletingId(run.id);
     setError(null);
     try {
-      await deleteToolRun(runId);
-      setRuns((prev) => prev.filter((r) => r.id !== runId));
+      await deleteToolRun(run.id);
+      setRuns((prev) => prev.filter((r) => r.id !== run.id));
+      setPendingDelete(null);
     } catch {
       // Left in place rather than removed optimistically and reappearing on
       // the next load.
       setError("That resource could not be deleted. Try again.");
+      setPendingDelete(null);
     } finally {
       setDeletingId(null);
     }
-  }, []);
+  }, [pendingDelete]);
 
   const saveDraft = useCallback(
     async (name: string, colour: FolderColour) => {
@@ -492,7 +506,7 @@ function Library() {
                     onOpen={() => open(run)}
                     onMove={() => setMoving(run)}
                     onShare={() => setSharing(run)}
-                    onDelete={() => remove(run.id)}
+                    onDelete={() => setPendingDelete(run)}
                   />
                 ))}
               </div>
@@ -518,6 +532,15 @@ function Library() {
             setMoving(null);
             file(moving.id, target);
           }}
+        />
+      )}
+
+      {pendingDelete && (
+        <DeleteModal
+          run={pendingDelete}
+          busy={deletingId === pendingDelete.id}
+          onCancel={() => setPendingDelete(null)}
+          onConfirm={remove}
         />
       )}
 
@@ -570,11 +593,14 @@ function FolderCard({
 
   const droppable = Boolean(onDropRun);
 
+  // Same lift as ResourceItem: a folder card traps its own menu identically.
+  const [menuOpen, setMenuOpen] = useState(false);
+
   return (
     <div
       className={`${styles.folder} ${dropping ? styles.folderDrop : ""} ${
         selected ? styles.folderOn : ""
-      }`}
+      } ${menuOpen ? styles.cardMenuOpen : ""}`}
       onDragOver={
         droppable
           ? (e) => {
@@ -599,7 +625,7 @@ function FolderCard({
       }
     >
       {!neutral && onRename && onDelete && (
-        <Menu label={`${name} menu`} corner>
+        <Menu label={`${name} menu`} corner onOpenChange={setMenuOpen}>
           {(close) => (
             <>
               <MenuItem
@@ -731,8 +757,13 @@ function ResourceItem({
     onDragEnd,
   };
 
+  // Raises this card above the rest of the grid while its menu is open. See the
+  // note on `.cardMenuOpen` in folders.module.css for why the panel's own
+  // z-index cannot do this.
+  const [menuOpen, setMenuOpen] = useState(false);
+
   const menu = (
-    <Menu label={`${title} menu`}>
+    <Menu label={`${title} menu`} onOpenChange={setMenuOpen}>
         {(close) => (
           <>
             <MenuItem
@@ -804,7 +835,9 @@ function ResourceItem({
   if (view === "grid") {
     return (
       <div
-        className={`${styles.filecard} ${dragging ? styles.filerowDragging : ""}`}
+        className={`${styles.filecard} ${dragging ? styles.filerowDragging : ""} ${
+          menuOpen ? styles.cardMenuOpen : ""
+        }`}
         {...dragProps}
       >
         <span className={styles.filecardMenu}>{menu}</span>
@@ -819,7 +852,9 @@ function ResourceItem({
 
   return (
     <div
-      className={`${styles.filerow} ${dragging ? styles.filerowDragging : ""}`}
+      className={`${styles.filerow} ${dragging ? styles.filerowDragging : ""} ${
+        menuOpen ? styles.cardMenuOpen : ""
+      }`}
       {...dragProps}
     >
       <ToolTile icon={tool?.icon ?? "folder"} solid={toolSolid(tool)} size="sm" />
@@ -841,10 +876,14 @@ function ResourceItem({
 function Menu({
   label,
   corner,
+  onOpenChange,
   children,
 }: {
   label: string;
   corner?: boolean;
+  /** Fires when the panel opens or closes, so the owning card can raise itself
+   *  above its neighbours for as long as the menu is on screen. */
+  onOpenChange?: (open: boolean) => void;
   children: (close: () => void) => React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
@@ -865,6 +904,18 @@ function Menu({
       document.removeEventListener("keydown", onKey);
     };
   }, [open]);
+
+  /*
+   * Tell the card whether this menu is open, so it can lift itself above its
+   * neighbours while it is. The panel cannot do that for itself: see the note on
+   * `.cardMenuOpen` in folders.module.css.
+   *
+   * In an effect rather than inside setOpen, so the parent is never told to
+   * re-render from inside this component's own render or event handler.
+   */
+  useEffect(() => {
+    onOpenChange?.(open);
+  }, [open, onOpenChange]);
 
   return (
     <div ref={ref} className={corner ? styles.menuCorner : styles.menuInline}>
@@ -1114,6 +1165,55 @@ function MoveModal({
       <div className={styles.modalFoot}>
         <button type="button" className={styles.modalCancel} onClick={onCancel}>
           Cancel
+        </button>
+      </div>
+    </ModalShell>
+  );
+}
+
+/**
+ * Confirm before destroying a resource.
+ *
+ * Deleting used to happen on a single click, straight from a menu whose
+ * neighbouring item is Edit. Nothing in the schema is soft deleted, so there is
+ * no undo and no trash to fish it back out of, and the delete now also removes
+ * the pictures and audio the resource owned.
+ *
+ * The wording says what actually happens, in the same spirit as the folder
+ * delete's promise that the resources inside only move to Unfiled. Naming the
+ * resource matters: it is the one check against deleting the row below the one
+ * you meant.
+ */
+function DeleteModal({
+  run,
+  busy,
+  onCancel,
+  onConfirm,
+}: {
+  run: ToolRun;
+  busy: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  const title = run.title?.trim() || "Untitled";
+  return (
+    <ModalShell
+      title="Delete this resource?"
+      sub="This cannot be undone."
+      onCancel={onCancel}
+    >
+      <p className={styles.confirmBody}>
+        <strong>{title}</strong> will be deleted for good, along with any pictures or audio
+        that belong to it. Anything you have already shared with a colleague stays in their
+        library.
+      </p>
+
+      <div className={styles.modalFoot}>
+        <button type="button" className={styles.modalCancel} onClick={onCancel} disabled={busy}>
+          Cancel
+        </button>
+        <button type="button" className={styles.modalDanger} onClick={onConfirm} disabled={busy}>
+          {busy ? "Deleting..." : "Delete"}
         </button>
       </div>
     </ModalShell>

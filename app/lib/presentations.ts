@@ -371,8 +371,25 @@ export async function updatePresentation(
   if (error) throw error;
 }
 
+/**
+ * Delete a deck, and the Storage objects it owned along with it.
+ *
+ * Through the API rather than straight from here: a deck's images, audio and
+ * video live in Storage, and the only record of WHICH objects is the URLs
+ * inside this row's `slides` JSONB. Deleting the row from the browser destroys
+ * that index and leaves every one of those files billed for forever. The route
+ * reads the slides first, then reclaims whatever nothing else still points at.
+ *
+ * See app/api/resources/delete/route.ts.
+ */
 export async function deletePresentation(id: string): Promise<void> {
-  const sb = createClient();
-  const { error } = await sb.from(TABLE).delete().eq("id", id);
-  if (error) throw error;
+  const res = await fetch("/api/resources/delete", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id, kind: "presentation" }),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.error ?? "Could not delete that slideshow.");
+  }
 }

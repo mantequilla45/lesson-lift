@@ -64,8 +64,17 @@ export default function AnalyticsPage() {
 
   const maxCount = breakdown[0]?.count ?? 1;
 
-  const handleDelete = async (e: React.MouseEvent, id: string) => {
+  const handleDelete = async (e: React.MouseEvent, id: string, title: string) => {
     e.stopPropagation();
+
+    // Ask first: there is no undo, and the delete now also removes the pictures
+    // and audio the resource owned. A plain confirm because this page has no
+    // modal of its own; the Library has the designed dialog.
+    const ok = window.confirm(
+      `Delete "${title}"? This cannot be undone, and removes any pictures or audio that belong to it.`,
+    );
+    if (!ok) return;
+
     setDeletingId(id);
     try {
       await deleteToolRun(id);
@@ -237,7 +246,7 @@ export default function AnalyticsPage() {
                   <button
                     type="button"
                     aria-label={`Delete ${run.title?.trim() || "this resource"}`}
-                    onClick={(e) => handleDelete(e, run.id)}
+                    onClick={(e) => handleDelete(e, run.id, run.title?.trim() || "Untitled")}
                     disabled={deletingId === run.id}
                     className={styles.del}
                   >
