@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { gbp, gbpFromUsd, nf, penceFromUsd } from "./format";
+import { FX_USD_TO_GBP, gbp, gbpFromUsd, nf, penceFromUsd } from "./format";
 import {
   C,
   Card,
@@ -23,6 +23,12 @@ export interface DashboardStats {
   mrr_gbp: number;
   b2c_mrr_gbp: number;
   b2b_mrr_gbp: number;
+  /** Given away by an admin: on a paid plan with no Stripe subscription. */
+  comped_mrr_gbp: number;
+  comped_teachers: number;
+  /** Paying now, but set to cancel at the end of the period. */
+  ending_mrr_gbp: number;
+  ending_teachers: number;
   schools_total: number;
   schools_live: number;
   seats_sold: number;
@@ -66,22 +72,63 @@ const SEVERITY_COLOR: Record<string, string> = {
   low: C.muted,
 };
 
+export interface TrueMrr {
+  gbp: number | null;
+  counted: number;
+  skipped: number;
+  error: string | null;
+}
+
 export default function DashboardView({
   stats,
   attention,
   signups,
   costs,
+  trueMrr,
 }: {
   stats: DashboardStats | null;
   attention: NeedsAttentionRow[];
   signups: SignupRow[];
   costs: CostRow[];
+  trueMrr?: TrueMrr;
 }) {
   const month = new Date().toLocaleDateString("en-GB", { month: "long", year: "numeric" });
 
   const totalTeachers = Number(stats?.total_teachers ?? 0);
   const paying = Number(stats?.paying_teachers ?? 0);
-  const mrr = Number(stats?.mrr_gbp ?? 0);
+  const listMrr = Number(stats?.mrr_gbp ?? 0);
+  const comped = Number(stats?.comped_mrr_gbp ?? 0);
+  const compedCount = Number(stats?.comped_teachers ?? 0);
+  const ending = Number(stats?.ending_mrr_gbp ?? 0);
+  const endingCount = Number(stats?.ending_teachers ?? 0);
+
+  /*
+   * Two figures, and which one leads matters.
+   *
+   * The SQL figure can only ever be LIST price: nothing in our database records
+   * what a subscription is actually charged, and promotion codes are allowed at
+   * checkout. Where Stripe answered, its total is the honest one and leads.
+   * Where it did not, the list figure is shown and labelled as such rather than
+   * presented as exact.
+   *
+   * The B2B half is not in the Stripe figure — school seats are invoiced, not
+   * subscribed — so it is added back on.
+   *
+   * Both figures now cover the same teachers: the live total is taken over the
+   * subscription ids teacher_mrr() counted, not over every active subscription
+   * on the Stripe account. Summing the account showed GBP 46.95 next to "1
+   * paying teacher", because staff subscriptions, a cancelling one, an orphan
+   * and a teacher's second subscription were all in it.
+   */
+  const b2b = Number(stats?.b2b_mrr_gbp ?? 0);
+  const billed = trueMrr?.gbp ?? null;
+  const mrr = billed === null ? listMrr : billed + b2b;
+  const usingStripe = billed !== null;
+
+  // A subscription the database names but Stripe would not price: gone, no
+  // longer active, or not in GBP. Worth saying, because it is silently missing
+  // from the total otherwise.
+  const unpriced = trueMrr?.skipped ?? 0;
   const costUsd = Number(stats?.cost_month_usd ?? 0);
   const aiImageCost = Number(stats?.ai_image_cost_usd ?? 0);
   const gens = Number(stats?.generations_month ?? 0);
@@ -90,7 +137,10 @@ export default function DashboardView({
 
   // Gross margin on subscription revenue, after measured AI cost only. Card
   // fees and overheads are excluded — this is the AI-cost lever, not a P&L.
-  const costGbp = costUsd * 0.79;
+  // The shared constant rather than a second copy of the literal, which is how
+  // this drifted from the rate the rest of the console uses. The rate itself
+  // belongs in the fx_rate table; see the note in format.ts.
+  const costGbp = costUsd * FX_USD_TO_GBP;
   const grossMargin = mrr > 0 ? (mrr - costGbp) / mrr : null;
   const conversion = totalTeachers > 0 ? (paying / totalTeachers) * 100 : 0;
   const aiShare = costUsd > 0 ? (aiImageCost / costUsd) * 100 : 0;
@@ -122,7 +172,33 @@ export default function DashboardView({
         <Stat
           label="MRR"
           value={gbp(mrr)}
-          foot={`B2C ${gbp(Number(stats?.b2c_mrr_gbp ?? 0))} · B2B ${gbp(Number(stats?.b2b_mrr_gbp ?? 0))}`}
+          foot={
+            usingStripe
+              ? `Actually billed · B2B ${gbp(b2b)}` +
+                (unpriced > 0 ? ` · ${nf.format(unpriced)} not priced` : "")
+              : `List price${trueMrr ? ", Stripe unavailable" : ""} · B2B ${gbp(b2b)}`
+          }
+        />
+        {/* Not folded into MRR, and not hidden either. A comp is revenue being
+            given away and a cancellation is revenue leaving; both are worth
+            seeing next to the number they used to silently inflate. */}
+        <Stat
+          label="Comped"
+          value={gbp(comped)}
+          foot={
+            compedCount === 0
+              ? "nobody on a free upgrade"
+              : `${nf.format(compedCount)} ${compedCount === 1 ? "teacher" : "teachers"} at list price`
+          }
+        />
+        <Stat
+          label="Cancelling"
+          value={gbp(ending)}
+          foot={
+            endingCount === 0
+              ? "nobody has cancelled"
+              : `${nf.format(endingCount)} ${endingCount === 1 ? "teacher" : "teachers"} leaving at period end`
+          }
         />
         <Stat
           label="Gross margin"

@@ -395,16 +395,59 @@
 
 /* ── Kebab menu ──────────────────────────────────────────────────────────── */
 
+/* Deliberately NO z-index here, on either wrapper.
+ *
+ * `position: absolute` plus an integer z-index creates a stacking context, and
+ * that context was clamping .menuPanel's z-index: 30 to an effective 2. The
+ * panel then could not rise above the neighbouring cards, which is what put the
+ * open menu UNDERNEATH the cards to its right and below.
+ *
+ * The kebab still paints over the card's face without one: .folderOpen and
+ * .filecardFace are not positioned, so the positioned wrapper wins on paint
+ * order regardless. The z-index was never doing the job it looked like it was.
+ */
 .menuCorner {
   position: absolute;
   top: 12px;
   right: 12px;
-  z-index: 2;
 }
 
 .menuInline {
   position: relative;
   flex: none;
+}
+
+/* The card that currently owns an open menu.
+ *
+ * Two things had to be undone for a menu to escape its card, and BOTH matter:
+ *
+ *   1. z-index. The card is `position: relative` with no z-index, so it sits at
+ *      auto and later cards in DOM order paint over anything of its that
+ *      overflows. Lifting it here puts the whole card, menu included, above its
+ *      neighbours for as long as the menu is open.
+ *
+ *   2. transform. `.filecard:hover` / `.folder:hover` apply a translateY, and a
+ *      non-none transform creates a stacking context that traps the panel
+ *      inside the card no matter what z-index either one carries. You are
+ *      always hovering the card you just clicked the kebab on, so this fired
+ *      every time. (Tell: the bug did not reproduce under reduced motion, which
+ *      already drops the transform below.)
+ *
+ * 40 places the menu above the sticky top bar at 20 (TopBarV2.module.css) so it
+ * no longer scrolls underneath it, and below the modal scrims at 80. That is
+ * the ladder the rest of the app already uses: content 1-2, top bar 20, drawer
+ * 40-50, scrims 80.
+ *
+ * `position: relative` is set here rather than relied on: .filecard and .folder
+ * already have it, but .filerow (list view) does not, and z-index is ignored on
+ * a static box. Setting it only while the menu is open changes nothing about
+ * the row's layout.
+ */
+.cardMenuOpen,
+.cardMenuOpen:hover {
+  position: relative;
+  z-index: 40;
+  transform: none;
 }
 
 .menuBtn {
@@ -661,6 +704,35 @@
 
 .modalSave:disabled:hover {
   background: var(--j-purple);
+}
+
+/* The confirm button on a destructive modal. Orange rather than purple, using
+   the same pair of tokens as .menuDanger, so the button that destroys a
+   resource never looks like the one that saves a folder. */
+.modalDanger {
+  background: var(--j-orange);
+  color: #fff;
+}
+
+.modalDanger:hover {
+  background: var(--j-orange-ink);
+}
+
+.modalDanger:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.modalDanger:disabled:hover {
+  background: var(--j-orange);
+}
+
+/* The body copy of a confirm modal. */
+.confirmBody {
+  margin: 6px 0 0;
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: var(--j-body);
 }
 
 /* ── Move-to-folder picker ───────────────────────────────────────────────── */

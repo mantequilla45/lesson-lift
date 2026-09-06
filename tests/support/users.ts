@@ -103,6 +103,46 @@ export async function deleteTeacher(teacher: TestTeacher | null): Promise<void> 
   await admin.auth.admin.deleteUser(teacher.id).catch(() => {});
 }
 
+/**
+ * A teacher with the admin flag set, for tests about the admin console.
+ *
+ * The flag is written through the service role because `profiles.is_admin` is
+ * exactly the privilege a teacher must not be able to grant themselves — see
+ * 20260811000400_lock_down_profile_self_update.sql. Torn down by
+ * deleteTeacher() like any other.
+ */
+export async function createAdmin(firstName: string): Promise<TestTeacher> {
+  const person = await createTeacher(firstName);
+  const { error } = await admin.from("profiles").update({ is_admin: true }).eq("id", person.id);
+  if (error) throw new Error(`Could not make ${firstName} an admin: ${error.message}`);
+  return person;
+}
+
+/**
+ * Put a teacher on a paid plan in one of the three states MRR has to tell
+ * apart. The distinction that matters is `stripe_subscription_id`: a comp never
+ * has one, and that absence is the only honest way to spot it, because the comp
+ * path sets subscription_status to 'active' by hand.
+ */
+export async function setPlan(
+  teacher: TestTeacher,
+  plan: "pro" | "max",
+  how: "paying" | "comped" | "ending",
+): Promise<void> {
+  const { error } = await admin
+    .from("profiles")
+    .update({
+      plan,
+      subscription_status: "active",
+      // A comp has no Stripe customer and no subscription behind it.
+      stripe_customer_id: how === "comped" ? null : `cus_e2e_${teacher.id.slice(0, 8)}`,
+      stripe_subscription_id: how === "comped" ? null : `sub_e2e_${teacher.id.slice(0, 8)}`,
+      cancel_at_period_end: how === "ending",
+    })
+    .eq("id", teacher.id);
+  if (error) throw new Error(`Could not put ${teacher.firstName} on ${plan}: ${error.message}`);
+}
+
 /** A resource in this teacher's library, so there is something to share. */
 export async function seedResource(
   teacher: TestTeacher,

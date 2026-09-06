@@ -46,8 +46,18 @@ export default function ToolHistoryPanel({
     load();
   }, [load, reloadSignal]);
 
-  const handleDelete = async (e: React.MouseEvent, id: string) => {
+  const handleDelete = async (e: React.MouseEvent, id: string, title: string) => {
     e.stopPropagation();
+
+    // Ask first. There is no undo and no trash, and the delete now also removes
+    // the pictures and audio the resource owned. A plain confirm rather than a
+    // modal: this is a four-item sidebar shortlist with nowhere to put one, and
+    // the full Library has the designed dialog.
+    const ok = window.confirm(
+      `Delete "${title}"? This cannot be undone, and removes any pictures or audio that belong to it.`,
+    );
+    if (!ok) return;
+
     setDeletingId(id);
     try {
       await deleteToolRun(id);
@@ -95,7 +105,7 @@ export default function ToolHistoryPanel({
                 </button>
                 <button
                   type="button"
-                  onClick={(e) => handleDelete(e, run.id)}
+                  onClick={(e) => handleDelete(e, run.id, run.title?.trim() || "Untitled")}
                   disabled={deletingId === run.id}
                   aria-label="Delete from history"
                   className="shrink-0 w-7 h-7 flex items-center justify-center rounded-lg text-gray-400 opacity-0 group-hover:opacity-100 hover:text-red-600 hover:bg-white transition-all cursor-pointer"

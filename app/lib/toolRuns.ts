@@ -149,8 +149,26 @@ export async function moveRunToFolder(runId: string, folderId: string | null): P
   if (error) throw error;
 }
 
+/**
+ * Delete a resource, and the Storage objects it owned along with it.
+ *
+ * Goes through the API rather than deleting the row here, which RLS would
+ * happily allow. The row is the ONLY index of which images, audio and video
+ * belong to this resource — nothing records the object paths as columns — so
+ * deleting it from the browser reclaims the row and leaks the files forever.
+ * The route reads the row first, deletes it, then removes whatever no other
+ * deck, run, share or library image still points at.
+ *
+ * See app/api/resources/delete/route.ts.
+ */
 export async function deleteToolRun(id: string): Promise<void> {
-  const supabase = createClient();
-  const { error } = await supabase.from("tool_runs").delete().eq("id", id);
-  if (error) throw error;
+  const res = await fetch("/api/resources/delete", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id, kind: "run" }),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.error ?? "Could not delete that resource.");
+  }
 }
